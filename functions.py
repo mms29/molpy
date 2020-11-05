@@ -25,6 +25,8 @@ def read_modes(file, n_modes=20):
     return np.transpose(np.array(A),(1,0,2))
 
 def read_stan_model(file, save=True, build=False):
+    if not os.path.exists(file+'.pkl'):
+        build=True
     if build==True:
         s=""
         with open(file+'.stan', "r") as f:

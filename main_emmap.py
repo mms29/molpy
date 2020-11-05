@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from functions import *
 
 # import PDB
-x, ca = read_pdb("/home/guest/Downloads/AK.pdb")
+x, ca = read_pdb("AK.pdb")
 x=x[ca]
 n_atoms, _ = x.shape
 
@@ -39,4 +39,41 @@ for i in range(dimX):
 # READ STAN MODEL
 sm = read_stan_model("nma_emmap", build=True)
 
+model_dat = {'n_atoms': n_atoms,
+             'n_modes':n_modes_fitted,
+             'dimX':dimX,
+             'dimY':dimY,
+             'dimZ':dimZ,
+             'em_density':em_density,
+             'x0':x,
+             'A': A[:,7:(7+n_modes_fitted),:],
+             'sigma':200,
+             'epsilon':0.01,
+             'mu':0}
+fit = sm.sampling(data=model_dat, iter=100, chains=2)
+la = fit.extract(permuted=True)
+q_res = la['q']
+for i in range(n_modes_fitted):
+    print(" q value "+str(i+7)+" : "+str(np.mean(q_res[:,i])))
+# print(" q value 7 : "+str(np.mean(q_res)))
+x_res = np.mean(la['x'], axis=0)
 
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(x[:,0],x[:,1], x[:,2], c='r')
+ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
+ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
+fig.show()
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+for i in range(n_modes_fitted):
+    parts = ax.violinplot(q_res[:,i],[i], )
+    for pc in parts['bodies']:
+        pc.set_facecolor('#1f77b4')
+        pc.set_edgecolor('grey')
+    for partname in ('cbars', 'cmins', 'cmaxes', ):
+        vp = parts[partname]
+        vp.set_edgecolor('#1f77b4')
+    ax.plot(i,q[i+7], 'x', color='r')
+fig.show()
