@@ -78,3 +78,4 @@ for i in range(n_modes_fitted):
     ax.plot(i,q[i+7], 'x', color='r')
     fig.save("modes_amplitudes.png")
 fig.show()
+
