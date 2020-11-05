@@ -50,7 +50,7 @@ model_dat = {'n_atoms': n_atoms,
              'sigma':200,
              'epsilon':0.01,
              'mu':0}
-fit = sm.sampling(data=model_dat, iter=70, warmup=50, chains=4)
+fit = sm.sampling(data=model_dat, iter=500, warmup=300, chains=4)
 la = fit.extract(permuted=True)
 q_res = la['q']
 for i in range(n_modes_fitted):
