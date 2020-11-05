@@ -43,3 +43,4 @@ ax.scatter(x[:,0],x[:,1], x[:,2], c='r')
 ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
 ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x")
 fig.show()
+
