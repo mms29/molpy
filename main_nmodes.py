@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from functions import *
 
 # import PDB
-x, ca = read_pdb("/home/guest/Downloads/AK.pdb")
+x, ca = read_pdb("AK.pdb")
 x=x[ca]
 n_atoms, _ = x.shape
 
