@@ -63,6 +63,7 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(x[:,0],x[:,1], x[:,2], c='r')
 ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
 ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
+fig.savefig("results/3d_structures.png")
 fig.show()
 
 fig = plt.figure()
@@ -76,6 +77,6 @@ for i in range(n_modes_fitted):
         vp = parts[partname]
         vp.set_edgecolor('#1f77b4')
     ax.plot(i,q[i+7], 'x', color='r')
-    fig.save("modes_amplitudes.png")
+fig.savefig("results/modes_amplitudes.png")
 fig.show()
 
