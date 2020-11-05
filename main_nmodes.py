@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 from functions import *
 
 # import PDB
-x, ca = read_pdb("AK.pdb")
+x, ca = read_pdb("data/AK/AK.pdb")
 x=x[ca]
 n_atoms, _ = x.shape
 
 # Read Modes
 n_modes = 20
-A = read_modes("/home/guest/ScipionUserData/projects/HEMNMA-3D-Remi/Runs/000074_FlexProtNMA/modes/vec.", n_modes=n_modes)[ca]
+A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
 
 #Simulate Structure
 n_modes_fitted = 10
