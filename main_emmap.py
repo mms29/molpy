@@ -14,9 +14,9 @@ n_modes = 20
 A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
 
 #Simulate EM map
-n_modes_fitted = 2
+n_modes_fitted = 5
 q = np.zeros(n_modes)
-q[7:(7+n_modes_fitted)]=np.random.uniform(-200,200,n_modes_fitted)
+q[7:(7+n_modes_fitted)]=np.random.uniform(-175,175,n_modes_fitted)
 y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
@@ -48,7 +48,7 @@ model_dat = {'n_atoms': n_atoms,
              'x0':x,
              'A': A[:,7:(7+n_modes_fitted),:],
              'sigma':200,
-             'epsilon':0.01,
+             'epsilon':0.001,
              'mu':0}
 fit = sm.sampling(data=model_dat, iter=500, warmup=300, chains=4)
 la = fit.extract(permuted=True)
