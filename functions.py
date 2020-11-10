@@ -24,18 +24,18 @@ def read_modes(file, n_modes=20):
         A.append(np.loadtxt(file + str(i + 1)))
     return np.transpose(np.array(A),(1,0,2))
 
-def read_stan_model(file, save=True, build=False):
-    if not os.path.exists(file+'.pkl'):
+def read_stan_model(model, save=True, build=False):
+    if not os.path.exists('stan/'+model+'.pkl'):
         build=True
     if build==True:
         s=""
-        with open(file+'.stan', "r") as f:
+        with open('stan/'+model+'.stan', "r") as f:
             for line in f:
                 s+=line
         sm = pystan.StanModel(model_code=s)
         if save==True:
-            with open(file+'.pkl', 'wb') as f:
+            with open('stan/'+model+'.pkl', 'wb') as f:
                 pickle.dump(sm, f)
     else:
-        sm = pickle.load(open(file+'.pkl', 'rb'))
+        sm = pickle.load(open('stan/'+model+'.pkl', 'rb'))
     return sm
