@@ -18,7 +18,7 @@ n_modes = 20
 A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
 
 ########################################################################################################
-#               NMA
+#               NMA DEFORMATION
 ########################################################################################################
 
 n_modes_fitted = 10
@@ -30,43 +30,87 @@ for i in range(n_atoms):
 
 
 ########################################################################################################
-#               MOLECULAR DYNAMICS
+#               MOLECULAR DYNAMICS DEFORMATION
 ########################################################################################################
 y_md = np.array(y)
-k_md = 0.001
+k_r = 0.001
+k_theta= 0.01
+k_lj=1e-8
+d_lj=3
 s_md = 0
-sigma_md=0.1
+sigma_md=0.05
 n_md=0
-U_lim= 0.1
+U_lim= 0.5
 r_md=np.mean([np.linalg.norm(x[i] - x[i + 1]) for i in range(n_atoms-1)])
+_theta_md=[]
+for i in range(n_atoms - 2):
+    _theta_md.append(np.arccos(np.dot(x[i] - x[i + 1], x[i + 1] - x[i + 2])
+                      / (np.linalg.norm(x[i] - x[i + 1]) * np.linalg.norm(x[i + 1] - x[i + 2]))))
+theta_md=np.mean(_theta_md)
 
 #compute current potential
-U_init=0
+U_bonds_init=0
 for i in range(n_atoms - 1):
     r = np.linalg.norm(y[i] - y[i + 1])
-    U_init += k_md * (r - r_md) ** 2
+    U_bonds_init += k_r * (r - r_md) ** 2
+
+U_angles_init=0
+for i in range(n_atoms-2):
+    theta = np.arccos(np.dot(y[i] - y[i+1], y[i+1] - y[i+2])
+                      / (np.linalg.norm(y[i] - y[i+1]) * np.linalg.norm(y[i+1] - y[i+2])))
+    U_angles_init += k_theta * (theta - theta_md) ** 2
+
+U_nonbonded_init=0.0
+for i in range(n_atoms):
+    for j in range(n_atoms):
+        if i != j:
+            U_nonbonded_init += 4* k_lj*( (d_lj/np.linalg.norm(y[i] - y[j]))**12 - (d_lj/np.linalg.norm(y[i] - y[j]))**6 )
+
+U_init = U_angles_init + U_bonds_init + U_nonbonded_init
 print("U init : " + str(U_init))
 
 while(U_init>U_lim):
-    U_md=0
+
+    # new direction
     x_md = np.random.normal(0, sigma_md, y_md.shape)
     y_tmp = x_md + y_md
+
+    # Ep bonds
+    U_bonds = 0
     for i in range(n_atoms-1) :
         r = np.linalg.norm(y_tmp[i]-y_tmp[i+1])
-        U_md+= k_md*(r-5.16)**2
+        U_bonds+= k_r*(r-r_md)**2
+
+    # Ep angles
+    U_angles = 0
+    for i in range(n_atoms-2):
+        theta = np.arccos(np.dot(y_tmp[i] - y_tmp[i+1], y_tmp[i+1] - y_tmp[i+2])
+                          / (np.linalg.norm(y_tmp[i] - y_tmp[i+1]) * np.linalg.norm(y_tmp[i+1] - y_tmp[i+2])))
+        U_angles += k_theta * (theta - theta_md) ** 2
+
+    U_nonbonded = 0.0
+    for i in range(n_atoms):
+        for j in range(n_atoms):
+            if i != j:
+                U_nonbonded += 4 * k_lj * (
+                            (d_lj / np.linalg.norm(y_tmp[i] - y_tmp[j])) ** 12 - (d_lj / np.linalg.norm(y_tmp[i] - y_tmp[j])) ** 6)
+
+    # Ep total
+    U_md= U_bonds+U_angles #+U_nonbonded
     if (U_init>U_md):
         U_init=U_md
-
         y_md=y_tmp
-        print("step : "+str(U_md))
+        print("yes : "+str(U_md))
         s_md+=np.var(x_md)
-    print("-")
+    # else:
+    #     print("no : dU_bonds = "+str(U_bonds - U_bonds_init)+" ; dU_angles = "+str(U_angles- U_angles_init)+
+    #           " ; dU_nonbonded = "+str(U_nonbonded- U_nonbonded_init)+" ; dU_md = "+str(U_md))
 
 ########################################################################################################
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-sm = read_stan_model("md_nma", build=False)
+sm = read_stan_model("md_nma", build=True)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
@@ -76,10 +120,14 @@ model_dat = {'n_atoms': n_atoms,
              'sigma':200,
              'epsilon':1,
              'mu':0,
-             'k_md': k_md,
-             'U_init':U_init,
-             'r_md':r_md,
+             'U_init':U_lim,
              's_md':s_md,
+             'k_r':k_r,
+             'r0':r_md,
+             'k_theta':k_theta,
+             'theta0':theta_md,
+             'k_lj':k_lj,
+             'd_lj':d_lj
             }
 fit = sm.sampling(data=model_dat, iter=1000, chains=4)
 la = fit.extract(permuted=True)

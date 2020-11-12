@@ -9,10 +9,20 @@ data {
     real epsilon;
     real mu;
 
-    real k_md;
+    //potential energy def
     real U_init;
-    real r_md;
     real s_md;
+
+    // bonds
+    real k_r;
+    real r0;
+
+    // angles
+    real k_theta;
+    real theta0;
+
+    real k_lj;
+    real d_lj;
 }
 parameters {
     row_vector [n_modes]q;
@@ -21,11 +31,25 @@ parameters {
 transformed parameters {
     matrix [n_atoms, 3] x;
     real U=0;
+
+    // normal modes deformation
     for (i in 1:n_atoms){
         x[i] = q*A[i] + x0[i]+ x_md[i];
     }
-    for (i in 1:n_atoms-1){
-        U += k_md*square(sqrt( square(x[i,1]-x[i+1,1]) + square(x[i,2]-x[i+1,2]) + square(x[i,3]-x[i+1,3])) - r_md);
+
+    // potential energy
+    for (i in 1:n_atoms){
+        if (i<n_atoms){
+            U += k_r*square(distance(x[i], x[i+1]) - r0);
+        }
+        if (i+1<n_atoms){
+            U += k_theta*square(acos(dot_product(x[i]-x[i+1],x[i+1]-x[i+2])/(distance(x[i],x[i+1])*distance(x[i+1],x[i+2]))) - theta0);
+        }
+        for (j in 1:n_atoms){
+            if(i!=j){
+                U+= 4*k_lj*(pow(d_lj/distance(x[i], x[j]),12) - pow(d_lj/distance(x[i], x[j]),6));
+            }
+        }
     }
 
 }

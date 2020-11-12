@@ -10,7 +10,7 @@ data {
     real mu;
 }
 parameters {
-    row_vector [n_modes]q;
+    row_vector<lower=-300,upper=300> [n_modes]q;
 }
 transformed parameters {
     matrix [n_atoms, 3] x;
