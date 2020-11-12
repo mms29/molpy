@@ -31,6 +31,7 @@ for i in range(dimX):
             for a in range(n_atoms):
                 s+= np.exp( - ((i -(dimX/2.0)- y[a,0])**2 + (j -(dimY/2.0) - y[a,1])**2 + (k -(dimZ/2.0) - y[a,2])**2))
             em_density[i,j,k] = np.sum(s)
+    print(i)
 
 
 # READ STAN MODEL
