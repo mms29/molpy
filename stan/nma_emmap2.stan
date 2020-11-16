@@ -48,7 +48,7 @@ model {
             for (k in 1:dimZ){
                 real s=0;
                 for (a in 1:n_atoms){
-                    s+= gaussian_pdf(x[a], ([i,j,k]-center_transform)*sampling_rate, gaussian_sigma);
+                    s+= exp(-dot_self(x[a] - ([i,j,k]-center_transform)*sampling_rate));
                 }
                 em_density[i,j,k] ~ normal(s, epsilon);
             }
