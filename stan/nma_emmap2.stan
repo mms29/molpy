@@ -1,6 +1,6 @@
 functions{
     real gaussian_pdf(row_vector x, row_vector mu, real sigma){
-        return pow((1/((2*pi()*square(sigma)))),(3.0/2.0xp(-((1/(2*square(sigma))) * square(distance(x,mu))));
+        return pow((1/((2*pi()*square(sigma)))),(3.0/2.0))*exp(-((1/(2*square(sigma))) * square(distance(x,mu))));
     }
 
 }
