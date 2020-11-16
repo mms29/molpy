@@ -1,4 +1,9 @@
+functions{
+    real gaussian_pdf(row_vector x, row_vector mu, real sigma){
+        return pow((1/((2*pi()*square(sigma)))),1.5)*exp(-((1/(2*square(sigma))) * square(distance(x,mu))));
+    }
 
+}
 data {
 
     // initial structure
@@ -19,14 +24,37 @@ data {
     real sigma;
     real epsilon;
     real mu;
+
+    real sampling_rate;
+    real guassian_range;
+    real gaussian_sigma;
+    row_vector [3] center_transform;
 }
 parameters {
     row_vector<lower=-300,upper=300> [n_modes]q;
 }
 transformed parameters {
     matrix [n_atoms, 3] x;
-    for (i in 1:n_atoms){
-        x[i] = q*A[i] + x0[i];
+    real sim_density[dimX, dimY, dimZ] = rep_array(0.0, dimX, dimY, dimZ);
+
+    for (a in 1:n_atoms){
+        row_vector pos = int((x[a]/sampling_rate) + center_transform);
+
+        x[a] = q*A[a] + x0[a];
+        for (i in (pos[1] - guassian_range -1) : (pos[1] + guassian_range)){
+            if (i>0 and i <=dimX){
+                for (j in (pos[2] - guassian_range -1) : (pos[2] + guassian_range)){
+                    if(j>0 and j <=dimY){
+                        for (k in (pos[3] - guassian_range -1) : (pos[3] + guassian_range)){
+                            if(k>0 and k <=dimZ){
+                                row_vector mu= {i,j,k}
+                                sim_density+=gaussian_pdf(x[a],(mu-center_transform)*sampling_rate, gaussian_sigma);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
 }
@@ -34,15 +62,6 @@ model {
     for (i in 1:n_modes){
         q[i] ~ normal(mu, sigma);
     }
-    for (i in 1:dimX){
-        for (j in 1:dimY){
-            for (k in 1:dimZ){
-                real s=0;
-                for (a in 1:n_atoms){
-                    s+= exp( -(square(i -(dimX/2.0) - x[a,1]) + square(j -(dimY/2.0) - x[a,2]) + square(k -(dimZ/2.0) - x[a,3])));
-                }
-                em_density[i,j,k] ~ normal(s, epsilon);
-            }
-        }
-    }
+    em_density ~ normal(sim_density, epsilon);
+
 }
