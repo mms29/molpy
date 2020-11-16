@@ -30,7 +30,7 @@ data {
     row_vector [3] center_transform;
 }
 parameters {
-    row_vector<lower=-200,upper=200> [n_modes]q;
+    row_vector<lower=-300,upper=300> [n_modes]q;
 }
 transformed parameters {
     matrix [n_atoms, 3] x;
