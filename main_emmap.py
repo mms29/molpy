@@ -34,7 +34,7 @@ plt.imshow(em_density[25])
 # READ STAN MODEL
 n_shards=1
 os.environ['STAN_NUM_THREADS'] = str(n_shards)
-sm = read_stan_model("nma_emmap", build=True, threads=0)
+sm = read_stan_model("nma_emmap2", build=True, threads=0)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
