@@ -21,12 +21,12 @@ y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
 
-dim = 64
+dim = 32
 dimX = dim
 dimY = dim
 dimZ = dim
-sampling_rate=1
-gaussian_sigma=3
+sampling_rate=2
+gaussian_sigma=1
 em_density = volume_from_pdb(y, size=(dimX,dimY,dimZ), sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
 # em_vector = to_vector(em_density)
 
