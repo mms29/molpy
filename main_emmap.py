@@ -21,7 +21,7 @@ y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
 
-dim = 10
+dim = 64
 dimX = dim
 dimY = dim
 dimZ = dim
@@ -52,7 +52,7 @@ model_dat = {'n_atoms': n_atoms,
              'gaussian_sigma' :gaussian_sigma,
              'center_transform': np.array([dimX/2,dimY/2,dimZ/2]),
              'n_shards' : n_shards}
-fit = sm.sampling(data=model_dat, iter=10, warmup=5, chains=4)
+fit = sm.sampling(data=model_dat, iter=400, warmup=300, chains=4)
 print("---- STAN END")
 la = fit.extract(permuted=True)
 q_res = la['q']
