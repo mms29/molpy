@@ -21,7 +21,7 @@ y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
 
-dim = 64
+dim = 10
 dimX = dim
 dimY = dim
 dimZ = dim
@@ -53,12 +53,14 @@ model_dat = {'n_atoms': n_atoms,
              'center_transform': np.array([dimX/2,dimY/2,dimZ/2]),
              'n_shards' : n_shards}
 fit = sm.sampling(data=model_dat, iter=1, warmup=1, chains=4)
+print("---- STAN END")
 la = fit.extract(permuted=True)
 q_res = la['q']
 for i in range(n_modes_fitted):
     print(" q value "+str(i+7)+" : "+str(np.mean(q_res[:,i])))
 # print(" q value 7 : "+str(np.mean(q_res)))
 x_res = np.mean(la['x'], axis=0)
+print("---- EXTRACT END")
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -67,6 +69,8 @@ ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
 ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
 fig.savefig("results/3d_structures.png")
 # fig.show()
+print("---- PLOT1 END")
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
@@ -82,3 +86,4 @@ for i in range(n_modes_fitted):
 fig.savefig("results/modes_amplitudes.png")
 # fig.show()
 
+print("---- PLOT2 END")
