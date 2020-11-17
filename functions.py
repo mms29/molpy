@@ -69,8 +69,8 @@ def volume_from_pdb(x, size=(50,50,50), sigma=1, sampling_rate=1, precision=0.00
 
 
 def gaussian_pdf(x, mu, sigma):
-    # return (1/((2*np.pi*(sigma**2))**(3/2)))*np.exp(-((1/(2*(sigma**2))) * (np.linalg.norm(x-mu)**2)))
-    return np.exp(-(np.linalg.norm(x - mu) ** 2))
+    return (1/((2*np.pi*(sigma**2))**(3/2)))*np.exp(-((1/(2*(sigma**2))) * (np.linalg.norm(x-mu)**2)))
+    # return np.exp(-(np.linalg.norm(x - mu) ** 2))
 
 def center_pdb(x):
     return x - np.mean(x, axis=0)

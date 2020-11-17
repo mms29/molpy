@@ -21,20 +21,21 @@ y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
 
-dimX = 50
-dimY = 50
-dimZ = 50
+dim = 64
+dimX = dim
+dimY = dim
+dimZ = dim
 sampling_rate=1
-gaussian_sigma=1
-em_density = volume_from_pdb(y, size=(dimX,dimY,dimZ), sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.001)
+gaussian_sigma=3
+em_density = volume_from_pdb(y, size=(dimX,dimY,dimZ), sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
 # em_vector = to_vector(em_density)
 
-plt.imshow(em_density[25])
+plt.imshow(em_density[int(dim/2)])
 
 # READ STAN MODEL
 n_shards=1
 os.environ['STAN_NUM_THREADS'] = str(n_shards)
-sm = read_stan_model("nma_emmap2", build=True, threads=0)
+sm = read_stan_model("nma_emmap2", build=False, threads=0)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
@@ -51,7 +52,7 @@ model_dat = {'n_atoms': n_atoms,
              'gaussian_sigma' :gaussian_sigma,
              'center_transform': np.array([dimX/2,dimY/2,dimZ/2]),
              'n_shards' : n_shards}
-fit = sm.sampling(data=model_dat, iter=500, warmup=400, chains=4)
+fit = sm.sampling(data=model_dat, iter=1, warmup=1, chains=4)
 la = fit.extract(permuted=True)
 q_res = la['q']
 for i in range(n_modes_fitted):

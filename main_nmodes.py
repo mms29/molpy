@@ -41,17 +41,16 @@ la = fit.extract(permuted=True)
 q_res = la['q']
 for i in range(n_modes_fitted):
     print(" q value "+str(i+7)+" : "+str(np.mean(q_res[:,i])))
-# print(" q value 7 : "+str(np.mean(q_res)))
-# x_res = np.mean(la['x'], axis=0)
-#
-# fig = plt.figure()
-# ax = fig.add_subplot(111, projection='3d')
+x_res = np.mean(la['x'], axis=0)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 # ax.scatter(x[:,0],x[:,1], x[:,2], c='b')
-# # ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
-# ax.scatter(y[:,0],y[:,1], y[:,2], c='r')
-# ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
-# ax.legend(["Initial Structure", "Ground Truth","NMA fit"])
-# fig.show()
+ax.scatter(y[:,0],y[:,1], y[:,2], c='r')
+ax.scatter(y[:,0],y[:,1], y[:,2], c='r')
+ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
+ax.legend(["Initial Structure", "Ground Truth","NMA fit"])
+fig.show()
 
 
 fig = plt.figure()
