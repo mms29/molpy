@@ -52,7 +52,7 @@ model_dat = {'n_atoms': n_atoms,
              'gaussian_sigma' :gaussian_sigma,
              'center_transform': np.array([dimX/2,dimY/2,dimZ/2]),
              'n_shards' : n_shards}
-fit = sm.sampling(data=model_dat, iter=10, warmup=10, chains=4)
+fit = sm.sampling(data=model_dat, iter=10, warmup=5, chains=4)
 print("---- STAN END")
 la = fit.extract(permuted=True)
 q_res = la['q']
