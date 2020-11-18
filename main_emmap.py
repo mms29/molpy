@@ -14,9 +14,9 @@ n_modes = 20
 A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
 
 #Simulate EM map
-n_modes_fitted = 5
+n_modes_fitted = 2
 q = np.zeros(n_modes)
-q[7:(7+n_modes_fitted)]=np.random.uniform(-200,200,n_modes_fitted)
+q[7:(7+n_modes_fitted)]=[150,-50]#np.random.uniform(-200,200,n_modes_fitted)
 y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
@@ -28,9 +28,11 @@ dimZ = dim
 sampling_rate=2
 gaussian_sigma=1
 em_density = volume_from_pdb(y, size=(dimX,dimY,dimZ), sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
+
 # em_vector = to_vector(em_density)
 
 plt.imshow(em_density[int(dim/2)])
+
 
 # READ STAN MODEL
 n_shards=1
@@ -46,7 +48,7 @@ model_dat = {'n_atoms': n_atoms,
              'x0':x,
              'A': A[:,7:(7+n_modes_fitted),:],
              'sigma':200,
-             'epsilon':0.005,
+             'epsilon':0.001,
              'mu':0,
              'sampling_rate':sampling_rate,
              'gaussian_sigma' :gaussian_sigma,
