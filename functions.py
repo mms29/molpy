@@ -44,11 +44,21 @@ def read_stan_model(model, save=True, build=False, threads=0):
         sm = pickle.load(open('stan/'+model+'.pkl', 'rb'))
     return sm
 
-def volume_from_pdb(x, size=(50,50,50), sigma=1, sampling_rate=1, precision=0.001):
+def volume_from_pdb(x, N, sigma=1, sampling_rate=1, precision=0.001):
 
+    halfN=int(N/2)
+    if((x < -N*sampling_rate/2).any() or (x > N*sampling_rate/2).any()):
+        raise RuntimeError("WARNING !! box size = -"+str(np.max([
+            (N* sampling_rate / 2)  - np.max(x),
+            (N * sampling_rate / 2)  + np.min(x)]
+        )))
+    else:
+        print("box size = "+str(np.max([
+            (N* sampling_rate / 2)  - np.max(x),
+            (N * sampling_rate / 2)  + np.min(x)]
+        )))
     n_atoms = x.shape[0]
-    em_density = np.zeros(size)
-    center_transform = np.array([size[0]/2,size[1]/2,size[2]/2]).astype(int)
+    em_density = np.zeros((N,N,N))
 
     guassian_range = 0
     while(gaussian_pdf(np.array([guassian_range*sampling_rate,0,0]),np.array([0,0,0]), sigma) > precision):
@@ -56,21 +66,31 @@ def volume_from_pdb(x, size=(50,50,50), sigma=1, sampling_rate=1, precision=0.00
 
 
     for a in range(n_atoms):
-        pos = np.rint((x[a]/sampling_rate) + center_transform).astype(int)
+        pos = np.rint((x[a]/sampling_rate) + halfN).astype(int)
         for i in range(pos[0] - guassian_range , pos[0] + guassian_range + 1):
-            if (i>=0 and i <size[0]):
+            if (i>=0 and i <N):
                 for j in range(pos[1] - guassian_range , pos[1] + guassian_range + 1):
-                    if (j >= 0 and j < size[1]):
+                    if (j >= 0 and j < N):
                         for k in range(pos[2] - guassian_range, pos[2] +guassian_range + 1):
-                            if (k >= 0 and k < size[2]):
-                                em_density[i, j, k] += gaussian_pdf((np.array([i,j,k]) - center_transform)*sampling_rate,x[a], sigma)
+                            if (k >= 0 and k < N):
+                                em_density[i, j, k] += gaussian_pdf(np.array([i-halfN,j-halfN,k-halfN])*sampling_rate,x[a], sigma)
 
     return em_density
 
 
 def gaussian_pdf(x, mu, sigma):
-    # return (1/((2*np.pi*(sigma**2))**(3/2)))*np.exp(-((1/(2*(sigma**2))) * (np.linalg.norm(x-mu)**2)))
-    return np.exp(-(np.linalg.norm(x - mu) ** 2))
+    return (1/((2*np.pi*(sigma**2))**(3/2)))*np.exp(-((1/(2*(sigma**2))) * (np.linalg.norm(x-mu)**2)))
+
+def volume_from_pdb_slow(x, size, sigma, sampling_rate=1):
+    n_atoms = x.shape[0]
+    em_density = np.zeros(size)
+    center_transform = np.array([size[0] / 2, size[1] / 2, size[2] / 2]).astype(int)
+    for i in range(size[0]):
+        for j in range(size[1]):
+            for k in range(size[2]):
+                for a in range(n_atoms):
+                    em_density[i, j, k] += gaussian_pdf(x[a],((np.array([i, j, k]) - center_transform) * sampling_rate) , sigma)
+    return em_density
 
 def center_pdb(x):
     return x - np.mean(x, axis=0)

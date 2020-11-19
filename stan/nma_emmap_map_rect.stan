@@ -4,38 +4,31 @@ functions{
     }
     vector lp_reduce(vector beta, vector theta, real[] xr, int[] xi){
         int n_atoms         = xi[1];
-        int dX              = xi[2];
-        int dimY            = xi[3];
-        int dimZ            = xi[4];
+        int N               = xi[2];
+        int halfN           = xi[3];
+        int shard           = xi[4];
+        int n               = xi[5];
+        real epsilon        = xr[n*N*N+1];
+        real gaussian_sigma = xr[n*N*N+2];
+        real sampling_rate  = xr[n*N*N+3];
 
-        real ct1            = xr[dX*dimY*dimZ+1];
-        real ct2            = xr[dX*dimY*dimZ+2];
-        real ct3            = xr[dX*dimY*dimZ+3];
-        real epsilon        = xr[dX*dimY*dimZ+4];
-        real gaussian_sigma = xr[dX*dimY*dimZ+5];
-        real sampling_rate  = xr[dX*dimY*dimZ+6];
-
-        matrix [n_atoms,3] x = to_matrix(beta, n_atoms, 3);
+        matrix[n_atoms,3] x = to_matrix(beta, n_atoms, 3);
 
         real total=0;
 
-        for(i in 1:dX){
-            for (j in 1:dimY){
-                for (k in 1:dimZ){
+        for (i in 1:n){
+            for (j in 1:N){
+                for (k in 1:N){
                     real s=0;
-                    for (a in 1:n_atoms){
-                        s+= gaussian_pdf(x[a], [(i-ct1)*sampling_rate,
-                                                (j-ct2)*sampling_rate,
-                                                (k-ct3)*sampling_rate], gaussian_sigma);
+                    for(a in 1:n_atoms){
+                        s += gaussian_pdf(x[a], ([i-halfN-1,j-halfN-1,k-halfN-1])*sampling_rate, gaussian_sigma);
                     }
-                    total += normal_lpdf(xr[ k + (j-1) * dimZ + (i-1) * dimY * dimZ] | s, epsilon);
+                    total+= normal_lpdf(xr[k + (j-1)*N + (i-1)*N*N]| s, epsilon);
                 }
             }
         }
-
         return [total]';
     }
-
 }
 data {
 
@@ -49,43 +42,38 @@ data {
     matrix [n_modes, 3] A[n_atoms];
 
     // em density
-    int<lower=0> dimX;
-    int<lower=0> dimY;
-    int<lower=0> dimZ;
-    real em_density[dimX*dimY*dimZ];
+    int<lower=0> N;
+    real em_density[N*N*N];
 
     // hyperparmeters
     real sigma;
     real epsilon;
-    real mu;
+    row_vector [n_modes] mu;
 
     real sampling_rate;
     real gaussian_sigma;
-    vector [3] center_transform;
+    int halfN;
 }
 transformed data {
 
-    int dX = dimX/n_shards;
-    real xr [n_shards, dX*dimY*dimZ + 6];
-    int xi [n_shards, 4] ;
+    int n = N/n_shards;
+    real xr [n_shards, n*N*N + 3];
+    int xi [n_shards, 5] ;
     vector [0]theta [n_shards];
 
     for(shard in 1:n_shards){
-        xr[shard, 1 : dX*dimY*dimZ] = em_density[(shard-1)*dX*dimY*dimZ + 1 :shard*dX*dimY*dimZ];
-        xr[shard, dX*dimY*dimZ+1] =center_transform[1];
-        xr[shard, dX*dimY*dimZ+2] =center_transform[2];
-        xr[shard, dX*dimY*dimZ+3] =center_transform[3];
-        xr[shard, dX*dimY*dimZ+4] =epsilon;
-        xr[shard, dX*dimY*dimZ+5] =gaussian_sigma;
-        xr[shard, dX*dimY*dimZ+6] =sampling_rate;
-        xi[shard] = {n_atoms, dX, dimY, dimZ};
+        xr[shard, 1:n*N*N] = em_density[(shard-1)*n*N*N + 1 :shard*n*N*N];
+        xr[shard, n*N*N+1] =epsilon;
+        xr[shard, n*N*N+2] =gaussian_sigma;
+        xr[shard, n*N*N+3] =sampling_rate;
+        xi[shard] = {n_atoms, N, halfN, shard, n};
     }
 }
 parameters {
     row_vector<lower=-200,upper=200> [n_modes]q;
 }
 transformed parameters {
-    matrix [n_atoms, 3] x;
+    matrix <lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;
     for (i in 1:n_atoms){
         x[i] = q*A[i] + x0[i];
     }

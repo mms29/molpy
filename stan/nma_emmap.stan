@@ -1,6 +1,6 @@
 functions{
     real gaussian_pdf(row_vector x, row_vector mu, real sigma){
-        return pow((1/((2*pi()*square(sigma)))),1.5)*exp(-((1/(2*square(sigma))) * square(distance(x,mu))));
+        return pow((1/((2*pi()*square(sigma)))),(3.0/2.0))*exp(-((1/(2*square(sigma))) * square(distance(x,mu))));
     }
 
 }
@@ -15,53 +15,44 @@ data {
     matrix [n_modes, 3] A[n_atoms];
 
     // em density
-    int<lower=0> dimX;
-    int<lower=0> dimY;
-    int<lower=0> dimZ;
-    real em_density[dimX, dimY, dimZ];
+    int<lower=0> N;
+    real em_density[N, N, N];
 
     // hyperparmeters
     real sigma;
     real epsilon;
-    real mu;
+    row_vector [n_modes] mu;
 
     real sampling_rate;
-    real guassian_range;
     real gaussian_sigma;
-    row_vector [3] center_transform;
+    int halfN;
 }
 parameters {
-    row_vector<lower=-300,upper=300> [n_modes]q;
+    row_vector<lower=-200,upper=200> [n_modes]q;
 }
 transformed parameters {
-    matrix [n_atoms, 3] x;
-    real sim_density[dimX, dimY, dimZ] = rep_array(0.0, dimX, dimY, dimZ);
+    matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;
 
+    real sim_density[N, N, N] = rep_array(0.0, N, N, N);
     for (a in 1:n_atoms){
-        row_vector pos = int((x[a]/sampling_rate) + center_transform);
-
         x[a] = q*A[a] + x0[a];
-        for (i in (pos[1] - guassian_range -1) : (pos[1] + guassian_range)){
-            if (i>0 and i <=dimX){
-                for (j in (pos[2] - guassian_range -1) : (pos[2] + guassian_range)){
-                    if(j>0 and j <=dimY){
-                        for (k in (pos[3] - guassian_range -1) : (pos[3] + guassian_range)){
-                            if(k>0 and k <=dimZ){
-                                row_vector mu= {i,j,k}
-                                sim_density+=gaussian_pdf(x[a],(mu-center_transform)*sampling_rate, gaussian_sigma);
-                            }
-                        }
-                    }
+        for (i in 1:N){
+            for (j in 1:N){
+                for (k in 1:N){
+                    sim_density[i,j,k] += gaussian_pdf(x[a], ([i-halfN-1,j-halfN-1,k-halfN-1])*sampling_rate, gaussian_sigma);
                 }
             }
         }
     }
-
 }
 model {
-    for (i in 1:n_modes){
-        q[i] ~ normal(mu, sigma);
-    }
-    em_density ~ normal(sim_density, epsilon);
+    q ~ normal(mu, sigma);
 
+    for (i in 1:N){
+        for (j in 1:N){
+            for (k in 1:N){
+                em_density[i,j,k] ~ normal(sim_density[i,j,k], epsilon);
+            }
+        }
+    }
 }
