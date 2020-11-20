@@ -22,7 +22,7 @@ A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
 
 n_modes_fitted = 5
 q = np.zeros(n_modes)
-q[7:(7+n_modes_fitted)]=np.random.uniform(-200,200,n_modes_fitted)
+q[7:(7+n_modes_fitted)]=np.random.uniform(-150,150,n_modes_fitted)
 y_nma=np.zeros(x.shape)
 for i in range(n_atoms):
     y_nma[i] = np.dot(q ,A[i]) + x[i]
@@ -50,8 +50,8 @@ y, s_md = md_energy_minimization(y_nma, sigma_md, U_lim, k_r, r_md, k_theta, the
 #               BUILDING DENSITY
 ########################################################################################################
 
-N = 12
-sampling_rate=4
+N = 24
+sampling_rate=3.5
 gaussian_sigma=2
 em_density2 = volume_from_pdb(x, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
 em_density = volume_from_pdb(y, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
@@ -59,6 +59,7 @@ em_density = volume_from_pdb(y, N, sigma=gaussian_sigma, sampling_rate=sampling_
 fig, ax =plt.subplots(1,2)
 ax[0].imshow(em_density[int(N/2)])
 ax[1].imshow(em_density2[int(N/2)])
+fig.savefig("results/input.png")
 
 
 ########################################################################################################
@@ -128,3 +129,5 @@ err_map_init = np.square(em_density -em_density2)[int(N/2)]
 err_map_final = np.square(em_density -em_density_res)[int(N/2)]
 ax[0].imshow(err_map_init, vmax=np.max(err_map_init), cmap='jet')
 ax[1].imshow(err_map_final, vmax=np.max(err_map_init), cmap='jet')
+fig.savefig("results/error_map.png")
+
