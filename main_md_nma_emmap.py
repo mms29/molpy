@@ -31,8 +31,8 @@ for i in range(n_atoms):
 ########################################################################################################
 #               MOLECULAR DYNAMICS DEFORMATION
 ########################################################################################################
-k_r = 0.001
-k_theta= 0.01
+k_r = 0.01
+k_theta= 0.1
 k_lj= 1e-8
 d_lj=3
 sigma_md=0.05
@@ -51,7 +51,7 @@ y, s_md = md_energy_minimization(y_nma, sigma_md, U_lim, k_r, r_md, k_theta, the
 ########################################################################################################
 
 N = 24
-sampling_rate=3.5
+sampling_rate=4
 gaussian_sigma=2
 em_density2 = volume_from_pdb(x, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
 em_density = volume_from_pdb(y, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
@@ -66,7 +66,7 @@ fig.savefig("results/input.png")
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-sm = read_stan_model("md_nma_emmap", build=False)
+sm = read_stan_model("md_nma_emmap", build=True)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
@@ -74,7 +74,7 @@ model_dat = {'n_atoms': n_atoms,
              'em_density':em_density,
              'x0':x,
              'A': A[:,7:(7+n_modes_fitted),:],
-             'sigma':200,
+             'sigma':150,
              'epsilon':np.max(em_density)/10,
              'mu':np.zeros(n_modes_fitted),
              'sampling_rate':sampling_rate,

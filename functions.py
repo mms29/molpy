@@ -132,7 +132,7 @@ def md_energy_minimization(x, sigma_md, U_lim, k_r, r_md, k_theta, theta_md, k_l
 
         U_bonds = md_bonds_potential(x_tmp, k_r, r_md)
         U_angles = md_angles_potential(x_tmp, k_theta, theta_md)
-        U_lennard_jones = md_lennard_jones_potential(x_tmp, k_lj, d_lj)
+        U_lennard_jones = 0#md_lennard_jones_potential(x_tmp, k_lj, d_lj)
         U_md= U_bonds+U_angles+U_lennard_jones
         if (U_init > U_md):
             U_init = U_md

@@ -39,9 +39,9 @@ data {
     real k_theta;
     real theta0;
 
-    // lennard jones
-    real k_lj;
-    real d_lj;
+//    // lennard jones
+//    real k_lj;
+//    real d_lj;
 }
 parameters {
     row_vector<lower=-200,upper=200> [n_modes]q;
@@ -62,11 +62,11 @@ transformed parameters {
         if (i+1<n_atoms){
             U += k_theta*square(acos(dot_product(x[i]-x[i+1],x[i+1]-x[i+2])/(distance(x[i],x[i+1])*distance(x[i+1],x[i+2]))) - theta0);
         }
-        for (j in 1:n_atoms){
-            if(i!=j){
-                U+= 4*k_lj*(pow(d_lj/distance(x[i], x[j]),12) - pow(d_lj/distance(x[i], x[j]),6));
-            }
-        }
+//        for (j in 1:n_atoms){
+//            if(i!=j){
+//                U+= 4*k_lj*(pow(d_lj/distance(x[i], x[j]),12) - pow(d_lj/distance(x[i], x[j]),6));
+//            }
+//        }
     }
 }
 model {
