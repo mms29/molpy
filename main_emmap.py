@@ -6,23 +6,23 @@ from functions import *
 
 # import PDB
 x, ca = read_pdb("data/AK/AK.pdb")
-x=center_pdb(x)
+x=center_pdb(x[ca][:50])
 n_atoms, _ = x.shape
 
 # Read Modes
 n_modes = 20
-A = read_modes("data/AK/modes/vec.", n_modes=n_modes)
+A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca][:50]
 
 #Simulate EM map
-n_modes_fitted = 10
+n_modes_fitted = 5
 q = np.zeros(n_modes)
 q[7:(7+n_modes_fitted)]=np.random.uniform(-200,200,n_modes_fitted)
 y=np.zeros(x.shape)
 for i in range(n_atoms):
     y[i] = np.dot(q ,A[i]) + x[i]
 
-N = 32
-sampling_rate=3
+N = 12
+sampling_rate=4
 gaussian_sigma=2
 em_density = volume_from_pdb(y, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
 em_density2 = volume_from_pdb(x,N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
@@ -33,24 +33,24 @@ ax[0].imshow(em_density[int(N/2)])
 ax[1].imshow(em_density2[int(N/2)])
 
 # READ STAN MODEL
-n_shards=1
-# os.environ['STAN_NUM_THREADS'] = str(n_shards)
-sm = read_stan_model("nma_emmap", build=True, threads=0)
+n_shards=2
+os.environ['STAN_NUM_THREADS'] = str(n_shards)
+sm = read_stan_model("nma_emmap_map_rect", build=False, threads=1)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
              'N':N,
-             'em_density':em_density,
+             'em_density':to_vector(em_density),
              'x0':x,
              'A': A[:,7:(7+n_modes_fitted),:],
-             'sigma':150,
+             'sigma':200,
              'epsilon':np.max(em_density)/10,
              'mu':np.zeros(n_modes_fitted),
              'sampling_rate':sampling_rate,
              'gaussian_sigma' :gaussian_sigma,
              'halfN': int(N/2),
              'n_shards':n_shards}
-fit = sm.sampling(data=model_dat, iter=500, warmup=400, chains=2)
+fit = sm.sampling(data=model_dat, iter=300, warmup=200, chains=4)
 print("---- STAN END")
 la = fit.extract(permuted=True )
 q_res = la['q']

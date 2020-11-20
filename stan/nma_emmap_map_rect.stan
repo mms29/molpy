@@ -6,8 +6,7 @@ functions{
         int n_atoms         = xi[1];
         int N               = xi[2];
         int halfN           = xi[3];
-        int shard           = xi[4];
-        int n               = xi[5];
+        int n               = xi[4];
         real epsilon        = xr[n*N*N+1];
         real gaussian_sigma = xr[n*N*N+2];
         real sampling_rate  = xr[n*N*N+3];
@@ -58,7 +57,7 @@ transformed data {
 
     int n = N/n_shards;
     real xr [n_shards, n*N*N + 3];
-    int xi [n_shards, 5] ;
+    int xi [n_shards, 4] ;
     vector [0]theta [n_shards];
 
     for(shard in 1:n_shards){
@@ -66,7 +65,7 @@ transformed data {
         xr[shard, n*N*N+1] =epsilon;
         xr[shard, n*N*N+2] =gaussian_sigma;
         xr[shard, n*N*N+3] =sampling_rate;
-        xi[shard] = {n_atoms, N, halfN, shard, n};
+        xi[shard] = {n_atoms, N, halfN, n};
     }
 }
 parameters {
@@ -84,7 +83,4 @@ model {
         q[i] ~ normal(mu, sigma);
     }
     target += sum( map_rect( lp_reduce , to_vector(x) , theta , xr , xi ) );
-//    target += sum( lp_reduce(to_vector(x) , theta , xr , xi ) );
-
-
 }

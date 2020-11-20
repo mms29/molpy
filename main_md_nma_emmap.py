@@ -10,23 +10,22 @@ from functions import *
 
 # import PDB
 x, ca = read_pdb("data/AK/AK.pdb")
-x=x[ca]
+x=center_pdb(x[ca])
 n_atoms, _ = x.shape
 
 # Read Modes
 n_modes = 20
 A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
-
 ########################################################################################################
 #               NMA DEFORMATION
 ########################################################################################################
 
-n_modes_fitted = 10
+n_modes_fitted = 5
 q = np.zeros(n_modes)
 q[7:(7+n_modes_fitted)]=np.random.uniform(-200,200,n_modes_fitted)
-y=np.zeros(x.shape)
+y_nma=np.zeros(x.shape)
 for i in range(n_atoms):
-    y[i] = np.dot(q ,A[i]) + x[i]
+    y_nma[i] = np.dot(q ,A[i]) + x[i]
 
 
 ########################################################################################################
@@ -34,10 +33,10 @@ for i in range(n_atoms):
 ########################################################################################################
 k_r = 0.001
 k_theta= 0.01
-k_lj=1e-8
+k_lj= 1e-8
 d_lj=3
 sigma_md=0.05
-U_lim= 0.1
+U_lim= 0.5
 r_md=np.mean([np.linalg.norm(x[i] - x[i + 1]) for i in range(n_atoms-1)])
 _theta_md=[]
 for i in range(n_atoms - 2):
@@ -45,21 +44,42 @@ for i in range(n_atoms - 2):
                       / (np.linalg.norm(x[i] - x[i + 1]) * np.linalg.norm(x[i + 1] - x[i + 2]))))
 theta_md=np.mean(_theta_md)
 
-y_md, s_md = md_energy_minimization(y, sigma_md, U_lim, k_r, r_md, k_theta, theta_md, k_lj, d_lj)
+y, s_md = md_energy_minimization(y_nma, sigma_md, U_lim, k_r, r_md, k_theta, theta_md, k_lj, d_lj)
+
+########################################################################################################
+#               BUILDING DENSITY
+########################################################################################################
+
+N = 12
+sampling_rate=4
+gaussian_sigma=2
+em_density2 = volume_from_pdb(x, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
+em_density = volume_from_pdb(y, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
+
+fig, ax =plt.subplots(1,2)
+ax[0].imshow(em_density[int(N/2)])
+ax[1].imshow(em_density2[int(N/2)])
+
+
 ########################################################################################################
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-sm = read_stan_model("md_nma", build=True)
+sm = read_stan_model("md_nma_emmap", build=False)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
-             'y':y_md,
+             'N':N,
+             'em_density':em_density,
              'x0':x,
              'A': A[:,7:(7+n_modes_fitted),:],
              'sigma':200,
-             'epsilon':1,
-             'mu':0,
+             'epsilon':np.max(em_density)/10,
+             'mu':np.zeros(n_modes_fitted),
+             'sampling_rate':sampling_rate,
+             'gaussian_sigma' :gaussian_sigma,
+             'halfN': int(N/2),
+
              'U_init':U_lim,
              's_md':s_md,
              'k_r':k_r,
@@ -68,41 +88,25 @@ model_dat = {'n_atoms': n_atoms,
              'theta0':theta_md,
              'k_lj':k_lj,
              'd_lj':d_lj
-            }
-fit = sm.sampling(data=model_dat, iter=1000, chains=4)
-la = fit.extract(permuted=True)
+             }
+fit = sm.sampling(data=model_dat, iter=300, warmup=200, chains=4)
+la = fit.extract(permuted=True )
 q_res = la['q']
+lp = la['lp__']
+for i in range(n_modes_fitted):
+    print(" q value "+str(i+7)+" : "+str(np.mean(q_res[:,i])))
 x_res = np.mean(la['x'], axis=0)
 
-# fit using only NMA to compare
-sm_nma = read_stan_model("nma_nmodes", build=False)
-fit_nma = sm_nma.sampling(data=model_dat, iter=1000, chains=4)
-la_nma = fit_nma.extract(permuted=True)
-q_res_nma = la_nma['q']
-x_res_nma = np.mean(la_nma['x'], axis=0)
-
-#post process for visualization
-x_res_full = la['x']
-x_res_nma_full = la_nma['x']
-n_iter = x_res_full.shape[0]
-x_mse = np.zeros(n_iter)
-x_mse_nma= np.zeros(n_iter)
-for i in range(n_iter):
-    x_mse[i] = np.sqrt(np.sum([np.linalg.norm(x_res_full[i,j] - y_md[j] )**2 for j in range(n_atoms)])/n_atoms)
-    x_mse_nma[i] = np.sqrt(np.sum([np.linalg.norm(x_res_nma_full[i, j] - y_md[j])**2 for j in range(n_atoms)])/n_atoms)
-########################################################################################################
-#               RESULTS
-########################################################################################################
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-# ax.scatter(x[:,0],x[:,1], x[:,2], c='r')
-# ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
-ax.scatter(y_md[:,0],y_md[:,1], y_md[:,2], c='r')
-ax.scatter(x_res[:,0],x_res[:,1], x_res[:,2], c='g', marker="x", s=100)
-ax.scatter(x_res_nma[:,0],x_res_nma[:,1], x_res_nma[:,2], c='b', marker="x", s=100)
-ax.legend(["Ground Truth", "NMA + MD fit", "NMA fit"])
-fig.show()
+ax.scatter(x[:,0],x[:,1], x[:,2], c='r')
+ax.scatter(y[:,0],y[:,1], y[:,2], c='b')
+ax.scatter(y_nma[:,0],y_nma[:,1], y_nma[:,2], c='orange')
+ax.scatter(x_res[:,0], x_res[:,1], x_res[:,2], marker="x", c='g', s=100)
+fig.savefig("results/3d_structures.png")
+# fig.show()
+
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
@@ -115,18 +119,12 @@ for i in range(n_modes_fitted):
         vp = parts[partname]
         vp.set_edgecolor('#1f77b4')
     ax.plot(i,q[i+7], 'x', color='r')
-ax.set_xlabel("modes")
-ax.set_ylabel("amplitude")
-ax.legend(["Ground Truth"])
-fig.suptitle("Normal modes amplitudes distribution")
 fig.savefig("results/modes_amplitudes.png")
-fig.show()
+# fig.show()
 
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.hist(x_mse,100,color= 'g')
-ax.hist(x_mse_nma,100, color='b')
-ax.legend(["NMA + MD fit", "NMA fit"])
-fig.suptitle("RMSE")
-fig.show()
+em_density_res = volume_from_pdb(x_res, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
+fig, ax =plt.subplots(1,2)
+err_map_init = np.square(em_density -em_density2)[int(N/2)]
+err_map_final = np.square(em_density -em_density_res)[int(N/2)]
+ax[0].imshow(err_map_init, vmax=np.max(err_map_init), cmap='jet')
+ax[1].imshow(err_map_final, vmax=np.max(err_map_init), cmap='jet')
