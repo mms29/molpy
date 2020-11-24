@@ -12,7 +12,7 @@ sim = src.simulation.Simulator.from_file(pdb_file="data/AK/AK.pdb", modes_file="
 
 sim.run_nma(amplitude=200)
 nma_structure = np.array(sim.deformed_structure)
-sim.run_md(U_lim=5, step=0.05, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
+sim.run_md(U_lim=0.5, step=0.05, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
 sim.plot_structure()
 
 gaussian_sigma=2
@@ -32,7 +32,7 @@ input_data = {'n_atoms': sim.n_atoms,
              'A': sim.modes,
              'sigma':200,
              'epsilon':np.max(sim.deformed_density)/10,
-             'mu':0,#np.zeros(sim.n_modes),
+             'mu':np.zeros(sim.n_modes),
              'U_init':sim.U_lim*2,
              's_md':sim.md_variance*2,
              'k_r':sim.bonds_k,
@@ -49,7 +49,7 @@ input_data = {'n_atoms': sim.n_atoms,
             }
 
 
-fit = src.fitting.Fitting(input_data, "nma_nmodes", build=False)
+fit = src.fitting.Fitting(input_data, "md_nma_emmap", build=True)
 fit.sampling(n_iter=100, n_warmup=300, n_chain=4)
 opt = fit.optimizing(n_iter=100)
 vb = fit.vb(n_iter=1000)
