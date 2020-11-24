@@ -1,8 +1,5 @@
-import pystan
-import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from functions import *
+from src.functions import *
 
 ########################################################################################################
 #               IMPORT FILES
@@ -10,12 +7,12 @@ from functions import *
 
 # import PDB
 x, ca = read_pdb("data/AK/AK.pdb")
-x=center_pdb(x[ca])
+x=center_pdb(x[ca][:50])
 n_atoms, _ = x.shape
 
 # Read Modes
 n_modes = 20
-A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca]
+A = read_modes("data/AK/modes/vec.", n_modes=n_modes)[ca][:50]
 ########################################################################################################
 #               NMA DEFORMATION
 ########################################################################################################
@@ -50,7 +47,7 @@ y, s_md = md_energy_minimization(y_nma, sigma_md, U_lim, k_r, r_md, k_theta, the
 #               BUILDING DENSITY
 ########################################################################################################
 
-N = 24
+N = 16
 sampling_rate=4
 gaussian_sigma=2
 em_density2 = volume_from_pdb(x, N, sigma=gaussian_sigma, sampling_rate=sampling_rate, precision=0.0001)
@@ -66,7 +63,7 @@ fig.savefig("results/input.png")
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-sm = read_stan_model("md_nma_emmap", build=True)
+sm = read_stan_model("md_nma_emmap", build=False)
 
 model_dat = {'n_atoms': n_atoms,
              'n_modes':n_modes_fitted,
@@ -81,8 +78,8 @@ model_dat = {'n_atoms': n_atoms,
              'gaussian_sigma' :gaussian_sigma,
              'halfN': int(N/2),
 
-             'U_init':U_lim,
-             's_md':s_md,
+             'U_init':U_lim*2,
+             's_md':s_md*2,
              'k_r':k_r,
              'r0':r_md,
              'k_theta':k_theta,
@@ -90,7 +87,7 @@ model_dat = {'n_atoms': n_atoms,
              'k_lj':k_lj,
              'd_lj':d_lj
              }
-fit = sm.sampling(data=model_dat, iter=300, warmup=200, chains=4)
+fit = sm.sampling(data=model_dat, iter=300, warmup=200, chains=4, verbose=True, refresh=1)
 la = fit.extract(permuted=True )
 q_res = la['q']
 lp = la['lp__']

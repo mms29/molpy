@@ -1,8 +1,5 @@
-import pystan
-import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
-from functions import *
+from src.functions import *
 
 # import PDB
 x, ca = read_pdb("data/AK/AK.pdb")

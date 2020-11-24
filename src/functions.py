@@ -18,9 +18,11 @@ def read_pdb(file, pattern='CA'):
     x = np.array(x)
     return x, ca
 
-def read_modes(file, n_modes=20):
+def read_modes(file, n_modes=20, skip_first_modes=True):
     A = []
-    for i in range(n_modes):
+    if skip_first_modes: fm=6
+    else: fm=0
+    for i in range(fm, n_modes+fm):
         A.append(np.loadtxt(file + str(i + 1)))
     return np.transpose(np.array(A),(1,0,2))
 
@@ -112,34 +114,6 @@ def to_matrix(vec, X,Y,Z):
                 arr[x, y, z] = vec[z + y * Z + x * Y * Z]
     return arr
 
-
-def md_energy_minimization(x, sigma_md, U_lim, k_r, r_md, k_theta, theta_md, k_lj, d_lj):
-
-    U_init = md_bonds_potential(x, k_r, r_md) \
-             + md_angles_potential(x, k_theta, theta_md) \
-             # + md_lennard_jones_potential(x, k_lj, d_lj)
-    print("U init : " + str(U_init))
-
-    s_md = 0
-    n_atoms = x.shape[0]
-    x_init = np.array(x)
-
-    while (U_init > U_lim):
-
-        # new direction
-        x_md = np.random.normal(0, sigma_md, x_init.shape)
-        x_tmp = x_md + x_init
-
-        U_bonds = md_bonds_potential(x_tmp, k_r, r_md)
-        U_angles = md_angles_potential(x_tmp, k_theta, theta_md)
-        U_lennard_jones = 0#md_lennard_jones_potential(x_tmp, k_lj, d_lj)
-        U_md= U_bonds+U_angles+U_lennard_jones
-        if (U_init > U_md):
-            U_init = U_md
-            x_init = x_tmp
-            print("yes : " + str(U_md)+" = "+str(U_bonds) + " + "+str(U_angles)+ " + "+str(U_lennard_jones))
-            s_md += np.var(x_md)
-    return x_init,s_md
 
 def md_bonds_potential(x, k_r, r0):
     U=0.0
