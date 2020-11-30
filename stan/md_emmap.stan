@@ -10,18 +10,13 @@ data {
     int<lower=0> n_atoms;
     matrix [n_atoms, 3] x0;
 
-    // normal modes
-    int<lower=0> n_modes;
-    matrix [n_modes, 3] A[n_atoms];
 
     // em density
     int<lower=0> N;
     real em_density[N, N, N];
 
     // hyperparmeters
-    real sigma;
     real epsilon;
-    real mu;
 
     real sampling_rate;
     real gaussian_sigma;
@@ -44,15 +39,11 @@ data {
     real d_lj;
 }
 parameters {
-    row_vector<lower=-200,upper=200> [n_modes]q;
     matrix[n_atoms, 3] x_md;
 }
 transformed parameters {
-    matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;
+    matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x = x_md+x0;
     real U=0;
-    for (i in 1:n_atoms){
-        x[i] = q*A[i] + x_md[i] + x0[i];
-    }
 
     for (i in 1:n_atoms){
         // potential energy
@@ -70,8 +61,6 @@ transformed parameters {
     }
 }
 model {
-    q ~ normal(mu, sigma);
-
     for (i in 1:N){
         for (j in 1:N){
             for (k in 1:N){

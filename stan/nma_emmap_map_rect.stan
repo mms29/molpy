@@ -47,7 +47,7 @@ data {
     // hyperparmeters
     real sigma;
     real epsilon;
-    row_vector [n_modes] mu;
+    real mu;
 
     real sampling_rate;
     real gaussian_sigma;

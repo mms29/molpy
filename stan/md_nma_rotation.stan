@@ -27,14 +27,19 @@ data {
 parameters {
     row_vector [n_modes]q;
     matrix [n_atoms, 3] x_md;
+    real<lower=-pi(),upper=pi()> alpha;
+    real<lower=-pi()/2.0,upper=pi()/2.0> beta;
+    real<lower=-pi(),upper=pi()> gamma;
 }
 transformed parameters {
     matrix [n_atoms, 3] x;
     real U=0;
-
+    matrix [3,3] R = [[cos(gamma) * cos(alpha) * cos(beta) - sin(gamma) * sin(alpha), cos(gamma) * cos(beta)*sin(alpha) + sin(gamma) * cos(alpha), -cos(gamma) * sin(beta)],
+                   [-sin(gamma) * cos(alpha) * cos(beta) - cos(gamma) * sin(alpha),-sin(gamma) * cos(beta)*sin(alpha) + cos(gamma) * cos(alpha), sin(gamma) * sin(beta)],
+                   [sin(beta)*cos(alpha), sin(beta)*sin(alpha), cos(beta)]];
     // normal modes deformation
     for (i in 1:n_atoms){
-        x[i] = q*A[i] + x0[i]+ x_md[i];
+        x[i] = (q*A[i] + x0[i]+ x_md[i])*R;
     }
 
     // potential energy
@@ -61,6 +66,8 @@ model {
         y[i] ~ normal(x[i], epsilon);
         x_md[i] ~ normal(0, s_md);
     }
+    alpha ~ normal(0,pi());
+    beta ~ normal(0,pi()/2.0);
+    gamma ~ normal(0,pi());
     U ~ exponential(U_init);
 }
-

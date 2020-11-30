@@ -2,18 +2,30 @@ import numpy as np
 import pystan
 import pickle
 import os.path
+import hashlib
+
+def md5(fname):
+    hash_md5 = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 def read_pdb(file, pattern='CA'):
     x = []
     ca=[]
     with open(file, "r") as file :
+        end=False
         for line in file:
             l = line.split()
             if len(l) >0:
                 if l[0] == 'ATOM':
-                    x.append([float(l[6]), float(l[7]), float(l[8])])
-                    if l[2] == pattern:
-                        ca.append(len(x))
+                    if not end:
+                        x.append([float(l[6]), float(l[7]), float(l[8])])
+                        if l[2] == pattern:
+                            ca.append(len(x))
+                if l[0] == 'TER':
+                    end = True
 
     x = np.array(x)
     return x, ca
@@ -26,25 +38,48 @@ def read_modes(file, n_modes=20, skip_first_modes=True):
         A.append(np.loadtxt(file + str(i + 1)))
     return np.transpose(np.array(A),(1,0,2))
 
-def read_stan_model(model, save=True, build=False, threads=0):
-    if not os.path.exists('stan/'+model+'.pkl'):
+def read_stan_model(model, save=True, build=False, threads=False):
+    if not os.path.exists('stan/saved_stan_models/'+model+'.pkl'):
         build=True
+    if not os.path.exists('stan/saved_stan_models/'+model+'.checksum'):
+        build=True
+    else:
+        checksum = md5('stan/'+model+'.stan')
+        with open('stan/saved_stan_models/'+model+'.checksum', 'r') as f:
+            old_checksum =f.read()
+        if checksum != old_checksum:
+            build=True
     if build==True:
         s=""
         with open('stan/'+model+'.stan', "r") as f:
             for line in f:
                 s+=line
-        if threads >0:
+        if threads:
             extra_compile_args = ['-pthread', '-DSTAN_THREADS']
             sm = pystan.StanModel(model_code=s, extra_compile_args=extra_compile_args)
         else :
             sm = pystan.StanModel(model_code=s)
         if save==True:
-            with open('stan/'+model+'.pkl', 'wb') as f:
+            with open('stan/saved_stan_models/'+model+'.pkl', 'wb') as f:
                 pickle.dump(sm, f)
+            with open('stan/saved_stan_models/'+model+'.checksum', 'w') as f:
+                f.write(md5('stan/'+model+'.stan'))
     else:
-        sm = pickle.load(open('stan/'+model+'.pkl', 'rb'))
+        sm = pickle.load(open('stan/saved_stan_models/'+model+'.pkl', 'rb'))
     return sm
+
+def rotate_pdb(self, atoms, angles):
+    a,b,c =angles
+    cos = np.cos
+    sin=np.sin
+    R = [[cos(a) * cos(b), cos(a) * sin(b) * sin(c) - sin(a) * cos(c), cos(a) * sin(b) * cos(c) + sin(a) * sin(c)],
+         [sin(a) * cos(b), sin(a) * sin(b) * sin(c) + cos(a) * cos(c), sin(a) * sin(b) * cos(c) - cos(a) * sin(c)],
+         [-sin(b), cos(b) * sin(c), cos(b) * cos(c)]];
+    rotated_atoms = np.zeros(atoms.shape)
+    for i in range(atoms.shape[0]):
+        rotated_atoms[i] = atoms[i]*R
+    return rotated_atoms
+
 
 def volume_from_pdb(x, N, sigma=1, sampling_rate=1, precision=0.001):
 

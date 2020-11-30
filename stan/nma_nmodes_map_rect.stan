@@ -6,7 +6,7 @@ functions{
         matrix [n_atoms,3] y = to_matrix(xr[1:(n_atoms*3)], n_atoms, 3);
         matrix [n_atoms,3] x0 = to_matrix(xr[(n_atoms*3 + 1):(n_atoms*3*2)], n_atoms, 3);
         matrix [n_modes, 3] A[n_atoms];
-        row_vector[n_modes] q = to_row_vector(beta);
+        row_vector[n_modes] q = real mu;(beta);
         real epsilon = xr[n_atoms*3*2 + n_modes*n_atoms*3 + 1];
         real s=0;
 

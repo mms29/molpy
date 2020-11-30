@@ -6,28 +6,14 @@ from mpl_toolkits.mplot3d import Axes3D
 
 class Simulator:
 
-    def __init__(self, atoms, modes):
+    def __init__(self, atoms):
         self.init_structure=atoms
-        self.modes=modes
         self.n_atoms=atoms.shape[0]
-        self.n_modes=modes.shape[1]
         self.deformed_structure=None
 
-    @classmethod
-    def from_file(cls, pdb_file, modes_file, n_modes, ca_only=True, center_pdb=True):
-        atoms, ca = src.functions.read_pdb(pdb_file)
-        if center_pdb :
-            atoms= src.functions.center_pdb(atoms)
-        modes = src.functions.read_modes(modes_file, n_modes)
-        if ca_only:
-            return cls(atoms[ca], modes[ca])
-        else:
-            return cls(atoms, modes)
-
-
-
-    def run_nma(self, amplitude=200):
-        self.q =np.random.uniform(-amplitude, amplitude, self.n_modes)
+    def run_nma(self, modes, amplitude=200):
+        n_modes = modes.shape[1]
+        self.q =np.random.uniform(-amplitude, amplitude, n_modes)
         if self.deformed_structure is None:
             init_structure = self.init_structure
             self.deformed_structure = np.zeros(self.init_structure.shape)
@@ -35,7 +21,8 @@ class Simulator:
             init_structure=self.deformed_structure
 
         for i in range(self.n_atoms):
-            self.deformed_structure[i]= np.dot(self.q, self.modes[i]) + init_structure[i]
+            self.deformed_structure[i]= np.dot(self.q, modes[i]) + init_structure[i]
+        return self.deformed_structure
 
 
     def run_md(self, U_lim, step, bonds=None, angles=None, lennard_jones=None):
@@ -94,25 +81,52 @@ class Simulator:
                 if bonds is not None:
                     s += " U_bonds="+str(U_bonds)+"  ; "
                 if angles is not None:
-                    s += " U_bonds="+str(U_angles)+"  ; "
+                    s += " U_angles="+str(U_angles)+"  ; "
                 if lennard_jones is not None:
-                    s += " U_bonds="+str(U_lennard_jones)+"  ; "
+                    s += " U_lennard_jones="+str(U_lennard_jones)+"  ; "
                 print(s)
 
         self.deformed_structure = deformed_structure
         if self.md_variance==0 : self.md_variance=1
+        return self.deformed_structure
 
     def compute_density(self, size=64,  sigma=1, sampling_rate=1):
         self.init_density= src.functions.volume_from_pdb(self.init_structure, size, sigma=sigma, sampling_rate=sampling_rate, precision=0.0001)
         self.deformed_density = src.functions.volume_from_pdb(self.deformed_structure, size, sigma=sigma, sampling_rate=sampling_rate, precision=0.0001)
         self.n_voxels=size
 
+    def rotate_pdb(self):
+        if self.deformed_structure is None:
+            init_structure = self.init_structure
+        else:
+            init_structure = self.deformed_structure
+
+        deformed_structure = init_structure
+
+        alpha = np.random.uniform(0, 2*np.pi)
+        beta = np.random.uniform(0, np.pi)
+        gamma = np.random.uniform(0, 2*np.pi)
+
+        R = np.array([[np.cos(gamma) * np.cos(alpha) * np.cos(beta) - np.sin(gamma) * np.sin(alpha), np.cos(gamma) * np.cos(beta)*np.sin(alpha) + np.sin(gamma) * np.cos(alpha), -np.cos(gamma) * np.sin(beta)],
+                   [-np.sin(gamma) * np.cos(alpha) * np.cos(beta) - np.cos(gamma) * np.sin(alpha),-np.sin(gamma) * np.cos(beta)*np.sin(alpha) + np.cos(gamma) * np.cos(alpha), np.sin(gamma) * np.sin(beta)],
+                   [np.sin(beta)*np.cos(alpha),np.sin(beta)*np.sin(alpha),np.cos(beta)]])
+
+        rotated_atoms = np.zeros(self.init_structure.shape)
+        for i in range(self.n_atoms):
+            deformed_structure[i] = np.dot(init_structure[i], R)
+
+        self.deformed_structure = deformed_structure
+        return self.deformed_structure
+
     def plot_structure(self):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot(self.init_structure[:, 0], self.init_structure[:, 1], self.init_structure[:, 2], c='b')
-        ax.plot(self.deformed_structure[:, 0], self.deformed_structure[:, 1], self.deformed_structure[:, 2], c='r')
-        ax.legend(["init_structure", "deformed_structure"])
+        legend=["init_structure"]
+        ax.plot(self.init_structure[:, 0], self.init_structure[:, 1], self.init_structure[:, 2])
+        if self.deformed_structure is not None:
+            ax.plot(self.deformed_structure[:, 0], self.deformed_structure[:, 1], self.deformed_structure[:, 2])
+            legend.append("deformed_structure")
+        ax.legend(legend)
         # fig.show()
 
     def plot_density(self):

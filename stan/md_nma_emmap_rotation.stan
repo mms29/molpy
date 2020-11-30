@@ -46,12 +46,18 @@ data {
 parameters {
     row_vector<lower=-200,upper=200> [n_modes]q;
     matrix[n_atoms, 3] x_md;
+    real<lower=-pi(),upper=pi()> alpha;
+    real<lower=-pi()/2.0,upper=pi()/2.0> beta;
+    real<lower=-pi(),upper=pi()> gamma;
 }
 transformed parameters {
     matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;
+    matrix [3,3] R = [[cos(gamma) * cos(alpha) * cos(beta) - sin(gamma) * sin(alpha), cos(gamma) * cos(beta)*sin(alpha) + sin(gamma) * cos(alpha), -cos(gamma) * sin(beta)],
+                   [-sin(gamma) * cos(alpha) * cos(beta) - cos(gamma) * sin(alpha),-sin(gamma) * cos(beta)*sin(alpha) + cos(gamma) * cos(alpha), sin(gamma) * sin(beta)],
+                   [sin(beta)*cos(alpha), sin(beta)*sin(alpha), cos(beta)]];
     real U=0;
     for (i in 1:n_atoms){
-        x[i] = q*A[i] + x_md[i] + x0[i];
+        x[i] = (q*A[i] + x_md[i] + x0[i])*R;
     }
 
     for (i in 1:n_atoms){
@@ -86,5 +92,8 @@ model {
     for (i in 1:n_atoms){
         x_md[i] ~ normal(0, s_md);
     }
+    alpha ~ normal(0,pi()/2.0);
+    beta ~ normal(0,pi()/4.0);
+    gamma ~ normal(0,pi()/2.0);
     U ~ exponential(U_init);
 }

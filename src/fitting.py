@@ -17,8 +17,8 @@ class Fitting:
         fit = self.model.sampling(data=self.input_data, iter=n_iter+n_warmup, warmup=n_warmup, chains=n_chain)
         self.sampling_results = fit.extract(permuted=True)
 
-    def optimizing(self,n_iter):
-        self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter)
+    def optimizing(self,n_iter, **kwargs):
+        self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter, **kwargs)
 
     def vb(self,n_iter):
         self.vb_results= self.model.vb(data = self.input_data, iter=n_iter)
@@ -43,8 +43,11 @@ class Fitting:
                     p[:, i] = self.vb_results["sampler_params"][i+start]
             return p
 
-    def plot_nma(self, q_sim, save=None):
-        n_modes = q_sim.shape[0]
+    def test_grad(self):
+        self.model.sampling(data=self.input_data, iter=1, warmup=1, chains=1, test_grad=True)
+
+    def plot_nma(self, q_sim=None, save=None):
+        n_modes = self.input_data['n_modes']
         legend=[]
         fig = plt.figure()
         ax = fig.add_subplot(111)
