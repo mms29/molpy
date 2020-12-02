@@ -13,7 +13,10 @@ class Simulator:
 
     def run_nma(self, modes, amplitude=200):
         n_modes = modes.shape[1]
-        self.q =np.random.uniform(-amplitude, amplitude, n_modes)
+        if isinstance(amplitude, list):
+            self.q= amplitude
+        else:
+            self.q =np.random.uniform(-amplitude, amplitude, n_modes)
         if self.deformed_structure is None:
             init_structure = self.init_structure
             self.deformed_structure = np.zeros(self.init_structure.shape)
@@ -50,7 +53,9 @@ class Simulator:
         if lennard_jones is not None:
             self.lennard_jones_k = lennard_jones ['k']
             self.lennard_jones_d =  lennard_jones ['d']
-            U_init += src.functions.md_lennard_jones_potential(init_structure,self.lennard_jones_k, self.lennard_jones_d)
+            lj = src.functions.md_lennard_jones_potential(init_structure,self.lennard_jones_k, self.lennard_jones_d)
+            print('LJ : '+str(lj))
+            U_init +=lj
         print("U init : " + str(U_init))
 
         self.md_variance = 0
@@ -118,7 +123,7 @@ class Simulator:
         self.deformed_structure = deformed_structure
         return self.deformed_structure
 
-    def plot_structure(self):
+    def plot_structure(self, other_structure=None):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         legend=["init_structure"]
@@ -126,6 +131,9 @@ class Simulator:
         if self.deformed_structure is not None:
             ax.plot(self.deformed_structure[:, 0], self.deformed_structure[:, 1], self.deformed_structure[:, 2])
             legend.append("deformed_structure")
+        if other_structure is not None:
+            ax.plot(other_structure[:, 0], other_structure[:, 1], other_structure[:, 2])
+            legend.append("other_structure")
         ax.legend(legend)
         # fig.show()
 

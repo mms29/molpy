@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import re
+import time
 
 class Fitting:
 
@@ -14,14 +15,23 @@ class Fitting:
         self.vb_results=None
 
     def sampling(self, n_iter, n_warmup, n_chain):
-        fit = self.model.sampling(data=self.input_data, iter=n_iter+n_warmup, warmup=n_warmup, chains=n_chain)
-        self.sampling_results = fit.extract(permuted=True)
+        t = time.time()
+        self.fit = self.model.sampling(data=self.input_data, iter=n_iter+n_warmup, warmup=n_warmup, chains=n_chain)
+        self.sampling_time = time.time() - t
+        self.sampling_results = self.fit.extract(permuted=True)
+        print("### EXECUTION ENDED "+ str(self.sampling_time)+"s ###")
 
-    def optimizing(self,n_iter, **kwargs):
-        self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter, **kwargs)
+    def optimizing(self,n_iter):
+        t = time.time()
+        self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter)
+        self.opt_time = time.time() - t
+        print("### EXECUTION ENDED " + str(self.opt_time) + "s ###")
 
     def vb(self,n_iter):
+        t = time.time()
         self.vb_results= self.model.vb(data = self.input_data, iter=n_iter)
+        self.vb_time = time.time() - t
+        print("### EXECUTION ENDED " + str(self.vb_time) + "s ###")
 
     def read_results(self, type, param):
         if type=="sampling":
@@ -44,7 +54,7 @@ class Fitting:
             return p
 
     def test_grad(self):
-        self.model.sampling(data=self.input_data, iter=1, warmup=1, chains=1, test_grad=True)
+        self.model.sampling(data=self.input_data, test_grad=True)
 
     def plot_nma(self, q_sim=None, save=None):
         n_modes = self.input_data['n_modes']
@@ -79,6 +89,14 @@ class Fitting:
         fig.suptitle("Normal modes amplitudes distribution")
         if save is not None : fig.savefig(save)
         # fig.show()
+
+    def plot_lp(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        lp = self.fit.extract(pars='lp__',inc_warmup=True, permuted=False)['lp__']
+        llp = np.sign(lp) * np.log(1 + np.abs(lp))
+        for i in range(lp.shape[1]):
+            ax.plot(llp[:,i])
 
     def plot_structure(self, other_structure=None, save=None):
         init_structure = self.input_data['x0']

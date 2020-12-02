@@ -116,7 +116,7 @@ def volume_from_pdb(x, N, sigma=1, sampling_rate=1, precision=0.001):
 
 
 def gaussian_pdf(x, mu, sigma):
-    return (1/((2*np.pi*(sigma**2))**(3/2)))*np.exp(-((1/(2*(sigma**2))) * (np.linalg.norm(x-mu)**2)))
+    return np.exp(-((x[0]-mu[0])**2 + (x[1]-mu[1])**2 + (x[2]-mu[2])**2)/(2*(sigma**2)))
 
 def volume_from_pdb_slow(x, size, sigma, sampling_rate=1):
     n_atoms = x.shape[0]
@@ -150,23 +150,15 @@ def to_matrix(vec, X,Y,Z):
     return arr
 
 
+
 def md_bonds_potential(x, k_r, r0):
-    U=0.0
-    n_atoms = x.shape[0]
-    for i in range(n_atoms - 1):
-        r = np.linalg.norm(x[i] - x[i + 1])
-        U += k_r * (r - r0) ** 2
-    return U;
+    r = np.linalg.norm(x[1:] - x[:-1], axis=1)
+    return np.sum( k_r * np.square(r - r0))
 
 def md_angles_potential(x, k_theta, theta0):
-    U = 0.0
-    n_atoms = x.shape[0]
-
-    for i in range(n_atoms - 2):
-        theta = np.arccos(np.dot(x[i] - x[i + 1], x[i + 1] - x[i + 2])
-                          / (np.linalg.norm(x[i] - x[i + 1]) * np.linalg.norm(x[i + 1] - x[i + 2])))
-        U += k_theta * (theta - theta0) ** 2
-    return U
+    theta = np.arccos( np.sum( (x[:-2]-x[1:-1]) * (x[1:-1]-x[2:]), axis=1)
+                      / (np.linalg.norm(x[:-2] - x[1:-1], axis=1) * np.linalg.norm(x[1:-1] - x[2:], axis=1)))
+    return np.sum(k_theta * np.square(theta - theta0))
 
 def md_lennard_jones_potential(x, k_lj, d_lj):
     U = 0.0
@@ -177,3 +169,40 @@ def md_lennard_jones_potential(x, k_lj, d_lj):
                 U += 4 * k_lj * (
                             (d_lj / np.linalg.norm(x[i] - x[j])) ** 12 - (d_lj / np.linalg.norm(x[i] - x[j])) ** 6)
     return U
+
+def md_lennard_jones_potential(x, k_lj, d_lj):
+    n_atoms = x.shape[0]
+    dist = np.linalg.norm(np.repeat(x, n_atoms, axis=0).reshape(n_atoms, n_atoms, 3) - x, axis=2)
+    np.fill_diagonal(dist, np.nan)
+    inv = d_lj/dist
+    return np.nansum(4 * k_lj * (inv**12 - inv**6))
+
+#
+#
+# def md_bonds_potential(x, k_r, r0):
+#     U=0.0
+#     n_atoms = x.shape[0]
+#     for i in range(n_atoms - 1):
+#         r = np.linalg.norm(x[i] - x[i + 1])
+#         U += k_r * (r - r0) ** 2
+#     return U;
+#
+# def md_angles_potential(x, k_theta, theta0):
+#     U = 0.0
+#     n_atoms = x.shape[0]
+#
+#     for i in range(n_atoms - 2):
+#         theta = np.arccos(np.dot(x[i] - x[i + 1], x[i + 1] - x[i + 2])
+#                           / (np.linalg.norm(x[i] - x[i + 1]) * np.linalg.norm(x[i + 1] - x[i + 2])))
+#         U += k_theta * (theta - theta0) ** 2
+#     return U
+#
+# def md_lennard_jones_potential(x, k_lj, d_lj):
+#     U = 0.0
+#     n_atoms = x.shape[0]
+#     for i in range(n_atoms):
+#         for j in range(n_atoms):
+#             if i != j:
+#                 U += 4 * k_lj * (
+#                             (d_lj / np.linalg.norm(x[i] - x[j])) ** 12 - (d_lj / np.linalg.norm(x[i] - x[j])) ** 6)
+#     return U

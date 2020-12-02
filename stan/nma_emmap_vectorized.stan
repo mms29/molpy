@@ -1,6 +1,6 @@
 functions{
     real gaussian_pdf(matrix x, matrix y, real sigma){
-        return sum(pow((1/((2*pi()*square(sigma)))),(3.0/2.0))*exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]) +square(x[:,3] -y[:,3]))/(2*square(sigma))));
+        return sum(exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]) +square(x[:,3] -y[:,3]))/(2*square(sigma))));
     }
 
 }
