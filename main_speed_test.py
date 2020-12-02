@@ -17,7 +17,7 @@ sim = src.simulation.Simulator(atoms)
 
 nma_structure = sim.run_nma(modes = modes, amplitude=[100,-50,150,-100,50])
 # rotated_structure = sim.rotate_pdb()
-md_structure=  sim.run_md(U_lim=6, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
+md_structure=  sim.run_md(U_lim=1, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
 # sim.plot_structure(nma_structure)
 
 

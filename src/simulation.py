@@ -59,7 +59,7 @@ class Simulator:
         print("U init : " + str(U_init))
 
         self.md_variance = 0
-
+        last = []
         while (U_init > self.U_lim):
 
             # new direction
@@ -80,6 +80,7 @@ class Simulator:
 
             if (U_init > U_deformed):
                 U_init = U_deformed
+                last.append(1)
                 init_structure = deformed_structure
                 self.md_variance += np.var(dt)
                 s="U="+str(U_deformed)+" : "
@@ -89,8 +90,13 @@ class Simulator:
                     s += " U_angles="+str(U_angles)+"  ; "
                 if lennard_jones is not None:
                     s += " U_lennard_jones="+str(U_lennard_jones)+"  ; "
+                s+= "rate="+str(np.mean(last))
                 print(s)
+            else:
+                last.append(0)
 
+            if len(last)>20:
+                last=last[-20:]
         self.deformed_structure = deformed_structure
         if self.md_variance==0 : self.md_variance=1
         return self.deformed_structure
