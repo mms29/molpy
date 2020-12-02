@@ -1,6 +1,6 @@
 functions{
-    real gaussian_pdf(row_vector x, row_vector mu, real sigma){
-        return pow((1/((2*pi()*square(sigma)))),(3.0/2.0))*exp(-((1/(2*square(sigma))) * square(distance(x,mu))));
+    real gaussian_pdf(matrix x, matrix y, real sigma){
+        return sum(exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]) +square(x[:,3] -y[:,3]))/(2*square(sigma))));
     }
 
 }
@@ -64,11 +64,7 @@ model {
     for (i in 1:N){
         for (j in 1:N){
             for (k in 1:N){
-                real s=0;
-                for(a in 1:n_atoms){
-                    s += gaussian_pdf(x[a], ([i-halfN-1,j-halfN-1,k-halfN-1])*sampling_rate, gaussian_sigma);
-                }
-                target += normal_lpdf(em_density[i,j,k] | s, epsilon);
+                target += normal_lpdf(em_density[i,j,k] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1,k-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon);
             }
         }
     }

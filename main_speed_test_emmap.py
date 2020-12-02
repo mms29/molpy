@@ -27,7 +27,7 @@ md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":
 
 # n_shards=2
 # os.environ['STAN_NUM_THREADS'] = str(n_shards)
-N = 61
+N =13
 n_voxels = (np.arange(N)+4)*2
 fit_nma = []
 fit_md_nma = []
@@ -74,13 +74,13 @@ for i in range(N):
                 }
 
 
-    fit_nma.append(src.fitting.Fitting(input_data, "nma"))
+    fit_nma.append(src.fitting.Fitting(input_data, "nma_emmap"))
     fit_nma[i].optimizing(n_iter=1000)
 
-    fit_md_nma.append(src.fitting.Fitting(input_data, "md_nma"))
+    fit_md_nma.append(src.fitting.Fitting(input_data, "md_nma_emmap"))
     fit_md_nma[i].optimizing(n_iter=1000)
 
-    fit_md.append(src.fitting.Fitting(input_data, "md"))
+    fit_md.append(src.fitting.Fitting(input_data, "md_emmap"))
     fit_md[i].optimizing(n_iter=1000)
     # vb = fit.vb(n_iter=10000)
     # fit.plot_lp()
@@ -95,7 +95,7 @@ def comp_err(fit):
         opt_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
     return np.array(opt_err)
 
-fig, ax= plt.subplots(2,1, figsize=(10,15))
+fig, ax= plt.subplots(1,2, figsize=(20,8))
 
 opt_nma_time =    [i.opt_time for i in fit_nma]
 opt_md_nma_time = [i.opt_time for i in fit_md_nma]

@@ -32,7 +32,7 @@ md_structure=  sim.run_md(U_lim=1, step=0.01, bonds={"k":0.001}, angles={"k":0.0
 
 # n_shards=2
 # os.environ['STAN_NUM_THREADS'] = str(n_shards)
-N = 3
+N = 82
 n_atoms = (np.arange(N)+1)*10
 fit_nma = []
 fit_md_nma = []
