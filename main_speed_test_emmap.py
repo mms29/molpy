@@ -75,13 +75,13 @@ for i in range(N):
 
 
     fit_nma.append(src.fitting.Fitting(input_data, "nma_emmap"))
-    fit_nma[i].optimizing(n_iter=1000)
+    fit_nma[i].optimizing(n_iter=10000)
 
     fit_md_nma.append(src.fitting.Fitting(input_data, "md_nma_emmap"))
-    fit_md_nma[i].optimizing(n_iter=1000)
+    fit_md_nma[i].optimizing(n_iter=10000)
 
     fit_md.append(src.fitting.Fitting(input_data, "md_emmap"))
-    fit_md[i].optimizing(n_iter=1000)
+    fit_md[i].optimizing(n_iter=10000)
     # vb = fit.vb(n_iter=10000)
     # fit.plot_lp()
     # fit.plot_nma(sim.q, save="results/modes_amplitudes.png")
