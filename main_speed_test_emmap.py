@@ -17,7 +17,7 @@ sim = src.simulation.Simulator(atoms)
 
 nma_structure = sim.run_nma(modes = modes, amplitude=[100,-50,150,-100,50])
 # rotated_structure = sim.rotate_pdb()
-md_structure=  sim.run_md(U_lim=1, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
+md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
 # sim.plot_structure(nma_structure)
 
 
@@ -27,8 +27,8 @@ md_structure=  sim.run_md(U_lim=1, step=0.01, bonds={"k":0.001}, angles={"k":0.0
 
 # n_shards=2
 # os.environ['STAN_NUM_THREADS'] = str(n_shards)
-N = 2
-n_voxels = (np.arange(N)+30)*2
+N = 61
+n_voxels = (np.arange(N)+4)*2
 fit_nma = []
 fit_md_nma = []
 fit_md = []
@@ -90,55 +90,34 @@ for i in range(N):
 
 def comp_err(fit):
     opt_err=[]
-    spl_err=[]
     for i in fit:
         opt_structure =i.opt_results['x']
-        sampling_structure = np.mean(i.sampling_results['x'], axis=0)
         opt_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
-        spl_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
-    return np.array(opt_err), np.array(spl_err)
+    return np.array(opt_err)
 
-fig, ax= plt.subplots(2,2, figsize=(20,15))
-spl_nma_time = [i.sampling_time for i in fit_nma]
-spl_md_nma_time = [i.sampling_time for i in fit_md_nma]
-spl_md_time = [i.sampling_time for i in fit_md]
-ax[0,0].plot(n_voxels,spl_nma_time)
-ax[0,0].plot(n_voxels,spl_md_nma_time)
-ax[0,0].plot(n_voxels,spl_md_time)
-ax[0,0].set_xlabel('Number of atoms')
-ax[0,0].set_ylabel('Time (s)')
-ax[0,0].legend(["nma", "md_nma", "md"])
-ax[0,0].set_title("Sampling Time")
+fig, ax= plt.subplots(2,1, figsize=(10,15))
 
 opt_nma_time =    [i.opt_time for i in fit_nma]
 opt_md_nma_time = [i.opt_time for i in fit_md_nma]
 opt_md_time =     [i.opt_time for i in fit_md]
-ax[0,1].plot(n_voxels,opt_nma_time)
-ax[0,1].plot(n_voxels,opt_md_nma_time)
-ax[0,1].plot(n_voxels,opt_md_time)
-ax[0,1].set_xlabel('Number of atoms')
-ax[0,1].set_ylabel('Time (s)')
-ax[0,1].legend(["nma", "md_nma", "md"])
-ax[0,1].set_title("Optimisation Time")
+ax[0].plot(n_voxels,opt_nma_time)
+ax[0].plot(n_voxels,opt_md_nma_time)
+ax[0].plot(n_voxels,opt_md_time)
+ax[0].set_xlabel('Number of atoms')
+ax[0].set_ylabel('Time (s)')
+ax[0].legend(["nma", "md_nma", "md"])
+ax[0].set_title("Optimisation Time")
 
 
-opt_nma_err, spl_nma_err = comp_err(fit_nma)
-opt_md_nma_err, spl_md_nma_err = comp_err(fit_md_nma)
-opt_md_err, spl_md_err = comp_err(fit_md)
+opt_nma_err = comp_err(fit_nma)
+opt_md_nma_err = comp_err(fit_md_nma)
+opt_md_err = comp_err(fit_md)
 
-ax[1,0].plot(n_voxels,spl_nma_err)
-ax[1,0].plot(n_voxels,spl_md_nma_err)
-ax[1,0].plot(n_voxels,spl_md_err)
-ax[1,0].set_xlabel('Number of atoms')
-ax[1,0].set_ylabel('RMSE')
-ax[1,0].legend(["nma", "md_nma", "md"])
-ax[1,0].set_title("Sampling Error")
-
-ax[1,1].plot(n_atoms, opt_nma_err)
-ax[1,1].plot(n_atoms, opt_md_nma_err)
-ax[1,1].plot(n_atoms, opt_md_err)
-ax[1,1].set_xlabel('Number of atoms')
-ax[1,1].set_ylabel('RMSE')
-ax[1,1].legend(["nma", "md_nma", "md"])
-ax[1,1].set_title("Optimisation Error")
-fig.savefig("results/speed.png")
+ax[1].plot(n_voxels, opt_nma_err)
+ax[1].plot(n_voxels, opt_md_nma_err)
+ax[1].plot(n_voxels, opt_md_err)
+ax[1].set_xlabel('Number of atoms')
+ax[1].set_ylabel('RMSE')
+ax[1].legend(["nma", "md_nma", "md"])
+ax[1].set_title("Optimisation Error")
+fig.savefig("results/speed_emmap.png")
