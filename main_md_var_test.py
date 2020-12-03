@@ -11,106 +11,131 @@ import src.fitting
 
 # import PDB
 atoms, ca = src.functions.read_pdb("data/AK/AK.pdb")
-modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=5)[ca][:50]
-atoms= src.functions.center_pdb(atoms)[ca][:50]
+modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=5)[ca]
+atoms= src.functions.center_pdb(atoms)[ca]
 sim = src.simulation.Simulator(atoms)
 
-nma_structure = sim.run_nma(modes = modes, amplitude=[100,-50,150,-100,50])
-# rotated_structure = sim.rotate_pdb()
-md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
-# sim.plot_structure(nma_structure)
+n_per_value = 10
+N =40
+param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
+param_name= "md_variance"
+print(param)
 
-n_voxels=12
-gaussian_sigma = 2
-sampling_rate = 6
-sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
-sim.plot_density()
+fit_md_opt_times     = np.zeros((N, n_per_value))
+fit_md_error_density = np.zeros((N, n_per_value))
+fit_md_error_atoms   = np.zeros((N, n_per_value))
+fit_md_cross_corr    = np.zeros((N, n_per_value))
+
+fit_md_nma_opt_times     = np.zeros((N, n_per_value))
+fit_md_nma_error_density = np.zeros((N, n_per_value))
+fit_md_nma_error_atoms   = np.zeros((N, n_per_value))
+fit_md_nma_cross_corr    = np.zeros((N, n_per_value))
 
 ########################################################################################################
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-# n_shards=2
-# os.environ['STAN_NUM_THREADS'] = str(n_shards)
-N =40
-n_md_var = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
-print(n_md_var)
-
-fit_nma = []
-fit_md_nma = []
-fit_md = []
 for i in range(N):
-    print("///////////////////////////////////////////////////////////")
-    print("///////////////////////////////////////////////////////////")
-    print("///////////////////////////////////////////////////////////")
-    print("ITER = "+str(i))
-    print("///////////////////////////////////////////////////////////")
-    print("///////////////////////////////////////////////////////////")
-    print("///////////////////////////////////////////////////////////")
+    for j in range(n_per_value):
+        print("///////////////////////////////////////////////////////////")
+        print("///////////////////////////////////////////////////////////")
+        print("///////////////////////////////////////////////////////////")
+        print("ITER = "+str(i))
+        print("///////////////////////////////////////////////////////////")
+        print("///////////////////////////////////////////////////////////")
+        print("///////////////////////////////////////////////////////////")
+
+        nma_structure = sim.run_nma(modes=modes, amplitude=150)
+        md_structure = sim.run_md(U_lim=0.1, step=0.01, bonds={"k": 0.001}, angles={"k": 0.01},
+                                  lennard_jones={"k": 1e-8, "d": 3})
+
+        N = 16
+        gaussian_sigma = 2
+        sampling_rate = 10
+        sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+
+        input_data = {
+            # structure
+                     'n_atoms': sim.n_atoms,
+                     'n_modes': modes.shape[1],
+                     'y': sim.deformed_structure,
+                     'x0': sim.init_structure,
+                     'A': modes,
+                     'sigma':150,
+                     'epsilon': np.max(sim.deformed_density)/10,
+                     'mu':0,
+
+            # Energy
+                     'U_init':0.1,
+                     's_md':param[i],
+                     'k_r':sim.bonds_k,
+                     'r0':sim.bonds_r0,
+                     'k_theta':sim.angles_k,
+                     'theta0':sim.angles_theta0,
+                     'k_lj':sim.lennard_jones_k,
+                     'd_lj':sim.lennard_jones_d,
+
+            # EM density
+                     'N':sim.n_voxels,
+                     'halfN':int(sim.n_voxels/2),
+                     'gaussian_sigma':gaussian_sigma,
+                     'sampling_rate': sampling_rate,
+                     'em_density': sim.deformed_density
+                    }
 
 
-    input_data = {
-        # structure
-                 'n_atoms': sim.n_atoms,
-                 'n_modes': modes.shape[1],
-                 'y': sim.deformed_structure,
-                 'x0': sim.init_structure,
-                 'A': modes,
-                 'sigma':200,
-                 'epsilon': np.max(sim.deformed_density)/10,
-                 'mu':0,
+        fit_md_nma = src.fitting.Fitting(input_data, "md_nma_emmap")
+        fit_md_nma.optimizing(n_iter=10000)
 
-        # Energy
-                 'U_init':1,
-                 's_md':n_md_var[i],
-                 'k_r':sim.bonds_k,
-                 'r0':sim.bonds_r0,
-                 'k_theta':sim.angles_k,
-                 'theta0':sim.angles_theta0,
-                 'k_lj':sim.lennard_jones_k,
-                 'd_lj':sim.lennard_jones_d,
+        fit_md = src.fitting.Fitting(input_data, "md_emmap")
+        fit_md.optimizing(n_iter=10000)
 
-        # EM density
-                 'N':sim.n_voxels,
-                 'halfN':int(sim.n_voxels/2),
-                 'gaussian_sigma':gaussian_sigma,
-                 'sampling_rate': sampling_rate,
-                 'em_density': sim.deformed_density
-                }
+        fit_md_density = volume_from_pdb(fit_md.opt_results['x'], N=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+        fit_md_opt_times     [i,j] = fit_md.opt_time
+        fit_md_error_density [i,j] = root_mean_square_error(fit_md_density, sim.deformed_density)
+        fit_md_cross_corr    [i,j] = cross_correlation(fit_md_density, sim.deformed_density)
+        fit_md_error_atoms   [i,j] = root_mean_square_error(fit_md.opt_results['x'], sim.deformed_structure)
+
+        fit_md_nma_density = volume_from_pdb(fit_md_nma.opt_results['x'], N=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+        fit_md_nma_opt_times     [i,j] = fit_md_nma.opt_time
+        fit_md_nma_error_density [i,j] = root_mean_square_error(fit_md_density, sim.deformed_density)
+        fit_md_nma_cross_corr    [i,j] = cross_correlation(fit_md_density, sim.deformed_density)
+        fit_md_nma_error_atoms   [i,j] = root_mean_square_error(fit_md_nma.opt_results['x'], sim.deformed_structure)
+
+        #############################
+        #Plots
+        #################################
+
+        fig, ax= plt.subplots(1,4, figsize=(20,8))
+
+        ax[0].errorbar(param, np.mean(fit_md_opt_times, axis=1), np.var(fit_md_opt_times, axis=1))
+        ax[0].errorbar(param, np.mean(fit_md_nma_opt_times, axis=1), np.var(fit_md_nma_opt_times, axis=1))
+        ax[0].set_xlabel(param_name)
+        ax[0].set_ylabel('Time (s)')
+        ax[0].legend(["md_nma", "md"])
+        ax[0].set_title("Time")
+
+        ax[1].errorbar(param, np.mean(fit_md_error_density, axis=1), np.var(fit_md_error_density, axis=1))
+        ax[1].errorbar(param, np.mean(fit_md_nma_error_density, axis=1), np.var(fit_md_nma_error_density, axis=1))
+        ax[1].set_xlabel(param_name)
+        ax[1].set_ylabel('RMSE')
+        ax[1].legend(["md_nma", "md"])
+        ax[1].set_title("RMSE density")
+
+        ax[2].errorbar(param, np.mean(fit_md_cross_corr, axis=1), np.var(fit_md_cross_corr, axis=1))
+        ax[2].errorbar(param, np.mean(fit_md_nma_cross_corr, axis=1), np.var(fit_md_nma_cross_corr, axis=1))
+        ax[2].set_xlabel(param_name)
+        ax[2].set_ylabel('CC')
+        ax[2].legend(["md_nma", "md"])
+        ax[2].set_title("CC")
+
+        ax[3].errorbar(param, np.mean(fit_md_error_atoms, axis=1), np.var(fit_md_error_atoms, axis=1))
+        ax[3].errorbar(param, np.mean(fit_md_nma_error_atoms, axis=1), np.var(fit_md_nma_error_atoms, axis=1))
+        ax[3].set_xlabel(param_name)
+        ax[3].set_ylabel('RMSE')
+        ax[3].legend(["md_nma", "md"])
+        ax[3].set_title("RMSE atoms")
+
+        fig.savefig("results/md_variance_parameter_test.png")
 
 
-    fit_md_nma.append(src.fitting.Fitting(input_data, "md_nma_emmap"))
-    fit_md_nma[i].optimizing(n_iter=10000)
-
-    fit_md.append(src.fitting.Fitting(input_data, "md_emmap"))
-    fit_md[i].optimizing(n_iter=10000)
-
-    def comp_err(fit):
-        opt_err=[]
-        for i in fit:
-            opt_structure =i.opt_results['x']
-            opt_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
-        return np.array(opt_err)
-
-    fig, ax= plt.subplots(1,2, figsize=(20,8))
-
-    opt_md_nma_time = [i.opt_time for i in fit_md_nma]
-    opt_md_time =     [i.opt_time for i in fit_md]
-    ax[0].plot(n_md_var[:i+1],opt_md_nma_time)
-    ax[0].plot(n_md_var[:i+1],opt_md_time)
-    ax[0].set_xlabel('Number of atoms')
-    ax[0].set_ylabel('Time (s)')
-    ax[0].legend(["md_nma", "md"])
-    ax[0].set_title("Optimisation Time")
-
-
-    opt_md_nma_err = comp_err(fit_md_nma)
-    opt_md_err = comp_err(fit_md)
-
-    ax[1].plot(n_md_var[:i+1], opt_md_nma_err)
-    ax[1].plot(n_md_var[:i+1], opt_md_err)
-    ax[1].set_xlabel('Number of atoms')
-    ax[1].set_ylabel('RMSE')
-    ax[1].legend(["md_nma", "md"])
-    ax[1].set_title("Optimisation Error")
-    fig.savefig("results/md_var_test.png")
