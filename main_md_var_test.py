@@ -95,8 +95,8 @@ for i in range(N):
 
     opt_md_nma_time = [i.opt_time for i in fit_md_nma]
     opt_md_time =     [i.opt_time for i in fit_md]
-    ax[0].plot(n_md_var,opt_md_nma_time)
-    ax[0].plot(n_md_var,opt_md_time)
+    ax[0].plot(n_md_var[:i+1],opt_md_nma_time)
+    ax[0].plot(n_md_var[:i+1],opt_md_time)
     ax[0].set_xlabel('Number of atoms')
     ax[0].set_ylabel('Time (s)')
     ax[0].legend(["md_nma", "md"])
@@ -106,8 +106,8 @@ for i in range(N):
     opt_md_nma_err = comp_err(fit_md_nma)
     opt_md_err = comp_err(fit_md)
 
-    ax[1].plot(n_md_var, opt_md_nma_err)
-    ax[1].plot(n_md_var, opt_md_err)
+    ax[1].plot(n_md_var[:i+1], opt_md_nma_err)
+    ax[1].plot(n_md_var[:i+1], opt_md_err)
     ax[1].set_xlabel('Number of atoms')
     ax[1].set_ylabel('RMSE')
     ax[1].legend(["md_nma", "md"])
