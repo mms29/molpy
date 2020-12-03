@@ -56,7 +56,7 @@ class Simulator:
             lj = src.functions.md_lennard_jones_potential(init_structure,self.lennard_jones_k, self.lennard_jones_d)
             print('LJ : '+str(lj))
             U_init +=lj
-        print("U init : " + str(U_init))
+        #print("U init : " + str(U_init))
 
         self.md_variance = 0
         last = []

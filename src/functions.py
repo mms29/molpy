@@ -87,7 +87,7 @@ def volume_from_pdb_fast(x, N, sigma, sampling_rate=1):
 def volume_from_pdb(x, N, sigma, sampling_rate=1):
     halfN = int(N / 2)
     if ((x < -N * sampling_rate / 2).any() or (x > N * sampling_rate / 2).any()):
-        raise RuntimeError("WARNING !! box size = -" + str(np.max([
+        print("WARNING !! box size = -" + str(np.max([
             (N * sampling_rate / 2) - np.max(x),
             (N * sampling_rate / 2) + np.min(x)]
         )))

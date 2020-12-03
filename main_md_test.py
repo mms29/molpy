@@ -52,7 +52,7 @@ for i in range(N):
 
         N = 16
         gaussian_sigma = 2
-        sampling_rate = 10
+        sampling_rate = 8
         sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
 
         input_data = {
