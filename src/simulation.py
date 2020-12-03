@@ -102,8 +102,8 @@ class Simulator:
         return self.deformed_structure
 
     def compute_density(self, size=64,  sigma=1, sampling_rate=1):
-        self.init_density= src.functions.volume_from_pdb(self.init_structure, size, sigma=sigma, sampling_rate=sampling_rate, precision=0.0001)
-        self.deformed_density = src.functions.volume_from_pdb(self.deformed_structure, size, sigma=sigma, sampling_rate=sampling_rate, precision=0.0001)
+        self.init_density= src.functions.volume_from_pdb(self.init_structure, size, sigma=sigma, sampling_rate=sampling_rate)
+        self.deformed_density = src.functions.volume_from_pdb(self.deformed_structure, size, sigma=sigma, sampling_rate=sampling_rate)
         self.n_voxels=size
 
     def rotate_pdb(self):

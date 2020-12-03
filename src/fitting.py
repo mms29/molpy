@@ -23,7 +23,13 @@ class Fitting:
 
     def optimizing(self,n_iter):
         t = time.time()
-        self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter)
+        try :
+            self.opt_results= self.model.optimizing(data = self.input_data,iter=n_iter)
+        except RuntimeError:
+            try:
+                self.opt_results = self.model.optimizing(data=self.input_data, iter=n_iter)
+            except RuntimeError:
+                self.opt_results = self.model.optimizing(data=self.input_data, iter=n_iter)
         self.opt_time = time.time() - t
         print("### EXECUTION ENDED " + str(self.opt_time) + "s ###")
 
@@ -129,9 +135,9 @@ class Fitting:
         if ("em_density" in self.input_data):
             em_density_target=self.input_data["em_density"]
         else:
-            em_density_target = src.functions.volume_from_pdb(self.input_data["y"], N, sigma=sigma, sampling_rate=sampling_rate, precision=0.0001)
+            em_density_target = src.functions.volume_from_pdb(self.input_data["y"], N, sigma=sigma, sampling_rate=sampling_rate)
         em_density_init = src.functions.volume_from_pdb(self.input_data["x0"], N, sigma=sigma,
-                                                          sampling_rate=sampling_rate, precision=0.0001)
+                                                          sampling_rate=sampling_rate)
         n_plot =0
         if self.vb_results is not None: n_plot+=1
         if self.opt_results is not None: n_plot += 1
@@ -145,7 +151,7 @@ class Fitting:
         if self.vb_results is not None:
             n_plot+=1
             em_density_vb = src.functions.volume_from_pdb(np.mean(self.read_results("vb", "x"), axis=0), N, sigma=sigma,
-                                                          sampling_rate=sampling_rate, precision=0.0001)
+                                                          sampling_rate=sampling_rate)
             err_map_vb = np.square(em_density_target - em_density_vb)[int(N / 2)]
             ax[n_plot].imshow(err_map_vb, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("vb : e=%.2g" % np.mean(err_map_vb))
@@ -153,14 +159,14 @@ class Fitting:
         if self.opt_results is not None:
             n_plot+=1
             em_density_opt = src.functions.volume_from_pdb(self.read_results("opt", "x"), N, sigma=sigma,
-                                                          sampling_rate=sampling_rate, precision=0.0001)
+                                                          sampling_rate=sampling_rate)
             err_map_opt = np.square(em_density_target - em_density_opt)[int(N / 2)]
             ax[n_plot].imshow(err_map_opt, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("opt : e=%.2g" % np.mean(err_map_opt))
         if self.sampling_results is not None:
             n_plot+=1
             em_density_sampling = src.functions.volume_from_pdb(np.mean(self.read_results("sampling", "x"), axis=0), N, sigma=sigma,
-                                                          sampling_rate=sampling_rate, precision=0.0001)
+                                                          sampling_rate=sampling_rate)
             err_map_sampling = np.square(em_density_target - em_density_sampling)[int(N / 2)]
             ax[n_plot].imshow(err_map_sampling, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("sampling : e=%.2g" % np.mean(err_map_sampling))

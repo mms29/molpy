@@ -11,8 +11,8 @@ import src.fitting
 
 # import PDB
 atoms, ca = src.functions.read_pdb("data/AK/AK.pdb")
-modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=5)[ca]
-atoms= src.functions.center_pdb(atoms)[ca]
+modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=5)[ca][:50]
+atoms= src.functions.center_pdb(atoms)[ca][:50]
 sim = src.simulation.Simulator(atoms)
 
 nma_structure = sim.run_nma(modes = modes, amplitude=[100,-50,150,-100,50])
@@ -22,8 +22,9 @@ md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":
 
 n_voxels=12
 gaussian_sigma = 2
-sampling_rate = 128/n_voxels
+sampling_rate = 6
 sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+sim.plot_density()
 
 ########################################################################################################
 #               FLEXIBLE FITTING

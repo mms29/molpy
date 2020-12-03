@@ -80,54 +80,46 @@ def rotate_pdb(self, atoms, angles):
         rotated_atoms[i] = atoms[i]*R
     return rotated_atoms
 
+def volume_from_pdb_fast(x, N, sigma, sampling_rate=1):
+    return np.sum(np.exp(-np.square(np.linalg.norm(np.repeat(x, N**3).reshape(x.shape[0], 3, N, N, N)-
+                                                   (np.mgrid[0:N, 0:N, 0:N] - N/2)*sampling_rate, axis=1))/(2*(sigma ** 2))), axis=0)
 
-def volume_from_pdb(x, N, sigma=1, sampling_rate=1, precision=0.001):
-
-    halfN=int(N/2)
-    if((x < -N*sampling_rate/2).any() or (x > N*sampling_rate/2).any()):
-        raise RuntimeError("WARNING !! box size = -"+str(np.max([
-            (N* sampling_rate / 2)  - np.max(x),
-            (N * sampling_rate / 2)  + np.min(x)]
+def volume_from_pdb(x, N, sigma, sampling_rate=1):
+    halfN = int(N / 2)
+    if ((x < -N * sampling_rate / 2).any() or (x > N * sampling_rate / 2).any()):
+        raise RuntimeError("WARNING !! box size = -" + str(np.max([
+            (N * sampling_rate / 2) - np.max(x),
+            (N * sampling_rate / 2) + np.min(x)]
         )))
     else:
-        print("box size = "+str(np.max([
-            (N* sampling_rate / 2)  - np.max(x),
-            (N * sampling_rate / 2)  + np.min(x)]
+        print("box size = " + str(np.max([
+            (N * sampling_rate / 2) - np.max(x),
+            (N * sampling_rate / 2) + np.min(x)]
         )))
     n_atoms = x.shape[0]
-    em_density = np.zeros((N,N,N))
-
-    guassian_range = 0
-    while(gaussian_pdf(np.array([guassian_range*sampling_rate,0,0]),np.array([0,0,0]), sigma) > precision):
-        guassian_range+=1
-
-
-    for a in range(n_atoms):
-        pos = np.rint((x[a]/sampling_rate) + halfN).astype(int)
-        for i in range(pos[0] - guassian_range , pos[0] + guassian_range + 1):
-            if (i>=0 and i <N):
-                for j in range(pos[1] - guassian_range , pos[1] + guassian_range + 1):
-                    if (j >= 0 and j < N):
-                        for k in range(pos[2] - guassian_range, pos[2] +guassian_range + 1):
-                            if (k >= 0 and k < N):
-                                em_density[i, j, k] += gaussian_pdf(np.array([i-halfN,j-halfN,k-halfN])*sampling_rate,x[a], sigma)
-
+    em_density = np.zeros((N, N, N))
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                mu = ((np.array([i, j, k]) - np.ones(3)*(N/2)) * sampling_rate)
+                em_density[i, j, k] = np.sum(np.exp(-np.square(np.linalg.norm(x-mu, axis=1))/(2*(sigma ** 2))))
     return em_density
 
-
-def gaussian_pdf(x, mu, sigma):
-    return np.exp(-((x[0]-mu[0])**2 + (x[1]-mu[1])**2 + (x[2]-mu[2])**2)/(2*(sigma**2)))
-
-def volume_from_pdb_slow(x, size, sigma, sampling_rate=1):
+def volume_from_pdb_slow(x, N, sigma, sampling_rate=1):
     n_atoms = x.shape[0]
-    em_density = np.zeros(size)
-    center_transform = np.array([size[0] / 2, size[1] / 2, size[2] / 2]).astype(int)
-    for i in range(size[0]):
-        for j in range(size[1]):
-            for k in range(size[2]):
+    em_density = np.zeros((N, N, N))
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
                 for a in range(n_atoms):
-                    em_density[i, j, k] += gaussian_pdf(x[a],((np.array([i, j, k]) - center_transform) * sampling_rate) , sigma)
+                    mu = ((np.array([i, j, k]) - np.ones(3)*(N/2)) * sampling_rate)
+                    em_density[i, j, k] += np.exp(-((x[a,0]-mu[0])**2 + (x[a,1]-mu[1])**2 + (x[a,2]-mu[2])**2)/(2*(sigma**2)))
     return em_density
+
+# def volume_from_pdb_slow(x, size, sigma, sampling_rate=1):
+#     n_atoms = x.shape[0]
+#     np.
+#     return em_density
 
 def center_pdb(x):
     return x - np.mean(x, axis=0)
@@ -161,16 +153,6 @@ def md_angles_potential(x, k_theta, theta0):
     return np.sum(k_theta * np.square(theta - theta0))
 
 def md_lennard_jones_potential(x, k_lj, d_lj):
-    U = 0.0
-    n_atoms = x.shape[0]
-    for i in range(n_atoms):
-        for j in range(n_atoms):
-            if i != j:
-                U += 4 * k_lj * (
-                            (d_lj / np.linalg.norm(x[i] - x[j])) ** 12 - (d_lj / np.linalg.norm(x[i] - x[j])) ** 6)
-    return U
-
-def md_lennard_jones_potential(x, k_lj, d_lj):
     n_atoms = x.shape[0]
     dist = np.linalg.norm(np.repeat(x, n_atoms, axis=0).reshape(n_atoms, n_atoms, 3) - x, axis=2)
     np.fill_diagonal(dist, np.nan)
@@ -178,7 +160,7 @@ def md_lennard_jones_potential(x, k_lj, d_lj):
     return np.nansum(4 * k_lj * (inv**12 - inv**6))
 
 #
-#
+# #
 # def md_bonds_potential(x, k_r, r0):
 #     U=0.0
 #     n_atoms = x.shape[0]
@@ -206,3 +188,9 @@ def md_lennard_jones_potential(x, k_lj, d_lj):
 #                 U += 4 * k_lj * (
 #                             (d_lj / np.linalg.norm(x[i] - x[j])) ** 12 - (d_lj / np.linalg.norm(x[i] - x[j])) ** 6)
 #     return U
+
+def cross_correlation(map1, map2):
+    return np.sum(map1*map2)/np.sqrt(np.sum(np.square(map1))*np.sum(np.square(map2)))
+
+def root_mean_square_error(map1, map2):
+    return np.sqrt(np.mean(np.square(map1- map2)))/np.max([np.max(map1)-np.min(map1), np.max(map2)-np.min(map2)])
