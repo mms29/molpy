@@ -20,6 +20,10 @@ nma_structure = sim.run_nma(modes = modes, amplitude=[100,-50,150,-100,50])
 md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":0.01}, lennard_jones={"k":1e-8, "d":3})
 # sim.plot_structure(nma_structure)
 
+n_voxels=12
+gaussian_sigma = 2
+sampling_rate = 128/n_voxels
+sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
 
 ########################################################################################################
 #               FLEXIBLE FITTING
@@ -27,8 +31,10 @@ md_structure=  sim.run_md(U_lim=0.01, step=0.01, bonds={"k":0.001}, angles={"k":
 
 # n_shards=2
 # os.environ['STAN_NUM_THREADS'] = str(n_shards)
-N =2 #13
-n_voxels = (np.arange(N)+4)*2
+N =50
+n_U_lim = np.array([ round(0.005*(1.2**i),6) for i in range(N)])
+print(n_U_lim)
+
 fit_nma = []
 fit_md_nma = []
 fit_md = []
@@ -41,9 +47,7 @@ for i in range(N):
     print("///////////////////////////////////////////////////////////")
     print("///////////////////////////////////////////////////////////")
 
-    gaussian_sigma = 2
-    sampling_rate = 128/n_voxels[i]
-    sim.compute_density(size=n_voxels[i], sigma=gaussian_sigma, sampling_rate=sampling_rate)
+
     input_data = {
         # structure
                  'n_atoms': sim.n_atoms,
@@ -56,8 +60,8 @@ for i in range(N):
                  'mu':0,
 
         # Energy
-                 'U_init':sim.U_lim,
-                 's_md':20,
+                 'U_init':n_U_lim[i],
+                 's_md':5,
                  'k_r':sim.bonds_k,
                  'r0':sim.bonds_r0,
                  'k_theta':sim.angles_k,
@@ -74,19 +78,11 @@ for i in range(N):
                 }
 
 
-    fit_nma.append(src.fitting.Fitting(input_data, "nma_emmap"))
-    fit_nma[i].optimizing(n_iter=10000)
-
     fit_md_nma.append(src.fitting.Fitting(input_data, "md_nma_emmap"))
     fit_md_nma[i].optimizing(n_iter=10000)
 
     fit_md.append(src.fitting.Fitting(input_data, "md_emmap"))
     fit_md[i].optimizing(n_iter=10000)
-    # vb = fit.vb(n_iter=10000)
-    # fit.plot_lp()
-    # fit.plot_nma(sim.q, save="results/modes_amplitudes.png")
-    # fit.plot_structure(save="results/3d_structures.png")
-    # fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/error_map.png")
 
     def comp_err(fit):
         opt_err=[]
@@ -97,27 +93,23 @@ for i in range(N):
 
     fig, ax= plt.subplots(1,2, figsize=(20,8))
 
-    opt_nma_time =    [i.opt_time for i in fit_nma]
     opt_md_nma_time = [i.opt_time for i in fit_md_nma]
     opt_md_time =     [i.opt_time for i in fit_md]
-    ax[0].plot(n_voxels[:i+1],opt_nma_time)
-    ax[0].plot(n_voxels[:i+1],opt_md_nma_time)
-    ax[0].plot(n_voxels[:i+1],opt_md_time)
+    ax[0].plot(n_U_lim,opt_md_nma_time)
+    ax[0].plot(n_U_lim,opt_md_time)
     ax[0].set_xlabel('Number of atoms')
     ax[0].set_ylabel('Time (s)')
-    ax[0].legend(["nma", "md_nma", "md"])
+    ax[0].legend(["md_nma", "md"])
     ax[0].set_title("Optimisation Time")
 
 
-    opt_nma_err = comp_err(fit_nma)
     opt_md_nma_err = comp_err(fit_md_nma)
     opt_md_err = comp_err(fit_md)
 
-    ax[1].plot(n_voxels[:i+1], opt_nma_err)
-    ax[1].plot(n_voxels[:i+1], opt_md_nma_err)
-    ax[1].plot(n_voxels[:i+1], opt_md_err)
+    ax[1].plot(n_U_lim, opt_md_nma_err)
+    ax[1].plot(n_U_lim, opt_md_err)
     ax[1].set_xlabel('Number of atoms')
     ax[1].set_ylabel('RMSE')
-    ax[1].legend(["nma", "md_nma", "md"])
+    ax[1].legend(["md_nma", "md"])
     ax[1].set_title("Optimisation Error")
-    fig.savefig("results/speed_emmap.png")
+    fig.savefig("results/md_test.png")
