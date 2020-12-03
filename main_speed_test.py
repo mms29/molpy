@@ -92,57 +92,57 @@ for i in range(N):
     # fit.plot_structure(save="results/3d_structures.png")
     # fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/error_map.png")
 
-def comp_err(fit):
-    opt_err=[]
-    spl_err=[]
-    for i in fit:
-        opt_structure =i.opt_results['x']
-        sampling_structure = np.mean(i.sampling_results['x'], axis=0)
-        opt_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
-        spl_err.append(np.mean(np.linalg.norm(sampling_structure -i.input_data['y'], axis=1)))
-    return np.array(opt_err), np.array(spl_err)
+    def comp_err(fit):
+        opt_err=[]
+        spl_err=[]
+        for i in fit:
+            opt_structure =i.opt_results['x']
+            sampling_structure = np.mean(i.sampling_results['x'], axis=0)
+            opt_err.append(np.mean(np.linalg.norm(opt_structure -i.input_data['y'], axis=1)))
+            spl_err.append(np.mean(np.linalg.norm(sampling_structure -i.input_data['y'], axis=1)))
+        return np.array(opt_err), np.array(spl_err)
 
-fig, ax= plt.subplots(2,2, figsize=(20,15))
-spl_nma_time = [i.sampling_time for i in fit_nma]
-spl_md_nma_time = [i.sampling_time for i in fit_md_nma]
-spl_md_time = [i.sampling_time for i in fit_md]
-ax[0,0].plot(n_atoms,spl_nma_time)
-ax[0,0].plot(n_atoms,spl_md_nma_time)
-ax[0,0].plot(n_atoms,spl_md_time)
-ax[0,0].set_xlabel('Number of atoms')
-ax[0,0].set_ylabel('Time (s)')
-ax[0,0].legend(["nma", "md_nma", "md"])
-ax[0,0].set_title("Sampling Time")
+    fig, ax= plt.subplots(2,2, figsize=(20,15))
+    spl_nma_time = [i.sampling_time for i in fit_nma]
+    spl_md_nma_time = [i.sampling_time for i in fit_md_nma]
+    spl_md_time = [i.sampling_time for i in fit_md]
+    ax[0,0].plot(n_atoms[:i+1],spl_nma_time)
+    ax[0,0].plot(n_atoms[:i+1],spl_md_nma_time)
+    ax[0,0].plot(n_atoms[:i+1],spl_md_time)
+    ax[0,0].set_xlabel('Number of atoms')
+    ax[0,0].set_ylabel('Time (s)')
+    ax[0,0].legend(["nma", "md_nma", "md"])
+    ax[0,0].set_title("Sampling Time")
 
-opt_nma_time =    [i.opt_time for i in fit_nma]
-opt_md_nma_time = [i.opt_time for i in fit_md_nma]
-opt_md_time =     [i.opt_time for i in fit_md]
-ax[0,1].plot(n_atoms,opt_nma_time)
-ax[0,1].plot(n_atoms,opt_md_nma_time)
-ax[0,1].plot(n_atoms,opt_md_time)
-ax[0,1].set_xlabel('Number of atoms')
-ax[0,1].set_ylabel('Time (s)')
-ax[0,1].legend(["nma", "md_nma", "md"])
-ax[0,1].set_title("Optimisation Time")
+    opt_nma_time =    [i.opt_time for i in fit_nma]
+    opt_md_nma_time = [i.opt_time for i in fit_md_nma]
+    opt_md_time =     [i.opt_time for i in fit_md]
+    ax[0,1].plot(n_atoms[:i+1],opt_nma_time)
+    ax[0,1].plot(n_atoms[:i+1],opt_md_nma_time)
+    ax[0,1].plot(n_atoms[:i+1],opt_md_time)
+    ax[0,1].set_xlabel('Number of atoms')
+    ax[0,1].set_ylabel('Time (s)')
+    ax[0,1].legend(["nma", "md_nma", "md"])
+    ax[0,1].set_title("Optimisation Time")
 
 
-opt_nma_err, spl_nma_err = comp_err(fit_nma)
-opt_md_nma_err, spl_md_nma_err = comp_err(fit_md_nma)
-opt_md_err, spl_md_err = comp_err(fit_md)
+    opt_nma_err, spl_nma_err = comp_err(fit_nma)
+    opt_md_nma_err, spl_md_nma_err = comp_err(fit_md_nma)
+    opt_md_err, spl_md_err = comp_err(fit_md)
 
-ax[1,0].plot(n_atoms,spl_nma_err)
-ax[1,0].plot(n_atoms,spl_md_nma_err)
-ax[1,0].plot(n_atoms,spl_md_err)
-ax[1,0].set_xlabel('Number of atoms')
-ax[1,0].set_ylabel('RMSE')
-ax[1,0].legend(["nma", "md_nma", "md"])
-ax[1,0].set_title("Sampling Error")
+    ax[1,0].plot(n_atoms[:i+1],spl_nma_err)
+    ax[1,0].plot(n_atoms[:i+1],spl_md_nma_err)
+    ax[1,0].plot(n_atoms[:i+1],spl_md_err)
+    ax[1,0].set_xlabel('Number of atoms')
+    ax[1,0].set_ylabel('RMSE')
+    ax[1,0].legend(["nma", "md_nma", "md"])
+    ax[1,0].set_title("Sampling Error")
 
-ax[1,1].plot(n_atoms, opt_nma_err)
-ax[1,1].plot(n_atoms, opt_md_nma_err)
-ax[1,1].plot(n_atoms, opt_md_err)
-ax[1,1].set_xlabel('Number of atoms')
-ax[1,1].set_ylabel('RMSE')
-ax[1,1].legend(["nma", "md_nma", "md"])
-ax[1,1].set_title("Optimisation Error")
-fig.savefig("results/speed.png")
+    ax[1,1].plot(n_atoms[:i+1], opt_nma_err)
+    ax[1,1].plot(n_atoms[:i+1], opt_md_nma_err)
+    ax[1,1].plot(n_atoms[:i+1], opt_md_err)
+    ax[1,1].set_xlabel('Numbe+r of atoms')
+    ax[1,1].set_ylabel('RMSE')
+    ax[1,1].legend(["nma", "md_nma", "md"])
+    ax[1,1].set_title("Optimisation Error")
+    fig.savefig("results/speed.png")
