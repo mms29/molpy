@@ -92,8 +92,8 @@ for j in range(n_per_value):
 
         fit_md_nma_density = volume_from_pdb(fit_md_nma.opt_results['x'], N=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
         fit_md_nma_opt_times     [i,j] = fit_md_nma.opt_time
-        fit_md_nma_error_density [i,j] = root_mean_square_error(fit_md_density, sim.deformed_density)
-        fit_md_nma_cross_corr    [i,j] = cross_correlation(fit_md_density, sim.deformed_density)
+        fit_md_nma_error_density [i,j] = root_mean_square_error(fit_md_nma_density, sim.deformed_density)
+        fit_md_nma_cross_corr    [i,j] = cross_correlation(fit_md_nma_density, sim.deformed_density)
         fit_md_nma_error_atoms   [i,j] = root_mean_square_error(fit_md_nma.opt_results['x'], sim.deformed_structure)
 
         #############################
