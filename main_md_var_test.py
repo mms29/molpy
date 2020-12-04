@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from src.functions import *
 import src.simulation
 import src.fitting
-
+import pickle
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
@@ -21,10 +21,10 @@ param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
 param_name= "md_variance"
 print(param)
 
-fit_md_opt_times     = np.zeros((N, n_per_value))
-fit_md_error_density = np.zeros((N, n_per_value))
-fit_md_error_atoms   = np.zeros((N, n_per_value))
-fit_md_cross_corr    = np.zeros((N, n_per_value))
+fit_md_opt_times         = np.zeros((N, n_per_value))
+fit_md_error_density     = np.zeros((N, n_per_value))
+fit_md_error_atoms       = np.zeros((N, n_per_value))
+fit_md_cross_corr        = np.zeros((N, n_per_value))
 
 fit_md_nma_opt_times     = np.zeros((N, n_per_value))
 fit_md_nma_error_density = np.zeros((N, n_per_value))
@@ -36,23 +36,16 @@ fit_md_nma_cross_corr    = np.zeros((N, n_per_value))
 ########################################################################################################
 
 for i in range(N):
+    nma_structure = sim.run_nma(modes=modes, amplitude=150)
+    md_structure = sim.run_md(U_lim=0.1, step=0.01, bonds={"k": 0.001}, angles={"k": 0.01},
+                              lennard_jones={"k": 1e-8, "d": 3})
+
+    N = 16
+    gaussian_sigma = 2
+    sampling_rate = 8
+    sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+
     for j in range(n_per_value):
-        print("///////////////////////////////////////////////////////////")
-        print("///////////////////////////////////////////////////////////")
-        print("///////////////////////////////////////////////////////////")
-        print("ITER = "+str(i))
-        print("///////////////////////////////////////////////////////////")
-        print("///////////////////////////////////////////////////////////")
-        print("///////////////////////////////////////////////////////////")
-
-        nma_structure = sim.run_nma(modes=modes, amplitude=150)
-        md_structure = sim.run_md(U_lim=0.1, step=0.01, bonds={"k": 0.001}, angles={"k": 0.01},
-                                  lennard_jones={"k": 1e-8, "d": 3})
-
-        N = 16
-        gaussian_sigma = 2
-        sampling_rate = 8
-        sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
 
         input_data = {
             # structure
@@ -138,4 +131,15 @@ for i in range(N):
 
         fig.savefig("results/md_variance_parameter_test.png")
 
-
+        with open("results/md_variance_parameter_test.pkl", 'wb') as f:
+            data={
+            "fit_md_opt_times": fit_md_opt_times         ,
+            "fit_md_error_density": fit_md_error_density     ,
+            "fit_md_error_atoms": fit_md_error_atoms       ,
+            "fit_md_cross_corr": fit_md_cross_corr        ,
+            "fit_md_nma_opt_times": fit_md_nma_opt_times     ,
+            "fit_md_nma_error_density": fit_md_nma_error_density ,
+            "fit_md_nma_error_atoms": fit_md_nma_error_atoms   ,
+            "fit_md_nma_cross_corr": fit_md_nma_cross_corr
+            }
+            pickle.dump(obj =data, file=f)
