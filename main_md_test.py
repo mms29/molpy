@@ -100,7 +100,7 @@ for j in range(n_per_value):
         #Plots
         #################################
 
-        fig, ax= plt.subplots(1,4, figsize=(20,8))
+        fig, ax= plt.subplots(1,4, figsize=(25s,8))
 
         ax[0].errorbar(param[:i+1], np.mean(fit_md_opt_times    [:i+1,:j+1]      , axis=1), np.var(fit_md_opt_times     [:i+1,:j+1]     , axis=1))
         ax[0].errorbar(param[:i+1], np.mean(fit_md_nma_opt_times[:i+1,:j+1]      , axis=1), np.var(fit_md_nma_opt_times [:i+1,:j+1]     , axis=1))
