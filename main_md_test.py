@@ -16,8 +16,8 @@ atoms= src.functions.center_pdb(atoms)[ca]
 sim = src.simulation.Simulator(atoms)
 
 n_per_value = 10
-N =50
-param = np.array([ round(0.005*(1.2**i),6) for i in range(N)])
+N =30
+param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
 param_name= "U_lim"
 param_init= 0.1
 print(param)
@@ -46,7 +46,15 @@ for j in range(n_per_value):
     sampling_rate = 8
     sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
     for i in range(N):
-
+        plt.close('all')
+        print('///////////////////////////////////////')
+        print('///////////////////////////////////////')
+        print('///////////////////////////////////////')
+        print("i="+str(i))
+        print("j="+str(j))
+        print('///////////////////////////////////////')
+        print('///////////////////////////////////////')
+        print('///////////////////////////////////////')
 
         input_data = {
             # structure
@@ -102,29 +110,29 @@ for j in range(n_per_value):
 
         fig, ax= plt.subplots(1,4, figsize=(25,8))
 
-        ax[0].errorbar(param[:i+1], np.mean(fit_md_opt_times    [:i+1,:j+1]      , axis=1), np.var(fit_md_opt_times     [:i+1,:j+1]     , axis=1))
-        ax[0].errorbar(param[:i+1], np.mean(fit_md_nma_opt_times[:i+1,:j+1]      , axis=1), np.var(fit_md_nma_opt_times [:i+1,:j+1]     , axis=1))
+        ax[0].plot(param[:i+1], np.mean(fit_md_opt_times    [:i+1,:j+1]      , axis=1))
+        ax[0].plot(param[:i+1], np.mean(fit_md_nma_opt_times[:i+1,:j+1]      , axis=1))
         ax[0].set_xlabel(param_name)
         ax[0].set_ylabel('Time (s)')
         ax[0].legend(["md_nma", "md"])
         ax[0].set_title("Time")
 
-        ax[1].errorbar(param[:i+1], np.mean(fit_md_error_density    [:i+1,:j+1]  , axis=1), np.var(fit_md_error_density    [:i+1,:j+1]  , axis=1))
-        ax[1].errorbar(param[:i+1], np.mean(fit_md_nma_error_density[:i+1,:j+1]  , axis=1), np.var(fit_md_nma_error_density[:i+1,:j+1]  , axis=1))
+        ax[1].plot(param[:i+1], np.mean(fit_md_error_density    [:i+1,:j+1]  , axis=1))
+        ax[1].plot(param[:i+1], np.mean(fit_md_nma_error_density[:i+1,:j+1]  , axis=1))
         ax[1].set_xlabel(param_name)
         ax[1].set_ylabel('RMSE')
         ax[1].legend(["md_nma", "md"])
         ax[1].set_title("RMSE density")
 
-        ax[2].errorbar(param[:i+1], np.mean(fit_md_cross_corr     [:i+1,:j+1]    , axis=1), np.var(fit_md_cross_corr     [:i+1,:j+1]    , axis=1))
-        ax[2].errorbar(param[:i+1], np.mean(fit_md_nma_cross_corr [:i+1,:j+1]    , axis=1), np.var(fit_md_nma_cross_corr [:i+1,:j+1]    , axis=1))
+        ax[2].plot(param[:i+1], np.mean(fit_md_cross_corr     [:i+1,:j+1]    , axis=1))
+        ax[2].plot(param[:i+1], np.mean(fit_md_nma_cross_corr [:i+1,:j+1]    , axis=1))
         ax[2].set_xlabel(param_name)
         ax[2].set_ylabel('CC')
         ax[2].legend(["md_nma", "md"])
         ax[2].set_title("CC")
 
-        ax[3].errorbar(param[:i+1], np.mean(fit_md_error_atoms     [:i+1,:j+1]   , axis=1), np.var(fit_md_error_atoms     [:i+1,:j+1]   , axis=1))
-        ax[3].errorbar(param[:i+1], np.mean(fit_md_nma_error_atoms [:i+1,:j+1]   , axis=1), np.var(fit_md_nma_error_atoms [:i+1,:j+1]   , axis=1))
+        ax[3].plot(param[:i+1], np.mean(fit_md_error_atoms     [:i+1,:j+1]   , axis=1))
+        ax[3].plot(param[:i+1], np.mean(fit_md_nma_error_atoms [:i+1,:j+1]   , axis=1))
         ax[3].set_xlabel(param_name)
         ax[3].set_ylabel('RMSE')
         ax[3].legend(["md_nma", "md"])
@@ -144,3 +152,56 @@ for j in range(n_per_value):
             }
             pickle.dump(obj =data, file=f)
 
+#
+# import pickle
+# with open("results/u_lim_parameter_test.pkl", 'rb') as f:
+#     data = pickle.load(f)
+# #
+# N = 50
+# param = np.array([round(0.005 * (1.2 ** i), 6) for i in range(N)])
+# param_name = "U_lim"
+#
+# with open("results/md_variance_parameter_test.pkl", 'rb') as f:
+#     data = pickle.load(f)
+# N =40
+# param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
+# param_name= "md_variance"
+#
+# fit_md_opt_times=data["fit_md_opt_times"]
+# fit_md_error_density=data["fit_md_error_density"]
+# fit_md_cross_corr=data["fit_md_cross_corr"]
+# fit_md_error_atoms=data["fit_md_error_atoms"]
+# fit_md_nma_opt_times=data["fit_md_nma_opt_times"]
+# fit_md_nma_error_density=data["fit_md_nma_error_density"]
+# fit_md_nma_cross_corr=data["fit_md_nma_cross_corr"]
+# fit_md_nma_error_atoms=data["fit_md_nma_error_atoms"]
+#
+# fig, ax= plt.subplots(1,4, figsize=(25,8))
+#
+# ax[0].plot(param, np.var(fit_md_opt_times          , axis=1))
+# ax[0].plot(param, np.var(fit_md_nma_opt_times      , axis=1))
+# ax[0].set_xlabel(param_name)
+# ax[0].set_ylabel('Time (s)')
+# ax[0].legend(["md_nma", "md"])
+# ax[0].set_title("Time")
+#
+# ax[1].plot(param, np.mean(fit_md_error_density     , axis=1))
+# ax[1].plot(param, np.mean(fit_md_nma_error_density , axis=1))
+# ax[1].set_xlabel(param_name)
+# ax[1].set_ylabel('RMSE')
+# ax[1].legend(["md_nma", "md"])
+# ax[1].set_title("RMSE density")
+#
+# ax[2].plot(param, np.mean(fit_md_cross_corr      , axis=1))
+# ax[2].plot(param, np.mean(fit_md_nma_cross_corr  , axis=1))
+# ax[2].set_xlabel(param_name)
+# ax[2].set_ylabel('CC')
+# ax[2].legend(["md_nma", "md"])
+# ax[2].set_title("CC")
+#
+# ax[3].plot(param, np.mean(fit_md_error_atoms      , axis=1))
+# ax[3].plot(param, np.mean(fit_md_nma_error_atoms  , axis=1))
+# ax[3].set_xlabel(param_name)
+# ax[3].set_ylabel('RMSE')
+# ax[3].legend(["md_nma", "md"])
+# ax[3].set_title("RMSE atoms")
