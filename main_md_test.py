@@ -41,10 +41,10 @@ for j in range(n_per_value):
     md_structure = sim.run_md(U_lim=param_init, step=0.01, bonds={"k": 0.001}, angles={"k": 0.01},
                               lennard_jones={"k": 1e-8, "d": 3})
 
-    N = 16
+    n_voxels = 16
     gaussian_sigma = 2
     sampling_rate = 8
-    sim.compute_density(size=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+    sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
     for i in range(N):
         plt.close('all')
         print('///////////////////////////////////////')
@@ -92,13 +92,13 @@ for j in range(n_per_value):
         fit_md = src.fitting.Fitting(input_data, "md_emmap")
         fit_md.optimizing(n_iter=10000)
 
-        fit_md_density = volume_from_pdb(fit_md.opt_results['x'], N=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+        fit_md_density = volume_from_pdb(fit_md.opt_results['x'], N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
         fit_md_opt_times     [i,j] = fit_md.opt_time
         fit_md_error_density [i,j] = root_mean_square_error(fit_md_density, sim.deformed_density)
         fit_md_cross_corr    [i,j] = cross_correlation(fit_md_density, sim.deformed_density)
         fit_md_error_atoms   [i,j] = root_mean_square_error(fit_md.opt_results['x'], sim.deformed_structure)
 
-        fit_md_nma_density = volume_from_pdb(fit_md_nma.opt_results['x'], N=N, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+        fit_md_nma_density = volume_from_pdb(fit_md_nma.opt_results['x'], N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
         fit_md_nma_opt_times     [i,j] = fit_md_nma.opt_time
         fit_md_nma_error_density [i,j] = root_mean_square_error(fit_md_nma_density, sim.deformed_density)
         fit_md_nma_cross_corr    [i,j] = cross_correlation(fit_md_nma_density, sim.deformed_density)
@@ -151,15 +151,15 @@ for j in range(n_per_value):
             "fit_md_nma_cross_corr": fit_md_nma_cross_corr
             }
             pickle.dump(obj =data, file=f)
-
+#
 #
 # import pickle
-# with open("results/u_lim_parameter_test.pkl", 'rb') as f:
+# with open("results/u_lim_parameter_test_2.pkl", 'rb') as f:
 #     data = pickle.load(f)
 # #
-# N = 50
-# param = np.array([round(0.005 * (1.2 ** i), 6) for i in range(N)])
-# param_name = "U_lim"
+# N =30
+# param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
+# param_name= "U_lim"
 #
 # with open("results/md_variance_parameter_test.pkl", 'rb') as f:
 #     data = pickle.load(f)
@@ -167,19 +167,19 @@ for j in range(n_per_value):
 # param = np.array([ round(0.1*(1.2**i),6) for i in range(N)])
 # param_name= "md_variance"
 #
-# fit_md_opt_times=data["fit_md_opt_times"]
-# fit_md_error_density=data["fit_md_error_density"]
-# fit_md_cross_corr=data["fit_md_cross_corr"]
-# fit_md_error_atoms=data["fit_md_error_atoms"]
-# fit_md_nma_opt_times=data["fit_md_nma_opt_times"]
-# fit_md_nma_error_density=data["fit_md_nma_error_density"]
-# fit_md_nma_cross_corr=data["fit_md_nma_cross_corr"]
-# fit_md_nma_error_atoms=data["fit_md_nma_error_atoms"]
+# fit_md_opt_times=data["fit_md_opt_times"][:,[0,1]]
+# fit_md_error_density=data["fit_md_error_density"][:,[0,1]]
+# fit_md_cross_corr=data["fit_md_cross_corr"][:,[0,1]]
+# fit_md_error_atoms=data["fit_md_error_atoms"][:,[0,1]]
+# fit_md_nma_opt_times=data["fit_md_nma_opt_times"][:,[0,1]]
+# fit_md_nma_error_density=data["fit_md_nma_error_density"][:,[0,1]]
+# fit_md_nma_cross_corr=data["fit_md_nma_cross_corr"][:,[0,1]]
+# fit_md_nma_error_atoms=data["fit_md_nma_error_atoms"][:,[0,1]]
 #
 # fig, ax= plt.subplots(1,4, figsize=(25,8))
 #
-# ax[0].plot(param, np.var(fit_md_opt_times          , axis=1))
-# ax[0].plot(param, np.var(fit_md_nma_opt_times      , axis=1))
+# ax[0].plot(param, np.mean(fit_md_opt_times          , axis=1))
+# ax[0].plot(param, np.mean(fit_md_nma_opt_times      , axis=1))
 # ax[0].set_xlabel(param_name)
 # ax[0].set_ylabel('Time (s)')
 # ax[0].legend(["md_nma", "md"])
