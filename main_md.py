@@ -22,9 +22,9 @@ sim.plot_structure(nma_structure)
 
 n_voxels=16
 gaussian_sigma = 2
-sampling_rate = 6
+sampling_rate = 8
 sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
-# sim.plot_density()
+sim.plot_density()
 
 ########################################################################################################
 #               FLEXIBLE FITTING
@@ -42,8 +42,8 @@ input_data = {
              'mu':0,
 
     # Energy
-             'U_init':sim.U_lim,
-             's_md':sim.md_variance**2,
+             'U_init':1,
+             's_md':8,
              'k_r':sim.bonds_k,
              'r0':sim.bonds_r0,
              'k_theta':sim.angles_k,
@@ -61,10 +61,18 @@ input_data = {
 
 
 fit =src.fitting.Fitting(input_data, "md_nma_emmap")
-fit.optimizing(n_iter=10000)
-fit.plot_nma(sim.q)
-fit.plot_structure()
-fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+fit.sampling(n_iter=20, n_warmup=100, n_chain=4)
+fit.plot_lp(save="results/sampling_lp.png")
+fit.plot_nma(sim.q, save="results/sampling_nma.png")
+fit.plot_structure(save="results/sampling_structure.png")
+fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/sampling_err.png")
+
+fit_density = volume_from_pdb(fit.opt_results['x'], N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+rmse = root_mean_square_error(fit_density, sim.deformed_density)
+cc = cross_correlation(fit_density, sim.deformed_density)
+
+print("CC="+str(cc)+" ; RMSE="+str(rmse))
+print("Samling time = "+str(fit.sampling_time))
 #
 # fit_md = src.fitting.Fitting(input_data, "md_emmap")
 # fit_md.optimizing(n_iter=10000)

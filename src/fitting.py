@@ -96,13 +96,14 @@ class Fitting:
         if save is not None : fig.savefig(save)
         # fig.show()
 
-    def plot_lp(self):
+    def plot_lp(self, save=None):
         fig = plt.figure()
         ax = fig.add_subplot(111)
         lp = self.fit.extract(pars='lp__',inc_warmup=True, permuted=False)['lp__']
         llp = np.sign(lp) * np.log(1 + np.abs(lp))
         for i in range(lp.shape[1]):
             ax.plot(llp[:,i])
+        if save is not None: fig.savefig(save)
 
     def plot_structure(self, other_structure=None, save=None):
         init_structure = self.input_data['x0']
