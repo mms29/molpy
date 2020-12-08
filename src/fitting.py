@@ -148,14 +148,14 @@ class Fitting:
         n_plot=0
         err_map_init = np.square(em_density_init - em_density_target)[int(N / 2)]
         ax[n_plot].imshow(err_map_init, vmax=np.max(err_map_init), cmap='jet')
-        ax[n_plot].set_title("init : e=%.2g" % np.mean(err_map_init))
+        ax[n_plot].set_title("init : e=%.2g" % src.functions.root_mean_square_error(em_density_init,em_density_target))
         if self.vb_results is not None:
             n_plot+=1
             em_density_vb = src.functions.volume_from_pdb(np.mean(self.read_results("vb", "x"), axis=0), N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
             err_map_vb = np.square(em_density_target - em_density_vb)[int(N / 2)]
             ax[n_plot].imshow(err_map_vb, vmax=np.max(err_map_init), cmap='jet')
-            ax[n_plot].set_title("vb : e=%.2g" % np.mean(err_map_vb))
+            ax[n_plot].set_title("vb : e=%.2g" % src.functions.root_mean_square_error(em_density_vb,em_density_target))
 
         if self.opt_results is not None:
             n_plot+=1
@@ -163,12 +163,12 @@ class Fitting:
                                                           sampling_rate=sampling_rate)
             err_map_opt = np.square(em_density_target - em_density_opt)[int(N / 2)]
             ax[n_plot].imshow(err_map_opt, vmax=np.max(err_map_init), cmap='jet')
-            ax[n_plot].set_title("opt : e=%.2g" % np.mean(err_map_opt))
+            ax[n_plot].set_title("opt : e=%.2g" % src.functions.root_mean_square_error(em_density_opt,em_density_target))
         if self.sampling_results is not None:
             n_plot+=1
             em_density_sampling = src.functions.volume_from_pdb(np.mean(self.read_results("sampling", "x"), axis=0), N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
             err_map_sampling = np.square(em_density_target - em_density_sampling)[int(N / 2)]
             ax[n_plot].imshow(err_map_sampling, vmax=np.max(err_map_init), cmap='jet')
-            ax[n_plot].set_title("sampling : e=%.2g" % np.mean(err_map_sampling))
+            ax[n_plot].set_title("sampling : e=%.2g" % src.functions.root_mean_square_error(em_density_sampling,em_density_target))
         if save is not None : fig.savefig(save)

@@ -101,32 +101,33 @@ for i in range(N):
 
         fig, ax = plt.subplots(1, 4, figsize=(25, 8))
 
-        ax[0].errorbar(param[:i + 1], np.mean(fit_md_opt_times[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_opt_times[:i + 1, :j + 1], axis=1))
-        ax[0].errorbar(param[:i + 1], np.mean(fit_md_nma_opt_times[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_nma_opt_times[:i + 1, :j + 1], axis=1))
+        ax[0].plot(param[:i + 1], np.mean(fit_md_nma_opt_times[:i + 1, :j + 1], axis=1))
+        ax[0].plot(param[:i + 1], np.mean(fit_md_opt_times[:i + 1, :j + 1], axis=1))
         ax[0].set_xlabel(param_name)
         ax[0].set_ylabel('Time (s)')
         ax[0].legend(["md_nma", "md"])
         ax[0].set_title("Time")
 
-        ax[1].errorbar(param[:i + 1], np.mean(fit_md_error_density[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_error_density[:i + 1, :j + 1], axis=1))
-        ax[1].errorbar(param[:i + 1], np.mean(fit_md_nma_error_density[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_nma_error_density[:i + 1, :j + 1], axis=1))
+        ax[1].plot(param[:i + 1], np.mean(fit_md_nma_error_density[:i + 1, :j + 1], axis=1))
+        ax[1].plot(param[:i + 1], np.mean(fit_md_error_density[:i + 1, :j + 1], axis=1))
         ax[1].set_xlabel(param_name)
         ax[1].set_ylabel('RMSE')
         ax[1].legend(["md_nma", "md"])
         ax[1].set_title("RMSE density")
 
-        ax[2].errorbar(param[:i + 1], np.mean(fit_md_cross_corr[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_cross_corr[:i + 1, :j + 1], axis=1))
-        ax[2].errorbar(param[:i + 1], np.mean(fit_md_nma_cross_corr[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_nma_cross_corr[:i + 1, :j + 1], axis=1))
+        ax[2].plot(param[:i + 1], np.mean(fit_md_nma_cross_corr[:i + 1, :j + 1], axis=1))
+        ax[2].plot(param[:i + 1], np.mean(fit_md_cross_corr[:i + 1, :j + 1], axis=1))
         ax[2].set_xlabel(param_name)
         ax[2].set_ylabel('CC')
         ax[2].legend(["md_nma", "md"])
         ax[2].set_title("CC")
+
+        ax[3].plot(param[:i + 1], np.mean(fit_md_nma_error_atoms[:i + 1, :j + 1], axis=1))
+        ax[3].plot(param[:i + 1], np.mean(fit_md_error_atoms[:i + 1, :j + 1], axis=1))
+        ax[3].set_xlabel(param_name)
+        ax[3].set_ylabel('RMSE')
+        ax[3].legend(["md_nma", "md"])
+        ax[3].set_title("RMSE atoms")
 
         ax[3].errorbar(param[:i + 1], np.mean(fit_md_error_atoms[:i + 1, :j + 1], axis=1),
                        np.var(fit_md_error_atoms[:i + 1, :j + 1], axis=1))
