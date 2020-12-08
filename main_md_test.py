@@ -21,10 +21,10 @@ param = np.array([ round(0.01*(1.25**i),6) for i in range(N)])
 param_name= "U_lim"
 print(param)
 
-fit_md_opt_times     = np.zeros((N, n_per_value))
-fit_md_error_density = np.zeros((N, n_per_value))
-fit_md_error_atoms   = np.zeros((N, n_per_value))
-fit_md_cross_corr    = np.zeros((N, n_per_value))
+fit_md_opt_times            = np.zeros((N, n_per_value))
+fit_md_error_density        = np.zeros((N, n_per_value))
+fit_md_error_atoms          = np.zeros((N, n_per_value))
+fit_md_cross_corr           = np.zeros((N, n_per_value))
 
 fit_md_nma_opt_times     = np.zeros((N, n_per_value))
 fit_md_nma_error_density = np.zeros((N, n_per_value))
