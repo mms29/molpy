@@ -129,15 +129,6 @@ for i in range(N):
         ax[3].legend(["md_nma", "md"])
         ax[3].set_title("RMSE atoms")
 
-        ax[3].errorbar(param[:i + 1], np.mean(fit_md_error_atoms[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_error_atoms[:i + 1, :j + 1], axis=1))
-        ax[3].errorbar(param[:i + 1], np.mean(fit_md_nma_error_atoms[:i + 1, :j + 1], axis=1),
-                       np.var(fit_md_nma_error_atoms[:i + 1, :j + 1], axis=1))
-        ax[3].set_xlabel(param_name)
-        ax[3].set_ylabel('RMSE')
-        ax[3].legend(["md_nma", "md"])
-        ax[3].set_title("RMSE atoms")
-
         fig.savefig("results/md_variance_parameter_test.png")
 
         with open("results/md_variance_parameter_test.pkl", 'wb') as f:
