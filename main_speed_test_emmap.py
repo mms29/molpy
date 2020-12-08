@@ -23,7 +23,7 @@ n_voxels = 24
 gaussian_sigma=2
 sampling_rate= 128/n_voxels
 
-N = 2
+N = 42
 n_atoms = (np.arange(N)+1)*5
 
 fit_md_opt_times         = np.zeros(N)

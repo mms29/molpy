@@ -12,7 +12,7 @@ atoms, ca = src.functions.read_pdb("data/ATPase/1iwo.pdb")
 # atoms, ca = src.functions.read_pdb("data/RF2/1n0v.pdb")
 atoms= src.functions.center_pdb(atoms)[ca][::]
 
-target, target_ca = src.functions.read_pdb("data/ATPase/1su4.pdb")
+target, target_ca = src.functions.read_pdb("data/ATPase/1su4_rotated.pdb")
 # target, target_ca = src.functions.read_pdb("data/RF2/1n0u.pdb")
 target= src.functions.center_pdb(target)[target_ca][::]
 
@@ -34,9 +34,6 @@ sim.plot_density()
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-# n_shards=2
-# os.environ['STAN_NUM_THREADS'] = str(n_shards)
-
 input_data = {
     # structure
              'n_atoms': sim.n_atoms,
@@ -44,14 +41,13 @@ input_data = {
              'y': sim.deformed_structure,
              'x0': sim.init_structure,
              'A': modes,
-             'sigma':100,
+             'sigma':150,
              'epsilon':np.max(sim.deformed_density)/10,
              'mu': 0,
-             # 'n_shards':n_shards,
 
     # Energy
-             'U_init':sim.U_lim,
-             's_md':20,
+             'U_init':1,
+             's_md':10,
              'k_r':sim.bonds_k,
              'r0':sim.bonds_r0,
              'k_theta':sim.angles_k,
@@ -68,10 +64,7 @@ input_data = {
             }
 
 
-fit = src.fitting.Fitting(input_data, "md_nma_emmap_rotation")
-# fit.sampling(n_iter=50, n_warmup=200, n_chain=4)
+fit = src.fitting.Fitting(input_data, "md_nma_emmap")
 opt = fit.optimizing(n_iter=1000)
-# vb = fit.vb(n_iter=100)
-# fit.plot_nma(save="results/modes_amplitudes.png")
 fit.plot_structure(save="results/3d_structures.png")
 fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/error_map.png")
