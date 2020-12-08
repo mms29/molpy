@@ -26,8 +26,8 @@ modes = src.functions.read_modes("data/ATPase/modes/vec.", n_modes=5)[ca][:]
 md_structure=  sim.run_md(U_lim=1, step=0.05, bonds={"k":0.01}, angles={"k":0.001}, lennard_jones={"k":1e-8, "d":3})
 
 gaussian_sigma=2
-sampling_rate=8
-sim.compute_density(size=24, sigma=gaussian_sigma, sampling_rate=sampling_rate)
+sampling_rate=6
+sim.compute_density(size=32, sigma=gaussian_sigma, sampling_rate=sampling_rate)
 sim.plot_density()
 
 ########################################################################################################
@@ -65,6 +65,6 @@ input_data = {
 
 
 fit = src.fitting.Fitting(input_data, "md_nma_emmap")
-opt = fit.optimizing(n_iter=1000)
-fit.plot_structure(save="results/3d_structures.png")
-fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/error_map.png")
+opt = fit.optimizing(n_iter=10000)
+fit.plot_structure(save="results/atpase_md_nma_structure.png")
+fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_nma_err.png")
