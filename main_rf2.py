@@ -64,8 +64,8 @@ input_data = {
             }
 
 
-fit = src.fitting.Fitting(input_data, "md_nma_emmap")
+fit = src.fitting.Fitting(input_data, "md_emmap")
 opt = fit.optimizing(n_iter=10000)
-fit.plot_structure(save="results/atpase_md_nma_structure.png")
-fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_nma_err.png")
-fit.save("results/atpase_md_nma_structure.pkl")
+fit.plot_structure(save="results/atpase_md_structure.png")
+fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_err.png")
+fit.save("results/atpase_md_structure.pkl")
