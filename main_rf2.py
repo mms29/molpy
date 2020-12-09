@@ -41,13 +41,13 @@ input_data = {
              'y': sim.deformed_structure,
              'x0': sim.init_structure,
              'A': modes,
-             'sigma':150,
-             'epsilon':np.max(sim.deformed_density)/10,
+             'sigma':50,
+             'epsilon':np.max(sim.deformed_density)/100,
              'mu': 0,
 
     # Energy
              'U_init':1,
-             's_md':10,
+             's_md':5,
              'k_r':sim.bonds_k,
              'r0':sim.bonds_r0,
              'k_theta':sim.angles_k,
@@ -64,7 +64,8 @@ input_data = {
             }
 
 
-fit = src.fitting.Fitting(input_data, "md_emmap")
+fit = src.fitting.Fitting(input_data, "md_nma_emmap")
 opt = fit.optimizing(n_iter=10000)
-fit.plot_structure(save="results/atpase_md_structure.png")
-fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_err.png")
+fit.plot_structure(save="results/atpase_md_nma_structure.png")
+fit.plot_error_map(N=sim.n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_nma_err.png")
+fit.save("results/atpase_md_nma_structure.pkl")

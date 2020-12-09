@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import re
 import time
+import pickle
 
 class Fitting:
 
@@ -132,7 +133,18 @@ class Fitting:
         if save is not None: fig.savefig(save)
         # fig.show()
 
-    def plot_error_map(self, N=64, sigma=2, sampling_rate=4, save=None, figsize=(10,5)):
+    def save(self, fname):
+        with open(fname, 'wb') as f:
+            pickle.dump(obj=self, file=f)
+
+    @classmethod
+    def load(cls, fname):
+        with open(fname, 'rb') as f:
+            return pickle.load(file=f)
+
+    def plot_error_map(self, N=64, sigma=2, sampling_rate=4, save=None, figsize=(10,5), slice=None):
+        if slice is None:
+            slice = int(N/2)
         if ("em_density" in self.input_data):
             em_density_target=self.input_data["em_density"]
         else:
@@ -146,14 +158,14 @@ class Fitting:
 
         fig, ax = plt.subplots(1, n_plot+1, figsize=figsize)
         n_plot=0
-        err_map_init = np.square(em_density_init - em_density_target)[int(N / 2)]
+        err_map_init = np.square(em_density_init - em_density_target)[slice]
         ax[n_plot].imshow(err_map_init, vmax=np.max(err_map_init), cmap='jet')
         ax[n_plot].set_title("init : e=%.2g" % src.functions.root_mean_square_error(em_density_init,em_density_target))
         if self.vb_results is not None:
             n_plot+=1
             em_density_vb = src.functions.volume_from_pdb(np.mean(self.read_results("vb", "x"), axis=0), N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
-            err_map_vb = np.square(em_density_target - em_density_vb)[int(N / 2)]
+            err_map_vb = np.square(em_density_target - em_density_vb)[slice]
             ax[n_plot].imshow(err_map_vb, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("vb : e=%.2g" % src.functions.root_mean_square_error(em_density_vb,em_density_target))
 
@@ -161,14 +173,14 @@ class Fitting:
             n_plot+=1
             em_density_opt = src.functions.volume_from_pdb(self.read_results("opt", "x"), N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
-            err_map_opt = np.square(em_density_target - em_density_opt)[int(N / 2)]
+            err_map_opt = np.square(em_density_target - em_density_opt)[slice]
             ax[n_plot].imshow(err_map_opt, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("opt : e=%.2g" % src.functions.root_mean_square_error(em_density_opt,em_density_target))
         if self.sampling_results is not None:
             n_plot+=1
             em_density_sampling = src.functions.volume_from_pdb(np.mean(self.read_results("sampling", "x"), axis=0), N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
-            err_map_sampling = np.square(em_density_target - em_density_sampling)[int(N / 2)]
+            err_map_sampling = np.square(em_density_target - em_density_sampling)[slice]
             ax[n_plot].imshow(err_map_sampling, vmax=np.max(err_map_init), cmap='jet')
             ax[n_plot].set_title("sampling : e=%.2g" % src.functions.root_mean_square_error(em_density_sampling,em_density_target))
         if save is not None : fig.savefig(save)
