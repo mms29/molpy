@@ -14,15 +14,15 @@ sim = src.simulation.Simulator(atoms)
 
 
 #GENERATE NMA DEFORMATIONS
-nma_structure = sim.run_nma(modes = modes, amplitude=[200,-100,0])
+nma_structure = sim.run_nma(modes = modes, amplitude=[0,0,0])
 
 
 # GENERATE MD DEFORMATIONS TORSIONS
 bonds_nma, angles_nma, torsions_nma = cartesian_to_internal(nma_structure)
 sim.plot_structure()
-#
-# torsions_nma[4] += -0.5
-# torsions_nma[6] += 0.5
+
+torsions_nma[4] += -0.5
+torsions_nma[6] += 0.5
 internal = np.array([bonds_nma[2:], angles_nma[1:], torsions_nma]).T
 deformed_structure = internal_to_cartesian(internal, nma_structure[:3])
 sim.plot_structure(deformed_structure)
@@ -82,7 +82,7 @@ input_data = {
 fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
 fit.optimizing(n_iter=50000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
-fit.plot_structure(save="results/sampling_structure_torsions.png")
+fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
 # fit.plot_nma(sim.q)
 # fit.plot_lp()
