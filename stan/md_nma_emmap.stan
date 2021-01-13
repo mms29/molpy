@@ -42,9 +42,11 @@ data {
     // lennard jones
     real k_lj;
     real d_lj;
+
+    real q_max;
 }
 parameters {
-    row_vector<lower=-200,upper=200> [n_modes]q;
+    row_vector<lower=-q_max,upper=q_max> [n_modes]q;
     matrix[n_atoms, 3] x_md;
 }
 transformed parameters {

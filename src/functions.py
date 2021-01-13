@@ -3,6 +3,8 @@ import pystan
 import pickle
 import os.path
 import hashlib
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -16,6 +18,7 @@ def read_pdb(file, pattern='CA'):
     ca=[]
     with open(file, "r") as file :
         end=False
+        n=0
         for line in file:
             l = line.split()
             if len(l) >0:
@@ -23,7 +26,9 @@ def read_pdb(file, pattern='CA'):
                     if not end:
                         x.append([float(l[6]), float(l[7]), float(l[8])])
                         if l[2] == pattern:
-                            ca.append(len(x))
+                            ca.append(n)
+                        n += 1
+
                 if l[0] == 'TER':
                     end = True
 
@@ -81,8 +86,9 @@ def rotate_pdb(self, atoms, angles):
     return rotated_atoms
 
 def volume_from_pdb_fast(x, N, sigma, sampling_rate=1):
-    return np.sum(np.exp(-np.square(np.linalg.norm(np.repeat(x, N**3).reshape(x.shape[0], 3, N, N, N)-
-                                                   (np.mgrid[0:N, 0:N, 0:N] - N/2)*sampling_rate, axis=1))/(2*(sigma ** 2))), axis=0)
+    grid= (np.mgrid[0:N, 0:N, 0:N] - N/2)*sampling_rate
+    mu =np.repeat(x, N**3).reshape(x.shape[0], 3, N, N, N)
+    return np.sum(np.exp(-np.square(np.linalg.norm(mu - grid, axis=1))/(2*(sigma ** 2))), axis=0)
 
 def volume_from_pdb(x, N, sigma, sampling_rate=1):
     halfN = int(N / 2)
@@ -194,3 +200,121 @@ def cross_correlation(map1, map2):
 
 def root_mean_square_error(map1, map2):
     return np.sqrt(np.mean(np.square(map1- map2)))/np.max([np.max(map1)-np.min(map1), np.max(map2)-np.min(map2)])
+
+def compute_u_init(structure, bonds=None, angles=None, lennard_jones=None):
+    U_init=0
+    n_atoms=structure.shape[0]
+    if bonds is not None:
+        bonds_r0= np.mean([np.linalg.norm(structure[i] - structure[i + 1]) for i in range(n_atoms-1)])
+        bonds_k = bonds['k']
+        bonds= md_bonds_potential(structure, bonds_k ,bonds_r0)
+        U_init+=bonds
+        print('Bonds')
+        print('\t|--- k='+str(bonds_k))
+        print('\t|--- r0='+str(bonds_r0))
+        print('\t|--- U='+str(bonds))
+    if angles is not None:
+        theta0 = []
+        for i in range(n_atoms - 2):
+            theta0.append(np.arccos(np.dot(structure[i] - structure[i + 1], structure[i + 1] - structure[i + 2])
+                                       / (np.linalg.norm(structure[i] -structure[i + 1]) * np.linalg.norm(structure[i + 1] - structure[i + 2]))))
+        angles_theta0 = np.mean(theta0)
+        angles_k= angles['k']
+        angles= md_angles_potential(structure, angles_k, angles_theta0)
+        U_init += angles
+        print('Angles')
+        print('\t|--- k='+str(angles_k))
+        print('\t|--- t0='+str(angles_theta0))
+        print('\t|--- U='+str(angles))
+    if lennard_jones is not None:
+        lennard_jones_k = lennard_jones ['k']
+        lennard_jones_d =  lennard_jones ['d']
+        lj = md_lennard_jones_potential(structure, lennard_jones_k, lennard_jones_d)
+        print('Lennard-Jones')
+        print('\t|--- k=' + str(lennard_jones_k))
+        print('\t|--- d=' + str(lennard_jones_d))
+        print('\t|--- U=' + str(lj))
+        U_init +=lj
+    print('Total')
+    print('\t|--- U=' + str(U_init))
+
+
+def plot_structure(structures, names=None, save=None):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    legend=[]
+    if isinstance(structures, list):
+        for i in range(len(structures)):
+            ax.plot(structures[i][:, 0], structures[i][:, 1], structures[i][:, 2])
+            if names is not None:
+                legend.append(names[i])
+    else:
+        ax.plot(structures[:, 0], structures[:, 1], structures[:, 2])
+        if names is not None:
+            legend.append(names)
+    ax.legend(legend)
+    if save is not None:
+        fig.savefig(save)
+
+
+
+def internal_to_cartesian(internal, first):
+    n_atoms = internal.shape[0] + 3
+    cartesian = np.zeros((n_atoms,3))
+    cartesian[:3] = first
+    for i in range(3,n_atoms):
+        A = cartesian[i-3]
+        B = cartesian[i-2]
+        C = cartesian[i-1]
+        AB = B-A
+        BC = C-B
+        bc = BC/np.linalg.norm(BC)
+        n = np.cross(AB, bc) / np.linalg.norm(np.cross(AB, bc))
+
+        bond = internal[i-3,0]
+        angle = internal[i-3,1]
+        torsion = internal[i-3,2]
+
+        M1 = generate_rotation_matrix(angle, n)
+        M2 = generate_rotation_matrix(torsion, bc)
+
+
+        D0 = bond*bc
+        D1 = np.dot(M1, D0)
+        D2 = np.dot(M2, D1)
+
+        cartesian[i] = D2 + C
+
+    return cartesian
+
+def cartesian_to_internal(cartesian):
+    n_atoms=cartesian.shape[0]
+
+    bonds=np.zeros(n_atoms-1)
+    angles=np.zeros(n_atoms-2)
+    torsions=np.zeros(n_atoms-3)
+
+    for i in range(n_atoms):
+
+        if i< n_atoms-1:
+            u1=cartesian[i+1]-cartesian[i]
+            bonds[i] = np.linalg.norm(u1)
+
+        if i < n_atoms - 2:
+            u2=cartesian[i+2]-cartesian[i+1]
+            angles[i] = np.arccos(np.dot(u1, u2) / (np.linalg.norm(u1) * np.linalg.norm(u2)))
+
+        if i < n_atoms - 3:
+            u3=cartesian[i+3]-cartesian[i+2]
+            torsions[i] = np.arctan2(np.dot(np.linalg.norm(u2) * u1, np.cross(u2, u3)), np.dot(np.cross(u1,u2), np.cross(u2,u3)))
+
+    return bonds, angles , torsions
+
+def generate_rotation_matrix(angle, vector):
+    ux, uy, uz = vector
+    c = np.cos(angle)
+    s = np.sin(angle)
+    M= np.array([[ ux*ux*(1-c) + c   , ux*uy*(1-c) - uz*s, ux*uz*(1-c) + uy*s],
+                 [ ux*uy*(1-c) + uz*s, uy*uy*(1-c) + c   , uy*uz*(1-c) - ux*s],
+                 [ ux*uz*(1-c) - uy*s, uy*uz*(1-c) + ux*s, uz*uz*(1-c) + c   ]])
+    return M

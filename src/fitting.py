@@ -107,31 +107,28 @@ class Fitting:
         if save is not None: fig.savefig(save)
 
     def plot_structure(self, other_structure=None, save=None):
-        init_structure = self.input_data['x0']
+        if 'x0' in self.input_data:
+            init_structure =self.input_data['x0']
+        else:
+            internal = np.array([self.input_data['bonds'],self.input_data['angles'],self.input_data['torsions']]).T
+            init_structure = src.functions.internal_to_cartesian(internal, self.input_data['first'])
         target_structure = self.input_data['y']
         legend=["init_structure","target_structure"]
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot(init_structure[:, 0], init_structure[:, 1], init_structure[:, 2])
-        ax.plot(target_structure[:, 0], target_structure[:, 1], target_structure[:, 2])
+        structures = [init_structure, target_structure]
+
         if self.sampling_results is not None:
-            sampling_structure = np.mean(self.read_results("sampling", "x"), axis=0)
-            ax.plot(sampling_structure[:, 0], sampling_structure[:, 1], sampling_structure[:, 2])
+            structures.append(np.mean(self.read_results("sampling", "x"), axis=0))
             legend.append("sampling_structure")
         if self.opt_results is not None:
-            opt_structure = self.read_results("opt", "x")
-            ax.plot(opt_structure[:, 0], opt_structure[:, 1], opt_structure[:, 2])
+            structures.append(self.read_results("opt", "x"))
             legend.append("opt_structure")
         if self.vb_results is not None:
-            vb_structure = np.mean(self.read_results("vb", "x"), axis=0)
-            ax.plot(vb_structure[:, 0], vb_structure[:, 1], vb_structure[:, 2])
+            structures.append(np.mean(self.read_results("vb", "x"), axis=0))
             legend.append("vb_structure")
         if other_structure is not None:
-            ax.plot(other_structure[:, 0], other_structure[:, 1], other_structure[:, 2])
+            structures.append(other_structure)
             legend.append("other_structure")
-        ax.legend(legend)
-        if save is not None: fig.savefig(save)
-        # fig.show()
+        src.functions.plot_structure(structures, legend, save)
 
     def save(self, fname):
         with open(fname, 'wb') as f:
@@ -149,7 +146,12 @@ class Fitting:
             em_density_target=self.input_data["em_density"]
         else:
             em_density_target = src.functions.volume_from_pdb(self.input_data["y"], N, sigma=sigma, sampling_rate=sampling_rate)
-        em_density_init = src.functions.volume_from_pdb(self.input_data["x0"], N, sigma=sigma,
+        if 'x0' in self.input_data:
+            init_structure =self.input_data['x0']
+        else:
+            internal = np.array([self.input_data['bonds'],self.input_data['angles'],self.input_data['torsions']]).T
+            init_structure = src.functions.internal_to_cartesian(internal, self.input_data['first'])
+        em_density_init = src.functions.volume_from_pdb(init_structure, N, sigma=sigma,
                                                           sampling_rate=sampling_rate)
         n_plot =0
         if self.vb_results is not None: n_plot+=1

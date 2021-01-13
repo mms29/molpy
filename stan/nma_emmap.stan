@@ -26,9 +26,11 @@ data {
     real sampling_rate;
     real gaussian_sigma;
     int halfN;
+
+    real q_max;
 }
 parameters {
-    row_vector<lower=-200,upper=200> [n_modes]q;
+    row_vector<lower=-q_max,upper=q_max> [n_modes]q;
 }
 transformed parameters {
     matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;

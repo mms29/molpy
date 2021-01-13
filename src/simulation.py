@@ -130,18 +130,16 @@ class Simulator:
         return self.deformed_structure
 
     def plot_structure(self, other_structure=None):
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+
         legend=["init_structure"]
-        ax.plot(self.init_structure[:, 0], self.init_structure[:, 1], self.init_structure[:, 2])
+        structures = [self.init_structure]
         if self.deformed_structure is not None:
-            ax.plot(self.deformed_structure[:, 0], self.deformed_structure[:, 1], self.deformed_structure[:, 2])
+            structures.append(self.deformed_structure)
             legend.append("deformed_structure")
         if other_structure is not None:
-            ax.plot(other_structure[:, 0], other_structure[:, 1], other_structure[:, 2])
+            structures.append(other_structure)
             legend.append("other_structure")
-        ax.legend(legend)
-        # fig.show()
+        src.functions.plot_structure(structures, legend)
 
     def plot_density(self):
         fig, ax = plt.subplots(1, 2)
