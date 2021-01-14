@@ -60,7 +60,6 @@ data {
 
 }
 parameters {
-    matrix [3,3] first_var;
     vector[n_atoms-3] torsion_var;
 //    row_vector [n_modes]q;
     real<lower=-pi(),upper=pi()> alpha;

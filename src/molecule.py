@@ -40,3 +40,4 @@ class Molecule:
     def show(self):
         src.functions.plot_structure(self.coords)
 
+

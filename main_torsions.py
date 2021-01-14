@@ -3,6 +3,7 @@ import src.simulation
 import src.fitting
 import src.constants
 import src.molecule
+import src.io
 import matplotlib.pyplot as plt
 
 # import PDB
@@ -79,26 +80,30 @@ input_data = {
 }
 
 
-fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
-fit.optimizing(n_iter=50000)
+fit =src.fitting.Fitting(input_data, "md_torsions")
+fit.optimizing(n_iter=25000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
 # fit.plot_nma(sim.q)
 # fit.plot_lp()
-opt = src.molecule.Molecule.from_coords(fit.opt_results['x'])
-init = src.molecule.Molecule.from_coords(sim.deformed_structure)
-opt.get_energy()
+
+
+########################################################################################################
+#               OUTPUTS
+########################################################################################################
+print("\nINIT ...")
+init = src.molecule.Molecule.from_coords(atoms)
 init.get_energy()
+src.io.save_pdb(init, "results/torsions_init.pdb", "data/AK/AK.pdb")
 
 
-# plot_structure([fit.opt_results['x'], sim.deformed_structure])
-# plot_structure(atoms)
-#
-# plt.hist(fit.read_results('opt', 'torsion_var'))
-# # print(np.mean(fit.read_results('sampling', 'torsion_var'), axis=0))
-# plt.hist(fit.read_results('sampling', 'torsion_var')[:,-1],100)
+print("\nDEFORMED ...")
+deformed = src.molecule.Molecule.from_coords(sim.deformed_structure)
+deformed.get_energy()
+src.io.save_density(sim.deformed_density, sampling_rate, "results/torsions_deformed.mrc", origin=-np.ones(3)*sampling_rate*n_voxels/2)
 
-# torsions_res = np.mean(fit.read_results('sampling', 'torsion_var'), axis=0) + torsions
-# res_structure = internal_to_cartesian(np.array([bonds[2:], angles[1:], torsions]), atoms[:3])
-# plot_structure([res_structure])
+print("\nFITTED ...")
+opt = src.molecule.Molecule.from_coords(fit.opt_results['x'])
+opt.get_energy()
+src.io.save_pdb(opt, "results/torsions_fitted.pdb", "data/AK/AK.pdb")
