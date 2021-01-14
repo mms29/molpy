@@ -45,7 +45,7 @@ input_data = {
             'R_sigma' : 0.1,
             'shift_sigma' :1,
             'max_shift': 10,
-            'verbose':1,
+            'verbose':0,
     #modes
             # 'n_modes': modes.shape[1],
             # 'A': modes,
@@ -64,7 +64,7 @@ input_data = {
 
 
 fit =src.fitting.Fitting(input_data, "md_torsions")
-fit.optimizing(n_iter=5000)
+fit.optimizing(n_iter=10000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
@@ -76,17 +76,15 @@ fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 #               OUTPUTS
 ########################################################################################################
 print("\nINIT ...")
-init = src.molecule.Molecule.from_coords(atoms)
 init.get_energy()
-src.io.save_pdb(init, "results/nma_init.pdb", "data/AK/AK.pdb")
+src.io.save_pdb(init, "results/ATPASE_test_init.pdb", "data/ATPase/1iwo.pdb")
 
 
 print("\nDEFORMED ...")
-deformed = src.molecule.Molecule.from_coords(sim.deformed_structure)
-deformed.get_energy()
-src.io.save_density(sim.deformed_density, sampling_rate, "results/nma_deformed.mrc", origin=-np.ones(3)*sampling_rate*n_voxels/2)
+target.get_energy()
+src.io.save_density(target_density, "results/ATPASE_test_target.mrc" )
 
 print("\nFITTED ...")
 opt = src.molecule.Molecule.from_coords(fit.opt_results['x'])
 opt.get_energy()
-src.io.save_pdb(opt, "results/nma_fitted.pdb", "data/AK/AK.pdb")
+src.io.save_pdb(opt, "results/ATPASE_test_fitted.pdb", "data/ATPase/1iwo.pdb")
