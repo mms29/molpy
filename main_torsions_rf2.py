@@ -16,7 +16,8 @@ target = src.io.read_pdb("data/ATPase/1su4_rotated.pdb").select_atoms(pattern='C
 target.show()
 src.viewers.structures_viewer([init, target])
 
-target_density = target.to_density(n_voxels=64, sigma=3, sampling_rate=4)
+gaussian_sigma = 3
+target_density = target.to_density(n_voxels=32, sigma=gaussian_sigma, sampling_rate=8)
 target_density.show()
 src.io.save_density(target_density, "data/ATPase/deformed.mrc")
 
@@ -26,17 +27,17 @@ src.io.save_density(target_density, "data/ATPase/deformed.mrc")
 
 input_data = {
     # structure
-             'n_atoms': atoms.shape[0],
-             'y': target,
+             'n_atoms': init.n_atoms,
+             'y': target.coords,
+
              'epsilon': 1,
-            'bonds': bonds[2:],
-            'angles': angles[1:],
-            'torsions': torsions,
-            'first': atoms[:3],
-            'first_sigma' : 0.1,
-            'first_max': 1,
+
+            'bonds': init.bonds[2:],
+            'angles': init.angles[1:],
+            'torsions': init.torsions,
+            'first': init.coords[:3],
+
             'torsion_sigma': 1,
-            'torsion_max': 10,
             'k_torsions': src.constants.K_TORSIONS,
             'n_torsions': src.constants.N_TORSIONS,
             'delta_torsions': src.constants.DELTA_TORSIONS,
@@ -44,7 +45,7 @@ input_data = {
             'R_sigma' : 0.1,
             'shift_sigma' :1,
             'max_shift': 10,
-            'verbose':0,
+            'verbose':1,
     #modes
             # 'n_modes': modes.shape[1],
             # 'A': modes,
@@ -52,18 +53,18 @@ input_data = {
             # 'q_mu': 0,
             # 'q_max': 200,
     # EM density
-             'N':sim.n_voxels,
-             'halfN':int(sim.n_voxels/2),
+             'N':target_density.n_voxels,
+             'halfN':int(target_density.n_voxels/2),
              'gaussian_sigma':gaussian_sigma,
-             'sampling_rate': sampling_rate,
-             'em_density': sim.deformed_density,
-             'epsilon_density': np.max(sim.deformed_density) / 10
+             'sampling_rate': target_density.sampling_rate,
+             'em_density': target_density.data,
+             'epsilon_density': np.max(target_density.data) / 10
 
 }
 
 
 fit =src.fitting.Fitting(input_data, "md_torsions")
-fit.optimizing(n_iter=25000)
+fit.optimizing(n_iter=5000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)

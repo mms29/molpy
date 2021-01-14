@@ -81,7 +81,7 @@ input_data = {
 
 
 fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
-fit.optimizing(n_iter=2)
+fit.optimizing(n_iter=25000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)

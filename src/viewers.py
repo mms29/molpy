@@ -23,7 +23,7 @@ def density_viewer(density):
     axcolor = 'lightgoldenrodyellow'
     axslider = plt.axes([0.25, 0.1, 0.65, 0.03], facecolor=axcolor)
     slice = Slider(axslider, 'Slice', valmin=0, valmax=density.n_voxels-1, valinit=int(density.n_voxels / 2), valstep=1)
-    ax.imshow(density.data[int(int(density.n_voxels / 2))], cmap='gray')
+    # ax.imshow(density.data[int(int(density.n_voxels / 2))], cmap='gray')
 
     def update (val):
         s = slice.val
