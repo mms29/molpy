@@ -15,15 +15,15 @@ sim = src.simulation.Simulator(atoms)
 
 
 #GENERATE NMA DEFORMATIONS
-nma_structure = sim.run_nma(modes = modes, amplitude=[200,-100,0])
+nma_structure = sim.run_nma(modes = modes, amplitude=[0,0,0])
 
 
 # GENERATE MD DEFORMATIONS TORSIONS
 bonds_nma, angles_nma, torsions_nma = cartesian_to_internal(nma_structure)
 sim.plot_structure()
 
-# torsions_nma[4] += -0.5
-# torsions_nma[6] += 0.5
+torsions_nma[4] += -0.5
+torsions_nma[6] += 0.5
 internal = np.array([bonds_nma[2:], angles_nma[1:], torsions_nma]).T
 deformed_structure = internal_to_cartesian(internal, nma_structure[:3])
 sim.plot_structure(deformed_structure)
@@ -95,17 +95,17 @@ fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 print("\nINIT ...")
 init = src.molecule.Molecule.from_coords(atoms)
 init.get_energy()
-src.io.save_pdb(init, "results/nma_init.pdb", "data/AK/AK.pdb")
+src.io.save_pdb(init, "results/torsions_init.pdb", "data/AK/AK.pdb")
 
 
 print("\nDEFORMED ...")
 deformed = src.molecule.Molecule.from_coords(sim.deformed_structure)
 deformed.get_energy()
 deformed_density = deformed.to_density(n_voxels=n_voxels, sampling_rate=sampling_rate, sigma=gaussian_sigma)
-src.io.save_density(deformed_density, "results/nma_deformed.mrc")
+src.io.save_density(deformed_density, "results/torsions_deformed.mrc")
 
 print("\nFITTED ...")
 opt = src.molecule.Molecule.from_coords(fit.opt_results['x'])
 opt.get_energy()
 opt.show()
-src.io.save_pdb(opt, "results/nma_fitted.pdb", "data/AK/AK.pdb")
+src.io.save_pdb(opt, "results/torsions_fitted.pdb", "data/AK/AK.pdb")
