@@ -37,14 +37,14 @@ input_data = {
             'torsions': init.torsions,
             'first': init.coords[:3],
 
-            'torsion_sigma': 1,
+            'torsion_sigma': 0.1,
             'k_torsions': src.constants.K_TORSIONS,
             'n_torsions': src.constants.N_TORSIONS,
             'delta_torsions': src.constants.DELTA_TORSIONS,
             'k_U': src.constants.CARBON_MASS/(src.constants.K_BOLTZMANN * 1000),
             'R_sigma' : 0.1,
-            'shift_sigma' :1,
-            'max_shift': 10,
+            'shift_sigma' :5,
+            'max_shift': 50,
             'verbose':0,
     #modes
             # 'n_modes': modes.shape[1],
@@ -64,7 +64,7 @@ input_data = {
 
 
 fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
-fit.optimizing(n_iter=1000)
+fit.optimizing(n_iter=10000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
