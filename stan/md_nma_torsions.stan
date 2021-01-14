@@ -20,12 +20,11 @@ functions{
         return M;
     }
 
-    real gaussian_pdf(matrix x, matrix y, real sigma){
-        return sum(exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]) +square(x[:,3] -y[:,3]))/(2*square(sigma))));
-    }
 }
 data {
     int<lower=0> n_atoms;
+    real epsilon;
+    matrix [n_atoms, 3] y;
 
     real bonds [n_atoms-3];
     real angles [n_atoms-3];
@@ -48,17 +47,10 @@ data {
     real sigma;
     int verbose ;
 
-    // em density
-    int<lower=0> N;
-    real em_density[N, N, N];
-    real epsilon_density;
-    real sampling_rate;
-    real gaussian_sigma;
-    int halfN;
 
 }
 parameters {
-    vector[n_atoms-3] torsion_var;
+//    vector[n_atoms-3] torsion_var;
     row_vector [n_modes]q;
     real<lower=-pi(),upper=pi()> alpha;
     real<lower=-pi()/2.0,upper=pi()/2.0> beta;
@@ -66,7 +58,7 @@ parameters {
     row_vector <lower=-max_shift, upper=max_shift> [3] shift;
 }
 transformed parameters {
-    matrix<lower=-halfN*sampling_rate,upper=halfN*sampling_rate> [n_atoms, 3] x;
+    matrix [n_atoms, 3] x;
     real U=0;
     matrix [3,3] R = [[cos(gamma) * cos(alpha) * cos(beta) - sin(gamma) * sin(alpha), cos(gamma) * cos(beta)*sin(alpha) + sin(gamma) * cos(alpha), -cos(gamma) * sin(beta)],
                    [-sin(gamma) * cos(alpha) * cos(beta) - cos(gamma) * sin(alpha),-sin(gamma) * cos(beta)*sin(alpha) + cos(gamma) * cos(alpha), sin(gamma) * sin(beta)],
@@ -86,7 +78,7 @@ transformed parameters {
         row_vector [3] n = cross_product(AB, bc) ./ norm(cross_product(AB, bc));
 
         matrix [3,3] M1 = generate_rotation_matrix(angles[i-3], n);
-        matrix [3,3] M2 = generate_rotation_matrix(torsion_var[i-3], bc);
+        matrix [3,3] M2 = generate_rotation_matrix(torsions[i-3], bc);
 
         row_vector [3] D0 = bonds[i-3]*bc;
         row_vector [3] D1 = D0 * M1';
@@ -107,15 +99,11 @@ model {
     real U_lp =0;
     real modes_lp=0;
 
-    for (i in 1:N){
-        for (j in 1:N){
-            for (k in 1:N){
-                likelihood += normal_lpdf(em_density[i,j,k] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1,k-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon_density);
-            }
-        }
+    for (i in 1:n_atoms){
+        likelihood += normal_lpdf(y[i] | x[i], epsilon);
     }
 
-    torsions_lp +=  normal_lpdf(torsion_var | torsions, torsion_sigma);
+//    torsions_lp +=  normal_lpdf(torsion_var | torsions, torsion_sigma);
 
     U_lp += -k_U*U;
 

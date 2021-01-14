@@ -63,7 +63,7 @@ def save_density(density, outfilename):
     with mrcfile.new(outfilename, overwrite=True) as mrc:
         mrc.set_data(data.T)
         mrc.voxel_size = density.sampling_rate
-        origin = density.sampling_rate*density.n_voxels/2
+        origin = -density.sampling_rate*density.n_voxels/2
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin

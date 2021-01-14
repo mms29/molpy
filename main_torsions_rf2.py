@@ -16,7 +16,7 @@ target = src.io.read_pdb("data/ATPase/1su4_rotated.pdb").select_atoms(pattern='C
 target.show()
 src.viewers.structures_viewer([init, target])
 
-gaussian_sigma = 3
+gaussian_sigma = 2
 target_density = target.to_density(n_voxels=32, sigma=gaussian_sigma, sampling_rate=8)
 target_density.show()
 src.io.save_density(target_density, "data/ATPase/deformed.mrc")
@@ -63,8 +63,8 @@ input_data = {
 }
 
 
-fit =src.fitting.Fitting(input_data, "md_torsions")
-fit.optimizing(n_iter=10000)
+fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
+fit.optimizing(n_iter=1000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
