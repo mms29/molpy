@@ -1,42 +1,24 @@
+
 from src.functions import *
 import src.simulation
 import src.fitting
 import src.constants
 import src.molecule
 import src.io
+import src.viewers
 import matplotlib.pyplot as plt
 
-# import PDB
-atoms, ca = src.functions.read_pdb("data/AK/AK.pdb")
-modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=3)[ca][:]
-atoms= src.functions.center_pdb(atoms)[ca][:]
+init =src.io.read_pdb("data/ATPase/1iwo.pdb")
+init.add_modes("data/ATPase/modes/vec.", n_modes=13)
+init = init.select_atoms(pattern='CA')
 
-sim = src.simulation.Simulator(atoms)
+target = src.io.read_pdb("data/ATPase/1su4_rotated.pdb").select_atoms(pattern='CA')
+target.show()
+src.viewers.structures_viewer([init, target])
 
-
-#GENERATE NMA DEFORMATIONS
-nma_structure = sim.run_nma(modes = modes, amplitude=[200,-100,0])
-
-
-# GENERATE MD DEFORMATIONS TORSIONS
-bonds_nma, angles_nma, torsions_nma = cartesian_to_internal(nma_structure)
-sim.plot_structure()
-
-# torsions_nma[4] += -0.5
-# torsions_nma[6] += 0.5
-internal = np.array([bonds_nma[2:], angles_nma[1:], torsions_nma]).T
-deformed_structure = internal_to_cartesian(internal, nma_structure[:3])
-sim.plot_structure(deformed_structure)
-
-sim.deformed_structure= deformed_structure
-
-gaussian_sigma=2
-sampling_rate=4
-n_voxels=24
-sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
-sim.plot_density()
-
-bonds, angles, torsions = cartesian_to_internal(atoms)
+target_density = target.to_density(n_voxels=64, sigma=3, sampling_rate=4)
+target_density.show()
+src.io.save_density(target_density, "data/ATPase/deformed.mrc")
 
 ########################################################################################################
 #               FLEXIBLE FITTING
@@ -45,7 +27,7 @@ bonds, angles, torsions = cartesian_to_internal(atoms)
 input_data = {
     # structure
              'n_atoms': atoms.shape[0],
-             'y': sim.deformed_structure,
+             'y': target,
              'epsilon': 1,
             'bonds': bonds[2:],
             'angles': angles[1:],
@@ -80,8 +62,8 @@ input_data = {
 }
 
 
-fit =src.fitting.Fitting(input_data, "md_torsions_emmap")
-fit.optimizing(n_iter=2)
+fit =src.fitting.Fitting(input_data, "md_torsions")
+fit.optimizing(n_iter=25000)
 # fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
 fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
 # fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
@@ -101,11 +83,9 @@ src.io.save_pdb(init, "results/nma_init.pdb", "data/AK/AK.pdb")
 print("\nDEFORMED ...")
 deformed = src.molecule.Molecule.from_coords(sim.deformed_structure)
 deformed.get_energy()
-deformed_density = deformed.to_density(n_voxels=n_voxels, sampling_rate=sampling_rate, sigma=gaussian_sigma)
-src.io.save_density(deformed_density, "results/nma_deformed.mrc")
+src.io.save_density(sim.deformed_density, sampling_rate, "results/nma_deformed.mrc", origin=-np.ones(3)*sampling_rate*n_voxels/2)
 
 print("\nFITTED ...")
 opt = src.molecule.Molecule.from_coords(fit.opt_results['x'])
 opt.get_energy()
-opt.show()
 src.io.save_pdb(opt, "results/nma_fitted.pdb", "data/AK/AK.pdb")

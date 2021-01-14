@@ -53,20 +53,20 @@ def save_pdb(mol, file, gen_file):
                             end = True
     print("Done")
 
-def save_density(data, grid_spacing, outfilename, origin=None):
+def save_density(density, outfilename):
     """
     Save the density to an mrc file. The origin of the grid will be (0,0,0)
     • outfilename: the mrc file name for the output
     """
     print("Saving mrc file ...")
-    data = data.astype('float32')
+    data = density.data.astype('float32')
     with mrcfile.new(outfilename, overwrite=True) as mrc:
         mrc.set_data(data.T)
-        mrc.voxel_size = grid_spacing
-        if origin is not None:
-            mrc.header['origin']['x'] = origin[0]
-            mrc.header['origin']['y'] = origin[1]
-            mrc.header['origin']['z'] = origin[2]
+        mrc.voxel_size = density.sampling_rate
+        origin = density.sampling_rate*density.n_voxels/2
+        mrc.header['origin']['x'] = origin
+        mrc.header['origin']['y'] = origin
+        mrc.header['origin']['z'] = origin
         mrc.update_header_from_data()
         mrc.update_header_stats()
     print("Done")
