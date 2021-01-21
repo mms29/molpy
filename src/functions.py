@@ -73,7 +73,7 @@ def read_stan_model(model, save=True, build=False, threads=False):
         sm = pickle.load(open('stan/saved_stan_models/'+model+'.pkl', 'rb'))
     return sm
 
-def rotate_pdb(self, atoms, angles):
+def rotate_pdb(atoms, angles):
     a,b,c =angles
     cos = np.cos
     sin=np.sin
@@ -82,13 +82,138 @@ def rotate_pdb(self, atoms, angles):
          [-sin(b), cos(b) * sin(c), cos(b) * cos(c)]];
     rotated_atoms = np.zeros(atoms.shape)
     for i in range(atoms.shape[0]):
-        rotated_atoms[i] = atoms[i]*R
+        rotated_atoms[i] = np.dot(atoms[i], R)
     return rotated_atoms
 
-def volume_from_pdb_fast(x, N, sigma, sampling_rate=1):
-    grid= (np.mgrid[0:N, 0:N, 0:N] - N/2)*sampling_rate
-    mu =np.repeat(x, N**3).reshape(x.shape[0], 3, N, N, N)
-    return np.sum(np.exp(-np.square(np.linalg.norm(mu - grid, axis=1))/(2*(sigma ** 2))), axis=0)
+def volume_from_pdb_fast(coord, size, sigma, sampling_rate=1):
+    mu= (np.mgrid[0:size, 0:size, 0:size] - size/2)*sampling_rate
+    x =np.repeat(coord, size**3).reshape(coord.shape[0], 3, size, size, size)
+    return np.sum(np.exp(-np.square(np.linalg.norm(x - mu, axis=1))/(2*(sigma ** 2))), axis=0)
+
+def volume_from_pdb_fast2(coord, size, sigma, sampling_rate=1):
+    mu= (np.mgrid[0:size, 0:size, 0:size] - size/2)*sampling_rate
+    n_atoms= coord.shape[0]
+    vol = np.zeros((size, size, size))
+    for i in range(n_atoms):
+        x = np.repeat(coord[i], size ** 3).reshape(3, size, size, size)
+        vol+=np.exp(-np.square(np.linalg.norm(x - mu, axis=0))/(2*(sigma ** 2)))
+
+    return vol
+
+def volume_from_pdb_fast3(coord, size, sigma, sampling_rate=1, threshold=2):
+    vox, n_vox = select_voxels(coord, size, sampling_rate, threshold)
+    n_atoms= coord.shape[0]
+    vol = np.zeros((size, size, size))
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i,0]:vox[i,0]+n_vox,
+                         vox[i,1]:vox[i,1]+n_vox,
+                         vox[i,2]:vox[i,2]+n_vox] - size / 2) * sampling_rate
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        vol[vox[i,0]:vox[i,0]+n_vox,
+            vox[i,1]:vox[i,1]+n_vox,
+            vox[i,2]:vox[i,2]+n_vox]+=np.exp(-np.square(np.linalg.norm(x - mu, axis=0))/(2*(sigma ** 2)))
+
+    return vol
+
+def get_RMSD(psim, pexp):
+    return np.linalg.norm(psim-pexp)**2
+
+def get_grad_RMSD(coord, psim, pexp, size, sampling_rate, sigma):
+
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    for i in range(size):
+        for j in range(size):
+            for k in range(size):
+                mu = ((np.array([i, j, k]) - np.ones(3) * (size / 2)) * sampling_rate)
+                dpsim =-(1/(sigma**2)) * (coord-mu) * np.repeat(np.exp(-np.square(np.linalg.norm(coord-mu, axis=1))/(2*(sigma ** 2))),3).reshape(n_atoms,3)
+                dx += 2* pdiff[i,j,k]*dpsim
+    return dx
+
+def get_grad_RMSD2(coord, psim, pexp, size, sampling_rate, sigma):
+
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    mu = (np.mgrid[0:size, 0:size, 0:size] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        x = np.repeat(coord[i], size ** 3).reshape(3, size, size, size)
+        tmp = 2* pdiff*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsim, axis=(1,2,3))
+
+    return dx
+
+
+def get_grad_RMSD3(coord, psim, pexp, size, sampling_rate, sigma, threshold):
+    vox, n_vox = select_voxels(coord, size, sampling_rate, threshold)
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * sampling_rate
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        tmp = 2* pdiff[vox[i,0]:vox[i,0]+n_vox,
+            vox[i,1]:vox[i,1]+n_vox,
+            vox[i,2]:vox[i,2]+n_vox]*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsim, axis=(1,2,3))
+
+    return dx
+
+def get_grad_RMSD_NMA(coord, psim, pexp, size, sampling_rate, sigma, A_modes):
+    # NB : coord = x0 + q* A
+
+    n_atoms = coord.shape[0]
+    n_modes = A_modes.shape[1]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    dq = np.zeros(n_modes)
+    mu = (np.mgrid[0:size, 0:size, 0:size] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        x = np.repeat(coord[i], size ** 3).reshape(3, size, size, size)
+        tmp = 2* pdiff*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+
+        dpsimx =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsimx, axis=(1,2,3))
+
+        dpsimq = -(1 / (sigma ** 2)) * (x - mu) * np.array([tmp, tmp, tmp])
+        dq += np.dot(A_modes[i] , np.sum(dpsimq, axis=(1, 2, 3)))
+
+    return dx, dq
+
+def get_grad_RMSD3_NMA(coord, psim, pexp, size, sampling_rate, sigma, A_modes, threshold):
+    # NB : coord = x0 + q* A
+    vox, n_vox = select_voxels(coord, size, sampling_rate, threshold)
+    n_atoms = coord.shape[0]
+    n_modes = A_modes.shape[1]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    dq = np.zeros(n_modes)
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * sampling_rate
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        tmp = 2 * pdiff[vox[i, 0]:vox[i, 0] + n_vox,
+                  vox[i, 1]:vox[i, 1] + n_vox,
+                  vox[i, 2]:vox[i, 2] + n_vox] * np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
+
+        dpsimx =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsimx, axis=(1,2,3))
+
+        dpsimq = -(1 / (sigma ** 2)) * (x - mu) * np.array([tmp, tmp, tmp])
+        dq += np.dot(A_modes[i] , np.sum(dpsimq, axis=(1, 2, 3)))
+
+    return dx, dq
 
 def volume_from_pdb(x, N, sigma, sampling_rate=1):
     halfN = int(N / 2)
@@ -111,21 +236,21 @@ def volume_from_pdb(x, N, sigma, sampling_rate=1):
                 em_density[i, j, k] = np.sum(np.exp(-np.square(np.linalg.norm(x-mu, axis=1))/(2*(sigma ** 2))))
     return em_density
 
-def volume_from_pdb_slow(x, N, sigma, sampling_rate=1):
-    n_atoms = x.shape[0]
-    em_density = np.zeros((N, N, N))
-    for i in range(N):
-        for j in range(N):
-            for k in range(N):
-                for a in range(n_atoms):
-                    mu = ((np.array([i, j, k]) - np.ones(3)*(N/2)) * sampling_rate)
-                    em_density[i, j, k] += np.exp(-((x[a,0]-mu[0])**2 + (x[a,1]-mu[1])**2 + (x[a,2]-mu[2])**2)/(2*(sigma**2)))
-    return em_density
+def select_voxels(coord, size, sampling_rate, threshold):
+    n_atoms = coord.shape[0]
+    n_vox = threshold*2 +1
+    vox_range = np.array([np.arange(n_vox),
+                          np.arange(n_vox),
+                          np.arange(n_vox)])
+    l=np.zeros((n_atoms,3))
 
-# def volume_from_pdb_slow(x, size, sigma, sampling_rate=1):
-#     n_atoms = x.shape[0]
-#     np.
-#     return em_density
+    for i in range(n_atoms):
+        l[i] = (coord[i]/sampling_rate -threshold + size/2).astype(int)
+
+    if (np.max(l) >= size or np.min(l)<0):
+        raise RuntimeError("threshold too large")
+    return l.astype(int), n_vox
+
 
 def center_pdb(x):
     return x - np.mean(x, axis=0)
@@ -287,26 +412,18 @@ def internal_to_cartesian(internal, first):
 
     return cartesian
 
-def cartesian_to_internal(cartesian):
-    n_atoms=cartesian.shape[0]
+def cartesian_to_internal(x):
 
-    bonds=np.zeros(n_atoms-1)
-    angles=np.zeros(n_atoms-2)
-    torsions=np.zeros(n_atoms-3)
+    bonds=np.linalg.norm(x[1:] - x[:-1], axis=1)
 
-    for i in range(n_atoms):
+    angles = np.arccos(np.sum((x[:-2] - x[1:-1]) * (x[1:-1] - x[2:]), axis=1)
+                      / (np.linalg.norm(x[:-2] - x[1:-1], axis=1) * np.linalg.norm(x[1:-1] - x[2:], axis=1)))
 
-        if i< n_atoms-1:
-            u1=cartesian[i+1]-cartesian[i]
-            bonds[i] = np.linalg.norm(u1)
-
-        if i < n_atoms - 2:
-            u2=cartesian[i+2]-cartesian[i+1]
-            angles[i] = np.arccos(np.dot(u1, u2) / (np.linalg.norm(u1) * np.linalg.norm(u2)))
-
-        if i < n_atoms - 3:
-            u3=cartesian[i+3]-cartesian[i+2]
-            torsions[i] = np.arctan2(np.dot(np.linalg.norm(u2) * u1, np.cross(u2, u3)), np.dot(np.cross(u1,u2), np.cross(u2,u3)))
+    u1 =x[1:-2]-x[:-3]
+    u2 =x[2:-1]-x[1:-2]
+    u3 =x[3:]-x[2:-1]
+    torsions=np.arctan2(np.linalg.norm(u2, axis=1) * np.sum(u1* np.cross(u2, u3), axis=1),
+                        np.sum(np.cross(u1,u2)* np.cross(u2,u3), axis=1))
 
     return bonds, angles , torsions
 

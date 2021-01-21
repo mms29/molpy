@@ -1,77 +1,134 @@
 import numpy as np
 import src.constants
+import autograd.numpy as npg
+from autograd import grad, jacobian, elementwise_grad
 
-def get_energy(mol):
 
-    print("ENERGY COMPUTATION")
+################################################################################################
+#    Cartesian Potential Energy
+################################################################################################
+def get_energy(coord, verbose=True):
+    verbose: print("ENERGY COMPUTATION")
 
     # bond energy
-    U_bonds = get_bonds_energy(mol)
-    print("|-- Bonds = "+str(round(U_bonds,2)))
+    U_bonds = get_bonds_energy(coord)
+    if verbose: print("|-- Bonds = " + str(round(U_bonds, 2)))
 
     # angles energy
-    U_angles = get_angles_energy(mol)
-    print("|-- Angles = " + str(round(U_angles,2)))
+    U_angles = get_angles_energy(coord)
+    if verbose: print("|-- Angles = " + str(round(U_angles, 2)))
 
     # torsions energy
-    U_torsions = get_torsions_energy(mol)
-    print("|-- Torsions = " + str(round(U_torsions,2)))
+    U_torsions = get_torsions_energy(coord)
+    if verbose: print("|-- Torsions = " + str(round(U_torsions, 2)))
 
-    # Van der Waals energy
-    U_vdw = get_wdv_energy(mol)
-    print("|-- Van der Waals = " + str(round(U_vdw,2)))
+    U_total = U_bonds + U_angles + U_torsions
+    if verbose: print("|== TOTAL = " + str(round(U_total, 2)))
 
-    # Van der Waals energy
-    U_total = U_bonds + U_angles + U_torsions +U_vdw
-    print("|== TOTAL = " + str(round(U_total,2)))
+    return U_total
 
-def get_bonds_energy(mol):
-    return np.sum( src.constants.K_BONDS * np.square(mol.bonds - src.constants.R0_BONDS))
+def get_bonds_energy(coord):
+    r = npg.linalg.norm(coord[1:] - coord[:-1], axis=1)
+    return npg.sum(src.constants.K_BONDS * npg.square(r - src.constants.R0_BONDS))
 
-def get_angles_energy(mol):
-    return np.sum(src.constants.K_ANGLES * np.square(mol.angles - src.constants.THETA0_ANGLES))
+def get_angles_energy(coord):
+    theta = npg.arccos(npg.sum((coord[:-2] - coord[1:-1]) * (coord[1:-1] - coord[2:]), axis=1)
+                       / (npg.linalg.norm(coord[:-2] - coord[1:-1], axis=1) * npg.linalg.norm(
+        coord[1:-1] - coord[2:], axis=1)))
+    return npg.sum(src.constants.K_ANGLES * npg.square(theta - src.constants.THETA0_ANGLES))
 
-def get_torsions_energy(mol):
-    return np.sum(src.constants.K_TORSIONS*(1 + np.cos(src.constants.N_TORSIONS*(mol.torsions) - src.constants.DELTA_TORSIONS)))
+def get_torsions_energy(coord):
+    u1 = coord[1:-2] - coord[:-3]
+    u2 = coord[2:-1] - coord[1:-2]
+    u3 = coord[3:] - coord[2:-1]
+    torsions = npg.arctan2(npg.linalg.norm(u2, axis=1) * npg.sum(u1 * npg.cross(u2, u3), axis=1),
+                       npg.sum(npg.cross(u1, u2) * npg.cross(u2, u3), axis=1))
+    return npg.sum(src.constants.K_TORSIONS*(1 + npg.cos(src.constants.N_TORSIONS*(torsions) - src.constants.DELTA_TORSIONS)))
 
-def get_wdv_energy(mol):
-    dist = np.linalg.norm(np.repeat(mol.coords, mol.n_atoms, axis=0).reshape(mol.n_atoms, mol.n_atoms, 3) - mol.coords, axis=2)
-    np.fill_diagonal(dist, np.nan)
-    inv = src.constants.D_VDW/dist
-    return np.nansum(4 * src.constants.K_VDW * (inv**12 - inv**6))
+################################################################################################
+#    Internal Potential Energy (BUG ?)
+################################################################################################
 
+#
+# def get_energy_i(mol, verbose=True):
+#
+#     if verbose : print("ENERGY COMPUTATION")
+#
+#     # bond energy
+#     U_bonds = get_bonds_energy_i(mol)
+#     if verbose : print("|-- Bonds = "+str(round(U_bonds,2)))
+#
+#     # angles energy
+#     U_angles = get_angles_energy_i(mol)
+#     if verbose : print("|-- Angles = " + str(round(U_angles,2)))
+#
+#     # torsions energy
+#     U_torsions = get_torsions_energy_i(mol)
+#     if verbose : print("|-- Torsions = " + str(round(U_torsions,2)))
+#
+#     # Van der Waals energy
+#     U_vdw = get_wdv_energy(mol)
+#     if verbose : print("|-- Van der Waals = " + str(round(U_vdw,2)))
+#
+#     # Van der Waals energy
+#     U_total = U_bonds + U_angles + U_torsions +U_vdw
+#     if verbose : print("|== TOTAL = " + str(round(U_total,2)))
+#
+#     return U_total
+#
+# def get_bonds_energy_i(mol):
+#     return np.sum( src.constants.K_BONDS * np.square(mol.bonds - src.constants.R0_BONDS))
+#
+# def get_angles_energy_i(mol):
+#     return np.sum(src.constants.K_ANGLES * np.square(mol.angles - src.constants.THETA0_ANGLES))
+#
+# def get_torsions_energy_i(mol):
+#     return np.sum(src.constants.K_TORSIONS*(1 + np.cos(src.constants.N_TORSIONS*(mol.torsions) - src.constants.DELTA_TORSIONS)))
+#
+# def get_wdv_energy(mol):
+#     dist = np.linalg.norm(np.repeat(mol.coords, mol.n_atoms, axis=0).reshape(mol.n_atoms, mol.n_atoms, 3) - mol.coords, axis=2)
+#     np.fill_diagonal(dist, np.nan)
+#     inv = src.constants.D_VDW/dist
+#     return np.nansum(4 * src.constants.K_VDW * (inv**12 - inv**6))
 
-# CARTESIAN GRADIENT
-def get_gradient(mol):
-    print("GRADIENT COMPUTATION")
+################################################################################################
+#    Cartesian Gradient
+################################################################################################
+
+def get_gradient(mol, verbose=True):
+    if verbose : print("GRADIENT COMPUTATION")
+
     F_bonds = get_bonds_gradient(mol)
     f = np.mean(np.linalg.norm(F_bonds,axis=1))
-    print("|-- Bonds = " + str(round(f,2)) + "  -- dU = "+str(round(np.sum(F_bonds),2)))
+    if verbose : print("|-- Bonds = " + str(round(f,2)) + "  -- dU = "+str(round(np.sum(F_bonds),2)))
 
     F_angles = get_angles_gradient(mol)
     f=np.mean(np.linalg.norm(F_angles,axis=1))
-    print("|-- Angles = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_angles),2)))
+    if verbose : print("|-- Angles = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_angles),2)))
 
     F_torsions = get_torsions_gradient(mol)
     f=np.mean(np.linalg.norm(F_torsions,axis=1))
-    print("|-- Torsions = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_torsions),2)))
+    if verbose : print("|-- Torsions = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_torsions),2)))
 
     F_total = F_bonds+ F_angles + F_torsions
     f=np.mean(np.linalg.norm(F_total,axis=1))
-    print("|== TOTAL = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_total),2)))
+    if verbose : print("|== TOTAL = " + str(round(f,2))+ "  -- dU = "+str(round(np.sum(F_total),2)))
 
     return F_total
 
 
 def get_bonds_gradient(mol):
-    f = np.zeros((mol.n_atoms,3))
-    for i in range(mol.n_atoms-1):
-        a= mol.coords[i]
-        b= mol.coords[i+1]
-        r=np.linalg.norm(b-a)
-        fa = -2*src.constants.K_BONDS * (r - src.constants.R0_BONDS) * (r/np.linalg.norm(r))
-        f[i] += fa
-        f[i+1] += -fa
+    n_atoms = mol.n_atoms
+    f = np.zeros((n_atoms,3))
+    dx = mol.coords[1:] - mol.coords[:-1]
+    r = np.linalg.norm(dx, axis=1)
+
+    fa = -2*src.constants.K_BONDS * dx * np.array([(1 - src.constants.R0_BONDS / r),
+                                                   (1 - src.constants.R0_BONDS / r),
+                                                   (1 - src.constants.R0_BONDS / r)]).T
+    f [:-1] += fa
+    f [1:] += -fa
+
     return f
 
 def get_angles_gradient(mol):
@@ -132,9 +189,32 @@ def get_torsions_gradient(mol):
     return f
 
 
+################################################################################################
+#    Automatic differentiation Gradient
+################################################################################################
 
+def get_autograd(x):
+    # print("GRADIENT COMPUTATION")
+    F_bonds = get_bonds_autograd(x)
+    F_angles = get_angles_autograd(x)
+    F_torsions = get_torsions_autograd(x)
+    return F_bonds + F_angles + F_torsions
 
-#INTERNAL GRADIENT
+def get_bonds_autograd(x):
+    grad_bonds = elementwise_grad(get_bonds_energy)
+    return grad_bonds(x)
+
+def get_angles_autograd(x):
+    grad_angles = elementwise_grad(get_angles_energy)
+    return grad_angles(x)
+
+def get_torsions_autograd(x):
+    grad_torsions = elementwise_grad(get_torsions_energy)
+    return grad_torsions(x)
+
+################################################################################################
+#    Internal Gradient
+################################################################################################
 def get_gradient_i(mol):
     print("GRADIENT COMPUTATION")
     F_bonds = get_bonds_gradient_i(mol)
@@ -150,3 +230,10 @@ def get_angles_gradient_i(mol):
 
 def get_torsions_gradient_i(mol):
     return -src.constants.K_TORSIONS*src.constants.N_TORSIONS*(np.sin(src.constants.N_TORSIONS*(mol.torsions) - src.constants.DELTA_TORSIONS))
+
+
+################################################################################################
+#    Kinetic Energy
+################################################################################################
+def get_kinetic_energy(velocities):
+    return 1/2 * src.constants.CARBON_MASS * np.sum(np.square(velocities))

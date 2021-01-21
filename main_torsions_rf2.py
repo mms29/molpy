@@ -46,20 +46,8 @@ input_data = {
             'shift_sigma' :5,
             'max_shift': 50,
             'verbose':0,
-    #modes
-            # 'n_modes': modes.shape[1],
-            # 'A': modes,
-            # 'q_sigma': 50,
-            # 'q_mu': 0,
-            # 'q_max': 200,
-    # EM density
-             'N':target_density.n_voxels,
-             'halfN':int(target_density.n_voxels/2),
-             'gaussian_sigma':gaussian_sigma,
-             'sampling_rate': target_density.sampling_rate,
-             'em_density': target_density.data,
-             'epsilon_density': np.max(target_density.data) / 10
 
+             'gaussian_sigma':gaussian_sigma,
 }
 
 

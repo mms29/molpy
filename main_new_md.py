@@ -6,7 +6,7 @@ import src.constants
 import src
 import src.force_field
 import src.molecule
-import src.molecular_dynamics
+import src.flexible_fitting
 
 
 ak= src.io.read_pdb("data/AK/AK.pdb")
@@ -16,7 +16,7 @@ U = ak.get_energy()
 F = ak.get_gradient()
 
 dt= 0.0001
-molstep, fstep = src.molecular_dynamics.run_md(mol=ak, dt=dt, total_time=dt*1000, temperature=1000)
+molstep, fstep = src.flexible_fitting.run_md(mol=ak, dt=dt, total_time=dt * 1000, temperature=1000)
 
 plot_structure([molstep[0].coords, molstep[-1].coords])
 

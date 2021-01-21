@@ -31,6 +31,8 @@ data {
     real angles [n_atoms-3];
     real torsions [n_atoms-3];
     matrix [3,3] first;
+//    real first_max;
+//    real torsion_max;
 
     real R_sigma;
     real shift_sigma;
@@ -43,23 +45,23 @@ data {
 
     real k_U;
 
-    int<lower=0> n_modes;
-    matrix [n_modes, 3] A_modes[n_atoms];
-    real sigma;
+//    int<lower=0> n_modes;
+//    matrix [n_modes, 3] A_modes[n_atoms];
+//    real sigma;
     int verbose ;
 
     // em density
     int<lower=0> N;
-    real em_density[N, N, N];
-    real epsilon_density;
+    real density[N, N, N];
     real sampling_rate;
     real gaussian_sigma;
     int halfN;
+    real epsilon;
 
 }
 parameters {
     vector[n_atoms-3] torsion_var;
-    row_vector [n_modes]q;
+//    row_vector [n_modes]q;
     real<lower=-pi(),upper=pi()> alpha;
     real<lower=-pi()/2.0,upper=pi()/2.0> beta;
     real<lower=-pi(),upper=pi()> gamma;
@@ -97,20 +99,19 @@ transformed parameters {
         U += k_torsions*(1 + cos(n_torsions*torsions[i-3] - delta_torsions));
     }
 
-    for (i in 1:n_atoms){
-        x[i] = q*A_modes[i] + x[i];
-    }
+//    for (i in 1:n_atoms){
+//        x[i] = q*A_modes[i] + x[i];
+//    }
 }
 model {
     real likelihood = 0;
     real torsions_lp =0;
     real U_lp =0;
-    real modes_lp=0;
 
     for (i in 1:N){
         for (j in 1:N){
             for (k in 1:N){
-                likelihood += normal_lpdf(em_density[i,j,k] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1,k-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon_density);
+                likelihood += normal_lpdf(density[i,j,k] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1,k-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon);
             }
         }
     }
@@ -119,20 +120,19 @@ model {
 
     U_lp += -k_U*U;
 
-    for (i in 1:n_modes){
-        modes_lp += normal_lpdf(q[i]  | 0, sigma);
-    }
+//    for (i in 1:n_modes){
+//        q[i] ~ normal(0, sigma);
+//    }
 
     alpha ~ normal(0,R_sigma);
     beta ~ normal(0,R_sigma/2);
     gamma ~ normal(0,R_sigma);
     shift ~ normal(0,shift_sigma);
 
-    target += torsions_lp +U_lp + likelihood+ modes_lp;
+    target += torsions_lp +U_lp + likelihood ;
     if (verbose){
         print("Likelihood=", likelihood);
         print("torsions=", torsions_lp);
-        print("modes=", modes_lp);
         print("U=", U_lp);
         print(" ");
     }

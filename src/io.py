@@ -3,7 +3,8 @@ import src.molecule
 import mrcfile
 
 def read_pdb(file):
-    atoms = []
+    coords = []
+    atom_type=[]
     with open(file, "r") as file :
         end=False
         for line in file:
@@ -11,11 +12,12 @@ def read_pdb(file):
             if len(l) >0:
                 if l[0] == 'ATOM':
                     if not end:
-                        atoms.append(src.molecule.Atom(coord = [float(l[6]), float(l[7]), float(l[8])], type=l[2]))
+                        coords.append([float(l[6]), float(l[7]), float(l[8])])
+                        atom_type.append(l[2])
                 if l[0] == 'TER':
                     end = True
 
-    return src.molecule.Molecule(atoms)
+    return src.molecule.Molecule(np.array(coords), atom_type=atom_type)
 
 def save_pdb(mol, file, gen_file):
     print("Saving pdb file ...")
@@ -32,7 +34,7 @@ def save_pdb(mol, file, gen_file):
                              line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
                         if split_line[2] == 'CA':
                             if not end:
-                                coord = mol.atoms[n].coord
+                                coord = mol.coords[n]
                                 l[0] = l[0].ljust(6)  # atom#6s
                                 l[1] = l[1].rjust(5)  # aomnum#5d
                                 l[2] = l[2].center(4)  # atomname$#4s
@@ -63,7 +65,7 @@ def save_density(density, outfilename):
     with mrcfile.new(outfilename, overwrite=True) as mrc:
         mrc.set_data(data.T)
         mrc.voxel_size = density.sampling_rate
-        origin = -density.sampling_rate*density.n_voxels/2
+        origin = -density.sampling_rate*density.size/2
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin

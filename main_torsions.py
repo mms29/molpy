@@ -4,83 +4,66 @@ import src.fitting
 import src.constants
 import src.molecule
 import src.io
+from src.viewers import structures_viewer
 import matplotlib.pyplot as plt
 
 # import PDB
 init =src.io.read_pdb("data/AK/AK.pdb")
 init.add_modes("data/AK/modes/vec.", n_modes=3)
+init.center_structure()
 init = init.select_atoms(pattern='CA')
+init.rotate(angles = [0,np.pi/2, np.pi/2])
 
-sim = src.simulation.Simulator(init.coords)
+sim = src.simulation.Simulator(init)
+nma = sim.nma_deform( amplitude=[200,-100,0])
+# target=nma
+target = sim.mc_deform(v_bonds=0.01, v_angles=0.001, v_torsions = 0.01)
 
+# target.show_internal()
+structures_viewer([target, init, nma],names=["target", "init", "nma"])
 
-#GENERATE NMA DEFORMATIONS
-nma_structure = sim.run_nma(modes = init.modes, amplitude=[200,-100,0])
-
-
-# GENERATE MD DEFORMATIONS TORSIONS
-bonds_nma, angles_nma, torsions_nma = cartesian_to_internal(nma_structure)
-sim.plot_structure()
-
-# torsions_nma[4] += -0.5
-# torsions_nma[6] += 0.5
-internal = np.array([bonds_nma[2:], angles_nma[1:], torsions_nma]).T
-deformed_structure = internal_to_cartesian(internal, nma_structure[:3])
-sim.plot_structure(deformed_structure)
-
-sim.deformed_structure= deformed_structure
+#
+# # IMAGE
 
 gaussian_sigma=2
-sampling_rate=4
-n_voxels=24
-sim.compute_density(size=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate)
-sim.plot_density()
+sampling_rate=3
+n_pixels=32
+target_image = target.to_image(n_pixels, gaussian_sigma=gaussian_sigma, sampling_rate=sampling_rate)
+target_image.show()
+init_image = init.to_image(n_pixels, gaussian_sigma=gaussian_sigma, sampling_rate=sampling_rate)
+init_image.show()
+
+# DENSITY
+# gaussian_sigma=2
+# sampling_rate=3
+# n_voxels=32
+# target_density = target.to_density(n_voxels, gaussian_sigma=gaussian_sigma, sampling_rate=sampling_rate)
+# target_density.show()
+
 
 ########################################################################################################
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-input_data = {
-    # structure
-             'n_atoms': init.n_atoms,
-             'y': sim.deformed_structure,
-             'epsilon': 1,
-            'bonds': init.bonds[2:],
-            'angles': init.angles[1:],
-            'torsions': init.torsions,
-            'first': init.coords[:3],
-
-
-            'torsion_sigma': 0.001,
-            'k_torsions': src.constants.K_TORSIONS,
-            'n_torsions': src.constants.N_TORSIONS,
-            'delta_torsions': src.constants.DELTA_TORSIONS,
-            'k_U': src.constants.CARBON_MASS/(src.constants.K_BOLTZMANN * 1000),
-            'R_sigma' : 0.001,
-            'shift_sigma' :0.01,
-            'max_shift': 0.1,
-            'verbose':0,
-    #modes
-            'n_modes': init.modes.shape[1],
-            'A_modes': init.modes,
-            'sigma': 200,
-    # EM density
-             'N':sim.n_voxels,
-             'halfN':int(sim.n_voxels/2),
-             'gaussian_sigma':gaussian_sigma,
-             'sampling_rate': sampling_rate,
-             'em_density': sim.deformed_density,
-             'epsilon_density': np.max(sim.deformed_density) / 10
-
+param = {
+    'k_U': 0.1,#src.constants.CARBON_MASS/(src.constants.K_BOLTZMANN * 1000),
+    'torsion_sigma' : 0.1,
+    'R_sigma' : 0.01,
+    'shift_sigma' :0.1,
+    'max_shift': 1,
+    'q_sigma': 400,
+    "verbose" : 0,
+    "nu" : 10,
 }
 
 
-fit =src.fitting.Fitting(input_data, "md_nma_torsions_emmap")
-fit.optimizing(n_iter=1000)
-# fit.sampling(n_chain=4, n_iter=100, n_warmup=800)
-fit.plot_structure(save="results/sampling_structure_torsions_pas_nma.png")
-# fit.plot_error_map(N=n_voxels, sigma=gaussian_sigma, sampling_rate=sampling_rate, slice=8)
-fit.plot_nma(sim.q)
+fit =src.fitting.Fitting(init, target_image, "MC_2D")
+m = fit.optimizing(n_iter=1000, param=param)
+fit.plot_structure(target=target)
+m.to_image(n_pixels, gaussian_sigma=gaussian_sigma, sampling_rate=sampling_rate).show()
+target_image.show()
+
+fit.sampling(n_chain=4, n_iter=50, n_warmup=150, param=param)
 # fit.plot_lp()
 
 

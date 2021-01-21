@@ -1,3 +1,4 @@
+
 functions{
     row_vector cross_product(row_vector u, row_vector v){
         row_vector [3] r = [u[2]*v[3] - u[3]*v[2], u[3]*v[1] - u[1]*v[3], u[1]*v[2] - u[2]*v[1]];
@@ -21,7 +22,7 @@ functions{
     }
 
     real gaussian_pdf(matrix x, matrix y, real sigma){
-        return sum(exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]) +square(x[:,3] -y[:,3]))/(2*square(sigma))));
+        return sum(exp(-(square(x[:,1] -y[:,1]) + square(x[:,2] -y[:,2]))/(2*square(sigma))));
     }
 }
 data {
@@ -31,8 +32,6 @@ data {
     real angles [n_atoms-3];
     real torsions [n_atoms-3];
     matrix [3,3] first;
-//    real first_max;
-//    real torsion_max;
 
     real R_sigma;
     real shift_sigma;
@@ -45,18 +44,15 @@ data {
 
     real k_U;
 
-//    int<lower=0> n_modes;
-//    matrix [n_modes, 3] A_modes[n_atoms];
-//    real sigma;
     int verbose ;
 
     // em density
     int<lower=0> N;
-    real em_density[N, N, N];
-    real epsilon_density;
+    real density[N, N];
     real sampling_rate;
     real gaussian_sigma;
     int halfN;
+    real epsilon;
 
 }
 parameters {
@@ -98,10 +94,6 @@ transformed parameters {
 
         U += k_torsions*(1 + cos(n_torsions*torsions[i-3] - delta_torsions));
     }
-
-//    for (i in 1:n_atoms){
-//        x[i] = q*A_modes[i] + x[i];
-//    }
 }
 model {
     real likelihood = 0;
@@ -110,19 +102,13 @@ model {
 
     for (i in 1:N){
         for (j in 1:N){
-            for (k in 1:N){
-                likelihood += normal_lpdf(em_density[i,j,k] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1,k-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon_density);
-            }
+            likelihood += normal_lpdf(density[i,j] | gaussian_pdf(x, rep_matrix([i-halfN-1,j-halfN-1]*sampling_rate, n_atoms), gaussian_sigma), epsilon);
         }
     }
 
     torsions_lp +=  normal_lpdf(torsion_var | torsions, torsion_sigma);
 
     U_lp += -k_U*U;
-
-//    for (i in 1:n_modes){
-//        q[i] ~ normal(0, sigma);
-//    }
 
     alpha ~ normal(0,R_sigma);
     beta ~ normal(0,R_sigma/2);
@@ -136,6 +122,4 @@ model {
         print("U=", U_lp);
         print(" ");
     }
-
-
 }

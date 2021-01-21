@@ -16,3 +16,18 @@ DELTA_TORSIONS = -np.pi/2
 K_VDW = 1e-8
 D_VDW = 3
 
+DEFAULT_INPUT_DATA ={
+    "k_bonds": K_BONDS,
+    "r0_bonds": R0_BONDS,
+
+    "theta0_angles": THETA0_ANGLES,
+    "k_angles": K_ANGLES,
+
+    "k_torsions": K_TORSIONS,
+    "n_torsions": N_TORSIONS,
+    "delta_torsions": DELTA_TORSIONS,
+
+    "k_vdw" : K_VDW,
+    "d_vdw" : D_VDW,
+}
+

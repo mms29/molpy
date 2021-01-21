@@ -2,151 +2,71 @@ import src.functions
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from src.molecule import Molecule
+from src.force_field import get_energy
 
 
 class Simulator:
 
-    def __init__(self, atoms):
-        self.init_structure=atoms
-        self.n_atoms=atoms.shape[0]
-        self.deformed_structure=None
+    def __init__(self, mol):
+        self.deformed_mol = [mol]
+        self.n_atoms = mol.n_atoms
 
-    def run_nma(self, modes, amplitude=200):
-        n_modes = modes.shape[1]
-        if isinstance(amplitude, list):
-            self.q= amplitude
-        else:
-            self.q =np.random.uniform(-amplitude, amplitude, n_modes)
-        if self.deformed_structure is None:
-            init_structure = self.init_structure
-            self.deformed_structure = np.zeros(self.init_structure.shape)
-        else:
-            init_structure=self.deformed_structure
-
-        for i in range(self.n_atoms):
-            self.deformed_structure[i]= np.dot(self.q, modes[i]) + init_structure[i]
-        return self.deformed_structure
-
-
-    def run_md(self, U_lim, step, bonds=None, angles=None, lennard_jones=None):
-        if self.deformed_structure is None:
-            init_structure = self.init_structure
-        else:
-            init_structure = self.deformed_structure
-
-        deformed_structure = init_structure
-
-        self.U_lim = U_lim
-        U_init=0
-        if bonds is not None:
-            self.bonds_r0= np.mean([np.linalg.norm(self.init_structure[i] - self.init_structure[i + 1]) for i in range(self.n_atoms-1)])
-            self.bonds_k = bonds['k']
-            U_init += src.functions.md_bonds_potential(init_structure,self.bonds_k ,self.bonds_r0)
-        if angles is not None:
-            theta0 = []
-            for i in range(self.n_atoms - 2):
-                theta0.append(np.arccos(np.dot(self.init_structure[i] - self.init_structure[i + 1], self.init_structure[i + 1] - self.init_structure[i + 2])
-                                           / (np.linalg.norm(self.init_structure[i] -self.init_structure[i + 1]) * np.linalg.norm(self.init_structure[i + 1] - self.init_structure[i + 2]))))
-            self.angles_theta0 = np.mean(theta0)
-            self.angles_k= angles['k']
-            U_init += src.functions.md_angles_potential(init_structure, self.angles_k, self.angles_theta0)
-        if lennard_jones is not None:
-            self.lennard_jones_k = lennard_jones ['k']
-            self.lennard_jones_d =  lennard_jones ['d']
-            lj = src.functions.md_lennard_jones_potential(init_structure,self.lennard_jones_k, self.lennard_jones_d)
-            print('LJ : '+str(lj))
-            U_init +=lj
-        print("U init : " + str(U_init))
-
-        self.md_variance = 0
-        last = []
-        while (U_init > self.U_lim):
-
-            # new direction
-            dt = np.random.normal(0, step, init_structure.shape)
-            deformed_structure = dt + init_structure
-
-            U_deformed = 0
-            if bonds is not None:
-                U_bonds = src.functions.md_bonds_potential(deformed_structure, self.bonds_k, self.bonds_r0)
-                U_deformed +=U_bonds
-            if angles is not None:
-                U_angles = src.functions.md_angles_potential(deformed_structure, self.angles_k,self.angles_theta0)
-                U_deformed += U_angles
-            if lennard_jones is not None:
-                U_lennard_jones = src.functions.md_lennard_jones_potential(deformed_structure, self.lennard_jones_k, self.lennard_jones_d)
-                U_deformed += U_lennard_jones
-
-
-            if (U_init > U_deformed):
-                U_init = U_deformed
-                last.append(1)
-                init_structure = deformed_structure
-                self.md_variance += np.var(dt)
-                s="U="+str(U_deformed)+" : "
-                if bonds is not None:
-                    s += " U_bonds="+str(U_bonds)+"  ; "
-                if angles is not None:
-                    s += " U_angles="+str(U_angles)+"  ; "
-                if lennard_jones is not None:
-                    s += " U_lennard_jones="+str(U_lennard_jones)+"  ; "
-                s+= "rate="+str(np.mean(last))
-                print(s)
+    def nma_deform(self, amplitude=200):
+        if self.deformed_mol[0].modes is not None:
+            n_modes = self.deformed_mol[0].modes.shape[1]
+            if isinstance(amplitude, list):
+                self.q= amplitude
             else:
-                last.append(0)
+                self.q =np.random.uniform(-amplitude, amplitude, n_modes)
 
-            if len(last)>20:
-                last=last[-20:]
-        self.deformed_structure = deformed_structure
-        if self.md_variance==0 : self.md_variance=1
-        return self.deformed_structure
+            deformed_coords = np.zeros((self.n_atoms,3))
+            deformed_coords = np.dot(self.q, self.deformed_mol[-1].modes) + self.deformed_mol[-1].coords
 
-    def compute_density(self, size=64,  sigma=1, sampling_rate=1):
-        self.init_density= src.functions.volume_from_pdb(self.init_structure, size, sigma=sigma, sampling_rate=sampling_rate)
-        self.deformed_density = src.functions.volume_from_pdb(self.deformed_structure, size, sigma=sigma, sampling_rate=sampling_rate)
-        self.n_voxels=size
+            self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
 
-    def rotate_pdb(self):
-        if self.deformed_structure is None:
-            init_structure = self.init_structure
-        else:
-            init_structure = self.deformed_structure
+            return self.deformed_mol[-1]
 
-        deformed_structure = init_structure
+    def mc_deform(self, v_bonds=0.1, v_angles=0.01, v_torsions=0.01):
+        bonds = self.deformed_mol[-1].bonds
+        angles = self.deformed_mol[-1].angles
+        torsions = self.deformed_mol[-1].torsions
 
-        alpha = np.random.uniform(0, 2*np.pi)
-        beta = np.random.uniform(0, np.pi)
-        gamma = np.random.uniform(0, 2*np.pi)
+        if v_bonds != 0:
+            bonds += np.random.normal(0,v_bonds, bonds.shape)
+        if v_angles != 0:
+            angles += np.random.normal(0,v_angles, angles.shape)
+        if v_torsions != 0:
+            torsions += np.random.normal(0,v_torsions, torsions.shape)
 
-        R = np.array([[np.cos(gamma) * np.cos(alpha) * np.cos(beta) - np.sin(gamma) * np.sin(alpha), np.cos(gamma) * np.cos(beta)*np.sin(alpha) + np.sin(gamma) * np.cos(alpha), -np.cos(gamma) * np.sin(beta)],
-                   [-np.sin(gamma) * np.cos(alpha) * np.cos(beta) - np.cos(gamma) * np.sin(alpha),-np.sin(gamma) * np.cos(beta)*np.sin(alpha) + np.cos(gamma) * np.cos(alpha), np.sin(gamma) * np.sin(beta)],
-                   [np.sin(beta)*np.cos(alpha),np.sin(beta)*np.sin(alpha),np.cos(beta)]])
+        deformed_coords = src.functions.internal_to_cartesian(np.array([bonds[2:], angles[1:], torsions]).T,
+                                            first = self.deformed_mol[-1].coords[:3])
+        self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
+        return self.deformed_mol[-1]
 
-        rotated_atoms = np.zeros(self.init_structure.shape)
-        for i in range(self.n_atoms):
-            deformed_structure[i] = np.dot(init_structure[i], R)
+    def energy_min(self, U_lim, step, internal = False):
+        deformed_mol = self.deformed_mol[-1]
+        deformed_coords = deformed_mol.coords
+        U_step = get_energy(deformed_mol, verbose=False)
+        print("U_init = "+str(U_step))
 
-        self.deformed_structure = deformed_structure
-        return self.deformed_structure
+        accept=[]
+        while U_lim < U_step:
+            candidate_coords = deformed_coords +  np.random.normal(0, step, (self.n_atoms,3))
+            candidate_mol = Molecule(candidate_coords)
+            U_candidate = get_energy(candidate_mol, verbose=False)
 
-    def plot_structure(self, other_structure=None):
+            if U_candidate < U_step :
+                U_step = U_candidate
+                deformed_coords = candidate_coords
+                accept.append(1)
+                print("U_step = "+str(U_step)+ " ; acceptance_rate="+str(np.mean(accept)))
+            else:
+                accept.append(0)
+            if len(accept) > 20 : accept = accept[-20:]
 
-        legend=["init_structure"]
-        structures = [self.init_structure]
-        if self.deformed_structure is not None:
-            structures.append(self.deformed_structure)
-            legend.append("deformed_structure")
-        if other_structure is not None:
-            structures.append(other_structure)
-            legend.append("other_structure")
-        src.functions.plot_structure(structures, legend)
+        self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
+        return self.deformed_mol[-1]
 
-    def plot_density(self):
-        fig, ax = plt.subplots(1, 2)
-        ax[0].imshow(self.init_density[int(self.n_voxels/2)], cmap='gray')
-        ax[0].set_title("init_structure")
-        ax[1].imshow(self.deformed_density[int(self.n_voxels/2)], cmap='gray')
-        ax[1].set_title("deformed_structure")
-        # fig.show()
 
 
