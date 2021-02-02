@@ -3,6 +3,7 @@ import src.molecule
 import numpy as np
 from src.functions import *
 from src.force_field import *
+import time
 
 
 def run_md(mol, dt, total_time, temperature=300):
@@ -40,13 +41,14 @@ def MC_gradient_descend(init, target_density,n_iter,k, dt, size, sigma, sampling
     l_Ub = []
     for i in range(n_iter):
 
+        molt = src.molecule.Molecule(xt, chain_id=init.chain_id)
         psim = volume_from_pdb_fast3(coord=xt, size=size, sigma=sigma, sampling_rate=sampling_rate, threshold=threshold)
         Ub = get_RMSD(psim=psim, pexp=target_density.data)
-        Up = get_energy(xt, verbose=False)
+        Up = get_energy(molt, verbose=False)
         U = k*Ub + Up
 
         dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate, sigma=sigma, threshold=threshold)
-        dUp = get_autograd(xt)
+        dUp = get_autograd(molt)
         dU = k*dUb + dUp
         F = -dU
         print("iter="+str(i)+" ; Ub="+str(k*Ub)+" ; Up="+str(Up)+" ; dUb="+str(np.mean(np.linalg.norm(dUb, axis=1) ))+" ; dUp="+str(np.mean(np.linalg.norm(dUp, axis=1) )))
@@ -66,9 +68,12 @@ def MC_gradient_descend(init, target_density,n_iter,k, dt, size, sigma, sampling
 
     return xt
 
-def NMA_gradient_descend(init, target_density,n_iter, dt, size, sigma, sampling_rate, threshold):
+def NMA_gradient_descend(init, target_density,n_iter, dt, size, sigma, sampling_rate, threshold, q_init=None):
 
-    qt = np.zeros(init.modes.shape[1])
+    if q_init is not None:
+        qt = q_init
+    else:
+        qt = np.zeros(init.modes.shape[1])
     l_dq=[]
     l_RMSD=[]
 
@@ -94,9 +99,11 @@ def NMA_gradient_descend(init, target_density,n_iter, dt, size, sigma, sampling_
 
     return init.coords + np.dot(qt, init.modes), qt
 
-def MCNMA_gradient_descend(init, target_density,n_iter,k, dxt,dqt, size, sigma, sampling_rate, threshold):
-
-    qt = np.zeros(init.modes.shape[1])
+def MCNMA_gradient_descend(init, target_density,n_iter,k, dxt,dqt, size, sigma, sampling_rate, threshold, q_init=None):
+    if q_init is not None:
+        qt = q_init
+    else:
+        qt = np.zeros(init.modes.shape[1])
     xt = np.zeros(init.coords.shape)
 
     l_U = []
@@ -106,20 +113,21 @@ def MCNMA_gradient_descend(init, target_density,n_iter,k, dxt,dqt, size, sigma, 
     for i in range(n_iter):
 
         coord = init.coords + np.dot(qt, init.modes) + xt
+        molt = src.molecule.Molecule(coord, chain_id=init.chain_id)
 
         psim = volume_from_pdb_fast3(coord=coord, size=size, sigma=sigma, sampling_rate=sampling_rate, threshold=threshold)
         Ub = get_RMSD(psim=psim, pexp=target_density.data)
-        Up = get_energy(coord, verbose=False)
+        Up = get_energy(molt, verbose=False)
         U = k*Ub + Up
 
         dUb, dq = get_grad_RMSD3_NMA(coord= coord, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate,
                                    sigma=sigma, A_modes=init.modes, threshold=threshold)
-        dUp = get_autograd(coord)
+        dUp = get_autograd(molt)
         dU = k*dUb + dUp
         F = -dU
         print("iter="+str(i)+" ; Ub="+str(k*Ub)+" ; Up="+str(Up)+" ; dUb="+str(np.mean(np.linalg.norm(dUb, axis=1) ))+" ; dUp="+str(np.mean(np.linalg.norm(dUp, axis=1) ))+" ; dq="+str(dq))
 
-        qt += - dqt *dq
+        qt = qt - dqt *dq
         xt += dxt*F
 
         l_U.append(U)
@@ -149,7 +157,7 @@ def molecular_dynamics(init, target_density, n_iter,k, dt, size, sigma, sampling
     dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate,
                          sigma=sigma,
                          threshold=threshold)
-    dUp = get_autograd(xt)
+    dUp = get_autograd(init)
     dU = k * dUb + dUp
     F = -dU
     # T = K / (1 / 2 * src.constants.K_BOLTZMANN )
@@ -164,22 +172,24 @@ def molecular_dynamics(init, target_density, n_iter,k, dt, size, sigma, sampling
     l_K = []
     l_T = []
     l_xt = []
+    l_criterion = []
     for i in range(n_iter):
         # Position update
         xt = xt + (dt * vt) + dt**2 * (F / 2)
+        molt = src.molecule.Molecule(xt, chain_id=init.chain_id)
 
         # Volume update
         psim = volume_from_pdb_fast3(coord=xt, size=size, sigma=sigma, sampling_rate=sampling_rate, threshold=threshold)
 
         # Potential energy update
         Ub = get_RMSD(psim=psim, pexp=target_density.data)
-        Up = get_energy(xt, verbose=False)
+        Up = get_energy(molt, verbose=False)
         U = k * Ub + Up
 
         # Gradient Update
         dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate,
                              sigma=sigma, threshold=threshold)
-        dUp = get_autograd(xt)
+        dUp = get_autograd(molt)
         dU = k * dUb + dUp
         Ft = -dU
 
@@ -205,6 +215,9 @@ def molecular_dynamics(init, target_density, n_iter,k, dt, size, sigma, sampling
         l_T.append(T)
         l_xt.append(xt)
 
+        criterion = np.dot((xt.flatten() - init.coords.flatten()), vt.flatten())
+        l_criterion.append(criterion)
+
         print("ITER=" + str(i) + " ; Ub=" + str(k * Ub) + " ; Up=" + str(Up) + " ; dUb=" + str(
             np.mean(np.linalg.norm(k * dUb, axis=1)))
               + " ; dUp=" + str(np.mean(np.linalg.norm(dUp, axis=1))) + " ; K=" + str(K) + " ; T=" + str(T))
@@ -221,7 +234,690 @@ def molecular_dynamics(init, target_density, n_iter,k, dt, size, sigma, sampling
     ax[1,1].set_title("Energy RMSD")
     ax[0,2].plot(l_U)
     ax[0,2].set_title("Energy Total")
-    ax[1,2].plot(l_T)
-    ax[1,2].set_title("Temperature")
+    ax[1,2].plot(l_criterion)
+    ax[1,2].set_title("Criterion")
 
     return xt
+
+
+def HMC(init, target_density, n_iter, n_warmup,k, dt, max_iter):
+    molt = init
+
+    l_Up = []
+    l_Ub = []
+    l_U = []
+    l_L = []
+    l_a =[]
+    l_xt =[]
+    l_c = []
+    t = time.time()
+    for i in range(n_iter):
+        print("HMC ITER = "+str(i))
+        xt, Up, Ub, U, a, L , c= HMC_step(init=molt, target_density=target_density,
+                    k=k, dt=dt, max_iter=max_iter)
+        molt = src.molecule.Molecule(xt, chain_id=init.chain_id)
+        l_Up += Up
+        l_Ub += Ub
+        l_U +=U
+        l_c += c
+        l_L.append(L)
+        l_a.append(a)
+        l_xt.append(xt)
+
+    fig, ax =plt.subplots(2,3, figsize=(15,8))
+    ax[0,0].plot(l_Up)
+    ax[0,0].set_title("Energy Potential")
+    ax[1,0].plot(l_Ub)
+    ax[1,0].set_title("Energy RMSD")
+    ax[0,1].plot(l_U)
+    ax[0,1].set_title("Energy Total")
+    ax[1,1].plot(np.convolve(np.array(l_a), np.ones(5), 'valid') / 5)
+    ax[1,1].set_title("Acceptance rate")
+    ax[0,2].plot(l_L)
+    ax[0,2].set_title("Transition length")
+    ax[1, 2].plot(l_c)
+    ax[1, 2].set_title("Criterion")
+    for i in range(len(l_L)):
+        ax[0,0].axvline(np.sum(l_L[:i+1]))
+        ax[1,0].axvline(np.sum(l_L[:i+1]))
+        ax[0,1].axvline(np.sum(l_L[:i+1]))
+        ax[1,2].axvline(np.sum(l_L[:i+1]))
+
+    print("EXECUTION ENDED : t="+str(time.time()-t)+"  iter="+str(np.sum(l_L)) +"  t/iter="+str((time.time()-t)/np.sum(l_L)))
+    mol = src.molecule.Molecule(coords = np.mean(l_xt[n_warmup:], axis=0), chain_id=init.chain_id)
+    mol.get_energy()
+    mol_density = mol.to_density(size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 gaussian_sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    cc= cross_correlation(mol_density.data, target_density.data)
+    print("CC = "+str(cc))
+
+
+    return mol, np.array(l_xt), l_U, l_L
+
+def HMC_step(init, target_density,k, dt, max_iter):
+    t=time.time()
+
+    # Initial conditions
+    xt = init.coords
+    vt = np.random.normal(0, 1, xt.shape)
+    # vt = np.random.normal(0, np.sqrt(src.constants.K_BOLTZMANN*Ti / (src.constants.CARBON_MASS* (3 * xt.shape[0]))), xt.shape)
+
+    # Initial gradient
+    psim = volume_from_pdb_fast3(coord=xt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    Ub = get_RMSD(psim=psim, pexp=target_density.data)
+    Up = get_energy(init, verbose=False)
+    U = k * Ub + Up
+    dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data,size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    dUp = get_autograd(init)
+    dU = k * dUb + dUp
+    F = -dU
+    K = src.force_field.get_kinetic_energy(vt)
+    criterion = np.dot((xt.flatten() - init.coords.flatten()), vt.flatten())
+    i=0
+
+    H_init = U + K
+
+    l_Up = [Up]
+    l_Ub = [Ub]
+    l_U = [U]
+    l_c =[]
+    print("dt="+str(time.time()-t))
+
+    while(criterion >= 0 and i<max_iter):
+
+
+        # Position update
+        xt = xt + (dt * vt) + dt ** 2 * (F / 2)
+        molt = src.molecule.Molecule(xt, chain_id=init.chain_id)
+
+        # Volume update
+        psim = volume_from_pdb_fast3(coord=xt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                     sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+
+        # Potential energy update
+        Ub = get_RMSD(psim=psim, pexp=target_density.data)
+        Up = get_energy(molt, verbose=False)
+        U = k * Ub + Up
+
+        # Gradient Update
+        dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data, size=target_density.size,
+                             sampling_rate=target_density.sampling_rate,
+                             sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+        dUp = get_autograd(molt)
+        dU = k * dUb + dUp
+        Ft = -dU
+
+        # velocities update
+        vt = vt + (dt * (F + Ft) / 2)
+        F = Ft
+
+        # Kinetic & temperature update
+        K = src.force_field.get_kinetic_energy(vt)
+        T = K / (3 / 2 * (3 * xt.shape[0]) * src.constants.K_BOLTZMANN)
+
+        # velocities rescaling
+        # vt = np.sqrt(Ti/T) * vt
+
+        criterion = np.dot((xt.flatten() - init.coords.flatten()), vt.flatten())
+        i+=1
+
+        print("ITER=" + str(i) + " ; Ub=" + str(k * Ub) + " ; Up=" + str(Up) + " ; dUb=" + str(
+            np.mean(np.linalg.norm(k * dUb, axis=1)))
+              + " ; dUp=" + str(np.mean(np.linalg.norm(dUp, axis=1))) + " ; K=" + str(K) + " ; Crit=" + str(criterion))
+
+        l_Up.append(Up)
+        l_Ub.append(Ub)
+        l_U .append(U)
+        l_c.append(criterion)
+
+    H = U+K
+
+    accept_p = np.min([1 , H_init/H])
+    if int(np.random.choice(2, p=[1-accept_p, accept_p])) == 0:
+        xt = init.coords
+        print("REJECTED")
+        a=0
+    else:
+        print("ACCEPTED")
+        a=1
+
+    return xt, l_Up, l_Ub, l_U, a, i, l_c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def HMCNMA(init, target_density, n_iter, n_warmup, max_iter, k, dxt, dqt, m_test,q_init=None):
+    xt = np.zeros(init.coords.shape)
+    if q_init is not None:
+        qt = q_init
+    else:
+        qt = np.zeros(init.modes.shape[1])
+
+    l_Up = []
+    l_Ub = []
+    l_U = []
+    l_L = []
+    l_a =[]
+    l_xt =[]
+    l_qt=[]
+    l_c = []
+    l_c2=[]
+    ll_xt=[]
+    ll_qt=[]
+    t=time.time()
+    for i in range(n_iter):
+        print("HMC ITER = "+str(i))
+        xt, qt,  Up, Ub, U, c2, L , c, lxt, lqt= HMCNMA_step(init=init, x_init=xt, q_init = qt, target_density=target_density,
+                    k=k, dxt=dxt, dqt=dqt, max_iter=max_iter, m_test=m_test)
+
+        l_Up += Up
+        l_Ub += Ub
+        l_U +=U
+        l_c += c
+        l_L.append(L)
+        l_c2 += c2
+        l_xt.append(xt)
+        l_qt.append(qt)
+        ll_xt += lxt
+        ll_qt += lqt
+
+    fig, ax =plt.subplots(2,3, figsize=(15,8))
+    ax[0,0].plot(l_Up)
+    ax[0,0].set_title("Energy Potential")
+    ax[1,0].plot(l_Ub)
+    ax[1,0].set_title("Energy RMSD")
+    ax[0,1].plot(l_U)
+    ax[0,1].set_title("Energy Total")
+    ax[1,1].plot(l_c2) #np.convolve(np.array(l_a), np.ones(5), 'valid') / 5
+    ax[1,1].set_title("Acceptance rate")
+    ax[0,2].plot(l_L)
+    ax[0,2].set_title("Transition length")
+    ax[1, 2].plot(l_c)
+    ax[1, 2].set_title("Criterion")
+    for i in range(len(l_L)):
+        ax[0,0].axvline(np.sum(l_L[:i+1]))
+        ax[1,0].axvline(np.sum(l_L[:i+1]))
+        ax[0,1].axvline(np.sum(l_L[:i+1]))
+        ax[1,2].axvline(np.sum(l_L[:i+1]))
+        ax[1,1].axvline(np.sum(l_L[:i+1]))
+
+    print("EXECUTION ENDED : t="+str(time.time()-t)+"  iter="+str(np.sum(l_L)) +"  t/iter="+str((time.time()-t)/np.sum(l_L)))
+    coord = init.coords + np.mean(l_xt[n_warmup:], axis=0) + np.dot(np.mean(l_qt[n_warmup:], axis=0), init.modes)
+    mol = src.molecule.Molecule(coords = coord, chain_id=init.chain_id)
+    mol.get_energy()
+    mol_density = mol.to_density(size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 gaussian_sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    cc= cross_correlation(mol_density.data, target_density.data)
+    print("CC = "+str(cc))
+
+
+    return mol, np.array(l_xt), np.array(l_qt), l_U, l_L, ll_xt, ll_qt
+
+def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_test):
+    # Initial conditions
+
+    xt = x_init
+    vt = np.random.normal(0, 1, xt.shape)
+    qt = q_init
+    vqt = np.random.normal(0, m_test, qt.shape)
+    init_coord = init.coords + np.dot(qt, init.modes) + xt
+    coordt= init_coord
+    molt = src.molecule.Molecule(coordt, modes=init.modes, chain_id=init.chain_id)
+
+    # Initial Energy
+    psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    Ub = get_RMSD(psim=psim, pexp=target_density.data)
+    Up = get_energy(molt, verbose=False)
+    U = k * Ub + Up
+
+    #Initial gradient
+    dUb, dUq = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data, size=target_density.size, A_modes=molt.modes,
+            sampling_rate=target_density.sampling_rate, sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    dUp, dUpq = get_autograd_NMA(init, xt, qt, init.modes)
+    F = -(k * dUb + dUp)
+    Fq = - (k * dUq + dUpq)
+    K = get_kinetic_energy(vt)
+    criterion = 0
+
+    i=0
+
+    H_init = U + K
+
+    l_Up = [Up]
+    l_Ub = [Ub]
+    l_U = [U]
+    l_c =[]
+    l_c2=[]
+    l_xt=[]
+    l_qt=[]
+
+    while(criterion >= 0 and i< max_iter):
+
+
+        # Position update
+        xt = xt + (dxt * vt) + dxt ** 2 * (F / 2)
+        qt = qt + (dqt * vqt) + dqt ** 2 * (Fq / 2)
+
+        coordt = init.coords + np.dot(qt, molt.modes) + xt
+        molt = src.molecule.Molecule(coordt, chain_id=molt.chain_id, modes=molt.modes)
+
+        # Volume update
+        psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                     sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+
+        # Potential energy update
+        Ub = get_RMSD(psim=psim, pexp=target_density.data)
+        Up = get_energy(molt, verbose=False)
+        U = k * Ub + Up
+
+        # Gradient Update
+        dUb, dUq = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data, size=target_density.size,
+                                      A_modes=molt.modes,
+                                      sampling_rate=target_density.sampling_rate, sigma=target_density.gaussian_sigma,
+                                      threshold=target_density.threshold)
+        dUp, dUpq = get_autograd_NMA(init, xt, qt, init.modes)
+        Ft = -(k * dUb + dUp)
+        Fqt = - (k * dUq + dUpq)
+
+        # velocities update
+        vt = vt + (dxt * (F + Ft) / 2)
+        F = Ft
+        vqt = vqt + (dqt * (Fq + Fqt) / 2)
+        Fq = Fqt
+
+        # Kinetic & temperature update
+        K = get_kinetic_energy(vt)
+        T = K / (3 / 2 * (3 * xt.shape[0]) * src.constants.K_BOLTZMANN)
+
+        # velocities rescaling
+        # vt = np.sqrt(Ti/T) * vt
+        c2 = np.dot((qt - q_init), vqt)
+        c1 =  np.dot((coordt.flatten() - init_coord.flatten()), vt.flatten())
+        criterion = c1 + c2
+        i+=1
+
+        print("ITER=" + str(i) + " ; Ub=" + str(k * Ub) + " ; Up=" + str(Up) + " ; dUq=" + str(k*dUq)
+              + " ; dUpq=" + str(dUpq) + " ; q=" + str(qt) + " ; K=" + str(K) + " ; Crit=" + str(criterion))
+
+        l_Up.append(Up)
+        l_Ub.append(Ub)
+        l_U .append(U)
+        l_c.append(c1)
+        l_c2.append(c2)
+        l_xt.append(xt)
+        l_qt.append(qt)
+
+    H = U+K
+
+    accept_p = np.min([1 , H_init/H])
+    if int(np.random.choice(2, p=[1-accept_p, accept_p])) == 0:
+        xt = x_init
+        qt = q_init
+        print("REJECTED")
+        a=0
+    else:
+        print("ACCEPTED")
+        a=1
+
+    return xt, qt, l_Up, l_Ub, l_U, l_c2, i, l_c, l_xt, l_qt
+
+
+def HMCNMA2(init, target_density, n_iter, n_warmup, max_iter, lambda1,lambda2,lambda3, lambda4, dxt, dqt, q_init=None):
+    xt = np.zeros(init.coords.shape)
+    if q_init is not None:
+        qt = q_init
+    else:
+        qt = np.zeros(init.modes.shape[1])
+
+    # resuslts
+    l_xt = []
+    l_qt = []
+
+    # energy
+    l_U_potential = []
+    l_U_biased = []
+    l_U_modes = []
+    l_U_positions = []
+    l_U = []
+    l_K = []
+
+    # infos
+    l_L = []
+    l_c = []
+
+    t=time.time()
+    for i in range(n_iter):
+        print("HMC ITER = "+str(i))
+        xt, qt, L, c, U_potential, U_biased, U_modes, U_positions, U, K = HMCNMA2_step(init=init, x_init=xt, q_init = qt, target_density=target_density,
+                    lambda1=lambda1,lambda2=lambda2,lambda3=lambda3, lambda4=lambda4, dxt=dxt, dqt=dqt, max_iter=max_iter)
+        # resuslts
+        l_xt.append(xt)
+        l_qt.append(qt)
+
+        # energy
+        l_U_potential += U_potential
+        l_U_biased += U_biased
+        l_U_modes += U_modes
+        l_U_positions += U_positions
+        l_U += U
+        l_K += K
+
+        # infos
+        l_L.append(L)
+        l_c += c
+
+
+    fig, ax =plt.subplots(2,3, figsize=(15,8))
+    ax[0,0].plot(l_U_potential)
+    ax[0,0].set_title("U_potential")
+    ax[1,0].plot(l_U_biased)
+    ax[1,0].set_title("U_bisaed")
+    ax[0,1].plot(l_U_modes)
+    ax[0,1].set_title("U_modes")
+    ax[1,1].plot(l_U_positions)
+    ax[1,1].set_title("U_positions")
+    ax[0,2].plot(l_U)
+    ax[0,2].plot(l_K)
+    ax[0,2].plot(np.array(l_K)+np.array(l_U))
+    ax[0,2].set_title("U_total")
+    ax[1, 2].plot(l_c)
+    ax[1, 2].set_title("Criterion")
+    for i in range(len(l_L)):
+        ax[0,0].axvline(np.sum(l_L[:i+1]))
+        ax[1,0].axvline(np.sum(l_L[:i+1]))
+        ax[0,1].axvline(np.sum(l_L[:i+1]))
+        ax[1,1].axvline(np.sum(l_L[:i+1]))
+        ax[0,2].axvline(np.sum(l_L[:i+1]))
+        ax[1,2].axvline(np.sum(l_L[:i+1]))
+
+    print("EXECUTION ENDED : t="+str(time.time()-t)+"  iter="+str(np.sum(l_L)) +"  t/iter="+str((time.time()-t)/np.sum(l_L)))
+    coord = init.coords + np.mean(l_xt[n_warmup:], axis=0) + np.dot(np.mean(l_qt[n_warmup:], axis=0), init.modes)
+    mol = src.molecule.Molecule(coords = coord, chain_id=init.chain_id)
+    mol.get_energy()
+    mol_density = mol.to_density(size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 gaussian_sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    cc= cross_correlation(mol_density.data, target_density.data)
+    print("CC = "+str(cc))
+
+
+    return mol, np.array(l_xt), np.array(l_qt)
+
+def HMCNMA2_step(init, x_init, q_init,  target_density, lambda1,lambda2,lambda3, lambda4, dxt, dqt, max_iter):
+    # Initial conditions
+
+    xt = x_init
+    vt = np.random.normal(0, 1, xt.shape)
+    qt = q_init
+    vqt = np.random.normal(0, 1, qt.shape)
+    init_coord = init.coords + np.dot(qt, init.modes) + xt
+    coordt= init_coord
+    molt = src.molecule.Molecule(coordt, modes=init.modes, chain_id=init.chain_id)
+
+    # Initial Energy
+    psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    U_biased = get_RMSD(psim=psim, pexp=target_density.data)
+    U_potential = get_energy(molt, verbose=False)
+    U_modes = np.square(np.linalg.norm(qt))
+    U_positions = np.square(np.linalg.norm(xt))
+    U = (lambda1 * U_biased) + (lambda2 * U_potential) + (lambda3 * U_modes) + (lambda4 * U_positions)
+
+    #Initial gradient
+    dU_biased_x, dU_biased_q = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data, size=target_density.size, A_modes=molt.modes,
+            sampling_rate=target_density.sampling_rate, sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    dU_potential_x, dU_potential_q = get_autograd_NMA(init, xt, qt, init.modes)
+    dU_modes = 2*qt
+    dU_positions = 2*xt
+    Fx = -((lambda1 * dU_biased_x) + (lambda2 * dU_potential_x) + (lambda4 * dU_positions))
+    Fq = -((lambda1 * dU_biased_q) + (lambda2 * dU_potential_q) + (lambda3 * dU_modes))
+    K =  1/2 * np.sum(np.square(vt)) + 1/2 * np.sum(np.square(vqt))
+    criterion = 0
+
+    i=0
+    H_init = U + K
+
+    l_c =[]
+    l_U_potential =[]
+    l_U_biased =[]
+    l_U_modes =[]
+    l_U_positions =[]
+    l_U =[]
+    l_K =[]
+
+    while(criterion >= 0 and i< max_iter):
+
+
+        # Position update
+        xt = xt + (dxt * vt) + dxt ** 2 * (Fx / 2)
+        qt = qt + (dqt * vqt) + dqt ** 2 * (Fq / 2)
+
+        coordt = init.coords + np.dot(qt, molt.modes) + xt
+        molt = src.molecule.Molecule(coordt, chain_id=molt.chain_id, modes=molt.modes)
+
+        # Volume update
+        psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                     sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+
+        # Potential energy update
+        U_biased = get_RMSD(psim=psim, pexp=target_density.data)
+        U_potential = get_energy(molt, verbose=False)
+        U_modes = np.square(np.linalg.norm(qt))
+        U_positions = np.square(np.linalg.norm(xt))
+        U = (lambda1 * U_biased) + (lambda2 * U_potential) + (lambda3 * U_modes) + (lambda4 * U_positions)
+
+        # Gradient Update
+        dU_biased_x, dU_biased_q = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data,
+                                                      size=target_density.size, A_modes=molt.modes,
+                                                      sampling_rate=target_density.sampling_rate,
+                                                      sigma=target_density.gaussian_sigma,
+                                                      threshold=target_density.threshold)
+        dU_potential_x, dU_potential_q = get_autograd_NMA(init, xt, qt, init.modes)
+        dU_modes = 2 * qt
+        dU_positions = 2 * xt
+        Fxt = -((lambda1 * dU_biased_x) + (lambda2 * dU_potential_x) + (lambda4 * dU_positions))
+        Fqt = -((lambda1 * dU_biased_q) + (lambda2 * dU_potential_q) + (lambda3 * dU_modes))
+
+        # velocities update
+        vt = vt + (dxt * (Fx + Fxt) / 2)
+        Fx = Fxt
+        vqt = vqt + (dqt * (Fq + Fqt) / 2)
+        Fq = Fqt
+
+        # Kinetic & temperature update
+        K = 1 / 2 * np.sum(np.square(vt)) + 1 / 2 * np.sum(np.square(vqt))
+
+        # criterion update
+        criterion = np.dot((coordt.flatten() - init_coord.flatten()), vt.flatten()) +np.dot((qt - q_init), vqt)
+
+        print_step(["ITER", "U_biased", "U_potential", "U_modes", "U_postions", "qt", "dU_modes", "K", "crit"],
+                   [i, U_biased * lambda1, U_potential*lambda2, U_modes*lambda3, U_positions*lambda4, qt,dU_modes,K, criterion])
+
+        l_c.append(criterion)
+        l_U_potential.append(U_potential*lambda1)
+        l_U_biased.append(U_biased*lambda2)
+        l_U_modes.append(U_modes*lambda3)
+        l_U_positions.append(U_positions*lambda4)
+        l_U.append(U)
+        l_K.append(K)
+
+        i+=1
+
+
+    H = U+K
+
+    accept_p = np.min([1 , np.exp(H_init-H)])
+    if int(np.random.choice(2, p=[1-accept_p, accept_p])) == 0:
+        xt = x_init
+        qt = q_init
+        print("REJECTED "+str(accept_p))
+    else:
+        print("ACCEPTED "+str(accept_p))
+
+    return xt, qt, i, l_c, l_U_potential, l_U_biased, l_U_modes, l_U_positions, l_U, l_K
+
+
+
+
+
+
+
+
+
+
+
+def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
+    if q_init is not None:
+        qt = q_init
+    else:
+        qt = np.zeros(init.modes.shape[1])
+
+
+    l_U = []
+    l_L = []
+    l_qt=[]
+    l_c = []
+    t=time.time()
+    for i in range(n_iter):
+        print("HMC ITER = "+str(i))
+        qt, U, L , c= HNMA_step(init = init, q_init = qt, target_density=target_density, k=k,
+                    dt=dt)
+
+        l_U +=U
+        l_c += c
+        l_L.append(L)
+        l_qt.append(qt)
+
+    fig, ax =plt.subplots(1,3)
+    ax[0].plot(l_U)
+    ax[0].set_title("Energy Total")
+    ax[1].plot(l_L)
+    ax[1].set_title("Transition length")
+    ax[2].plot(l_c)
+    ax[2].set_title("Criterion")
+    for i in range(len(l_L)):
+        ax[0].axvline(np.sum(l_L[:i+1]))
+        ax[2].axvline(np.sum(l_L[:i+1]))
+
+    print("EXECUTION ENDED : t="+str(time.time()-t)+"  iter="+str(np.sum(l_L)) +"  t/iter="+str((time.time()-t)/np.sum(l_L)))
+    coord = init.coords + np.dot(np.mean(l_qt[n_warmup:], axis=0), init.modes)
+    mol = src.molecule.Molecule(coords = coord, chain_id=init.chain_id)
+    mol.get_energy()
+    mol_density = mol.to_density(size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 gaussian_sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    cc= cross_correlation(mol_density.data, target_density.data)
+    print("CC = "+str(cc))
+
+    return mol, np.array(l_qt)
+
+def HNMA_step(init, q_init,  target_density,k,  dt):
+    # Initial conditions
+
+    xt = q_init
+    vt = np.random.normal(0, 1, q_init.shape)
+    coordt = init.coords + np.dot(xt, init.modes)
+
+    # Initial Energy
+    psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                 sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+    U = get_RMSD(psim=psim, pexp=target_density.data)
+
+    #Initial gradient
+    _, dU = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data, size=target_density.size,
+                                sampling_rate=target_density.sampling_rate, sigma=target_density.gaussian_sigma,
+                                threshold=target_density.threshold, A_modes=init.modes)
+    F = -k*dU
+    K = get_kinetic_energy(vt)
+    criterion = np.dot((xt - q_init), vt)
+
+    i=0
+
+    H_init = U + K
+
+    l_U = []
+    l_c =[]
+
+    while(criterion >= 0 ):
+
+
+        # Position update
+        xt = xt + (dt * vt) + dt ** 2 * (F / 2)
+
+        coordt = init.coords + np.dot(xt, init.modes)
+        molt = src.molecule.Molecule(coordt, chain_id=init.chain_id, modes=init.modes)
+
+        # Volume update
+        psim = volume_from_pdb_fast3(coord=coordt, size=target_density.size, sampling_rate=target_density.sampling_rate,
+                                     sigma=target_density.gaussian_sigma, threshold=target_density.threshold)
+
+        # Potential energy update
+        U = get_RMSD(psim=psim, pexp=target_density.data)
+        Up = get_energy(molt, verbose=False)
+
+        # Gradient Update
+        _, dU = get_grad_RMSD3_NMA(coord=coordt, psim=psim, pexp=target_density.data, size=target_density.size,
+                                      sampling_rate=target_density.sampling_rate, sigma=target_density.gaussian_sigma,
+                                      threshold=target_density.threshold, A_modes=init.modes)
+        Ft = -k*dU
+
+        # velocities update
+        vt = vt + (dt * (F + Ft) / 2)
+        F = Ft
+
+
+        # Kinetic & temperature update
+        K = get_kinetic_energy(vt)
+        T = K / (3 / 2 * (3 * xt.shape[0]) * src.constants.K_BOLTZMANN)
+
+        # velocities rescaling
+        # vt = np.sqrt(Ti/T) * vt
+
+        criterion =  np.dot((xt - q_init), vt)
+        i+=1
+
+        print("iter=" + str(i) + " ; rmsd=" + str(U) +"  ; UP=" +str(Up)+" ; dq=" + str(Ft)+ " ; Crit=" + str(criterion))
+
+        l_U .append(U)
+        l_c.append(criterion)
+
+    H = U+K
+
+    accept_p = np.min([1 , H_init/H])
+    if int(np.random.choice(2, p=[1-accept_p, accept_p])) == 0:
+        coordt = init.coords
+        xt = q_init
+        print("REJECTED")
+        a=0
+    else:
+        print("ACCEPTED")
+        a=1
+
+    return  xt, l_U, i, l_c
+
+
+class FlexibleFitting:
+    def __init__(self, init, target):
+        self.init = init
+        self.target = target
+
+    def HMC(self, mode, n_iter, n_warmup, params):
+        if mode == "MC":
+            HMC(init = self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup,params=params)
+        elif mode =="MCNMA":
+            HMCNMA(init=self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup, params=params)
+        elif mode =="NMA":
+            HNMA(init=self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup, params=params)

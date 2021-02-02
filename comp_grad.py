@@ -21,8 +21,8 @@ init = init.select_atoms(pattern='CA')
 
 size,sampling_rate,gaussian_sigma = 32, 4, 2
 sim = src.simulation.Simulator(init)
-nma = sim.nma_deform([168,0,-300,0])
-target = sim.mc_deform(v_bonds=0, v_angles=0, v_torsions=0.01)
+target = sim.nma_deform([168,0,-300,0])
+# target = sim.mc_deform(v_bonds=0, v_angles=0, v_torsions=0.01)
 # structures_viewer([target, init, nma])
 target_density = target.to_density(size,sampling_rate=sampling_rate,gaussian_sigma=gaussian_sigma, threshold=5)
 init_density = init.to_density(size,sampling_rate=sampling_rate,gaussian_sigma=gaussian_sigma, threshold=5)
@@ -123,7 +123,7 @@ x_res2, q_res2 = src.flexible_fitting.NMA_gradient_descend(init=init, target_den
                                    size=size, sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=5)
 x_res3 = src.flexible_fitting.MC_gradient_descend(init=init, target_density=target_density,n_iter=1000, dt=0.001, k=1000,
                                    size=size, sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=3)
-plot_structure([target.coords, x_res3, init.coords], ["target", "res", "init"])
+plot_structure([target.coords, x_res2, init.coords], ["target", "res", "init"])
 #########################################################################################################
 
 import autograd.numpy as npg
@@ -146,12 +146,12 @@ init.center_structure()
 init = init.select_atoms(pattern='CA')
 
 sim = src.simulation.Simulator(init)
-nma = sim.nma_deform( amplitude=[200,-100,0])
-target = sim.mc_deform(v_bonds=0.01, v_angles=0.001, v_torsions = 0.01)
+target = sim.nma_deform( amplitude=[200,-100,0])
+# target = sim.mc_deform(v_bonds=0.01, v_angles=0.001, v_torsions = 0.01)
 plot_structure([init.coords,  target.coords], ["init", "target"])
 
 
-size= 32
+size= 128
 sampling_rate=4
 sigma=2
 threshold=3
@@ -169,11 +169,13 @@ vt = np.random.normal(0,1, xt.shape)
 
 psim = volume_from_pdb_fast3(coord=xt, size=size, sigma=sigma, sampling_rate=sampling_rate, threshold=threshold)
 Ub = get_RMSD(psim=psim, pexp=target_density.data)
-Up = get_energy(xt, verbose=False)
+Up = get_energy(init, verbose=False)
 U = k * Ub + Up
 
-dUb = get_grad_RMSD3(coord=xt, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate, sigma=sigma,
-                     threshold=threshold)
+t = time.time()
+dUb = get_grad_RMSD3_NMA(coord=xt, psim=psim, pexp=target_density.data, size=size, sampling_rate=sampling_rate, sigma=sigma,
+                     threshold=threshold, A_modes=init.modes)
+print(time.time() -t)
 dUp = get_autograd(xt)
 dU = k * dUb + dUp
 F = -dU

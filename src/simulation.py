@@ -23,37 +23,34 @@ class Simulator:
             deformed_coords = np.zeros((self.n_atoms,3))
             deformed_coords = np.dot(self.q, self.deformed_mol[-1].modes) + self.deformed_mol[-1].coords
 
-            self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
+            self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes, chain_id= self.deformed_mol[-1].chain_id))
 
             return self.deformed_mol[-1]
 
     def mc_deform(self, v_bonds=0.1, v_angles=0.01, v_torsions=0.01):
-        bonds = self.deformed_mol[-1].bonds
-        angles = self.deformed_mol[-1].angles
-        torsions = self.deformed_mol[-1].torsions
+        internals, first = self.deformed_mol[-1].get_internal()
 
         if v_bonds != 0:
-            bonds += np.random.normal(0,v_bonds, bonds.shape)
+            internals[:,:,0] += np.random.normal(0,v_bonds, internals[:,:,0].shape)
         if v_angles != 0:
-            angles += np.random.normal(0,v_angles, angles.shape)
+            internals[:,:,1] += np.random.normal(0,v_angles, internals[:,:,1].shape)
         if v_torsions != 0:
-            torsions += np.random.normal(0,v_torsions, torsions.shape)
+            internals[:,:,2] += np.random.normal(0,v_torsions, internals[:,:,2].shape)
 
-        deformed_coords = src.functions.internal_to_cartesian(np.array([bonds[2:], angles[1:], torsions]).T,
-                                            first = self.deformed_mol[-1].coords[:3])
-        self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
-        return self.deformed_mol[-1]
+        mol = Molecule.from_internals(internals, first=first, modes=self.deformed_mol[-1].modes, chain_id=self.deformed_mol[-1].chain_id)
+        self.deformed_mol.append(mol)
+        return mol
 
     def energy_min(self, U_lim, step, internal = False):
         deformed_mol = self.deformed_mol[-1]
         deformed_coords = deformed_mol.coords
-        U_step = get_energy(deformed_mol, verbose=False)
+        U_step = get_energy(deformed_mol, verbose=True)
         print("U_init = "+str(U_step))
 
         accept=[]
         while U_lim < U_step:
             candidate_coords = deformed_coords +  np.random.normal(0, step, (self.n_atoms,3))
-            candidate_mol = Molecule(candidate_coords)
+            candidate_mol = Molecule(candidate_coords, chain_id=deformed_mol.chain_id)
             U_candidate = get_energy(candidate_mol, verbose=False)
 
             if U_candidate < U_step :
@@ -63,9 +60,10 @@ class Simulator:
                 print("U_step = "+str(U_step)+ " ; acceptance_rate="+str(np.mean(accept)))
             else:
                 accept.append(0)
+                # print("rejected\r")
             if len(accept) > 20 : accept = accept[-20:]
 
-        self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes))
+        self.deformed_mol.append(Molecule(deformed_coords,chain_id=deformed_mol.chain_id, modes=self.deformed_mol[-1].modes))
         return self.deformed_mol[-1]
 
 

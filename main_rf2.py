@@ -14,42 +14,42 @@ import src.io
 # import PDB
 init =src.io.read_pdb("data/ATPase/1iwo.pdb")
 init.add_modes("data/ATPase/modes/vec.", n_modes=10)
+init.center_structure()
 init = init.select_atoms(pattern='CA')
 
 
 target =src.io.read_pdb("data/ATPase/1su4_rotated3.pdb")
+target.center_structure()
 target = target.select_atoms(pattern='CA')
 
 structures_viewer([init, target])
 
-size = 64
+size = 128
 gaussian_sigma=2
-sampling_rate = 4
+sampling_rate = 2
 threshold = 4
-target_density = src.molecule.Density(volume_from_pdb_fast3(target.coords, size=size, sigma=gaussian_sigma,
-                    sampling_rate=sampling_rate, threshold=threshold), sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma)
+target_density = target.to_density( size=size, gaussian_sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=threshold)
 target_density.show()
 ########################################################################################################
 #               FLEXIBLE FITTING
 ########################################################################################################
 
-res = gradient_descend(init, target_density.data, n_iter =50000,k =10,dt=0.001,size=size, sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=threshold)
 
-x_res, q_res = NMA_gradient_descend(init, target_density.data, n_iter =1000,dt=1,size=size, sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=threshold)
-x_res, q_res = MCNMA_gradient_descend(init, target_density.data, n_iter =10000,dqt=10, dxt=0.001,k=100,
-                                      size=size, sigma=gaussian_sigma, sampling_rate=sampling_rate, threshold=threshold)
+x_res = HMC(init=init, target_density=target_density, n_iter = 10, k=10, dt=0.03, size=size, sigma=gaussian_sigma,
+                          sampling_rate=sampling_rate, threshold=threshold)
 
-plot_structure([init.coords, x_res, target.coords], ["init", "fit", "target"])
+x_res, q_res = HMCNMA(init=init, target_density=target_density, n_iter = 10, k=10, dxt=0.03, kq=1, dqt=5, size=size, sigma=gaussian_sigma,
+                          sampling_rate=sampling_rate, threshold=threshold)
 
-fitted = src.molecule.Molecule.from_coords(x_res)
-src.io.save_pdb(fitted, file = "results/ATPase/1iwo_fitted_MCNMA.pdb", gen_file="data/ATPase/1iwo.pdb")
-src.io.save_pdb(init, file = "results/ATPase/init.pdb", gen_file="data/ATPase/1iwo.pdb")
-src.io.save_density(target_density,outfilename= "results/ATPase/target.mrc")
-# fit = src.fitting.Fitting(input_data, "md_torsions")
-# opt = fit.optimizing(n_iter=10000)
-# fit.plot_structure(save="results/atpase_md_structure.png")
-# fit.plot_error_map(N=32, sigma=gaussian_sigma, sampling_rate=sampling_rate, save="results/atpase_md_err.png")
-# fit.save("results/atpase_md_structure.pkl")
-#
-# fit = src.fitting.Fitting.load("results/atpase_md_nma_structure.pkl")
-# fit .plot_structure()
+q_res = HNMA(init=init, target_density=target_density, n_iter = 50, k=1, dt=5, size=size, sigma=gaussian_sigma,
+                          sampling_rate=sampling_rate, threshold=threshold)
+
+coord = init.coords  + np.dot(np.mean(q_res[30:], axis=0), init.modes)+ np.mean(x_res[8:], axis=0)
+plot_structure([target.coords, coord, init.coords], ["target", "res", "init"])
+
+fitted = src.molecule.Molecule(coord, chain_id=init.chain_id)
+fitted.get_energy()
+src.viewers.chimera_fit_viewer(fitted, target_density, genfile="data/ATPase/1iwo.pdb")
+
+test = fitted.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
+cross_correlation(target_density.data, test.data)

@@ -425,7 +425,7 @@ def cartesian_to_internal(x):
     torsions=np.arctan2(np.linalg.norm(u2, axis=1) * np.sum(u1* np.cross(u2, u3), axis=1),
                         np.sum(np.cross(u1,u2)* np.cross(u2,u3), axis=1))
 
-    return bonds, angles , torsions
+    return np.array([bonds[2:], angles[1:] , torsions]).T
 
 def generate_rotation_matrix(angle, vector):
     ux, uy, uz = vector
@@ -435,3 +435,9 @@ def generate_rotation_matrix(angle, vector):
                  [ ux*uy*(1-c) + uz*s, uy*uy*(1-c) + c   , uy*uz*(1-c) - ux*s],
                  [ ux*uz*(1-c) - uy*s, uy*uz*(1-c) + ux*s, uz*uz*(1-c) + c   ]])
     return M
+
+def print_step(keys, values):
+    s = ""
+    for i in range(len(keys)):
+        s+= keys[i] + "=" + str(np.linalg.norm(values[i])) + " ; "
+    print(s)
