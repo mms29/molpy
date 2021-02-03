@@ -65,7 +65,7 @@ target_density.show()
 
 mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4)
 
-mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=300, k=100, dxt=0.01, dqt=0.4, m_test=10)
+mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=300, k=100, dxt=0.02, dqt=0.4, m_test=10)
 
 mol3, x_res3, l3, cc3 = HMC(init=init, target_density=target_density, n_iter = 20, n_warmup=10, k=100, dt=0.02, max_iter=300)
 
