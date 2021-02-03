@@ -250,10 +250,12 @@ def HMC(init, target_density, n_iter, n_warmup,k, dt, max_iter):
     l_a =[]
     l_xt =[]
     l_c = []
+    l_cc =[]
+    ll_xt=[]
     t = time.time()
     for i in range(n_iter):
         print("HMC ITER = "+str(i))
-        xt, Up, Ub, U, a, L , c= HMC_step(init=molt, target_density=target_density,
+        xt, Up, Ub, U, a, L , c, lxt, cc= HMC_step(init=molt, target_density=target_density,
                     k=k, dt=dt, max_iter=max_iter)
         molt = src.molecule.Molecule(xt, chain_id=init.chain_id)
         l_Up += Up
@@ -263,6 +265,8 @@ def HMC(init, target_density, n_iter, n_warmup,k, dt, max_iter):
         l_L.append(L)
         l_a.append(a)
         l_xt.append(xt)
+        ll_xt += lxt
+        l_cc += cc
 
     fig, ax =plt.subplots(2,3, figsize=(15,8))
     ax[0,0].plot(l_Up)
@@ -292,7 +296,7 @@ def HMC(init, target_density, n_iter, n_warmup,k, dt, max_iter):
     print("CC = "+str(cc))
 
 
-    return mol, np.array(l_xt), l_U, l_L
+    return mol, ll_xt, l_L, l_cc
 
 def HMC_step(init, target_density,k, dt, max_iter):
     t=time.time()
@@ -323,6 +327,8 @@ def HMC_step(init, target_density,k, dt, max_iter):
     l_Ub = [Ub]
     l_U = [U]
     l_c =[]
+    l_cc=[]
+    l_xt =[]
     print("dt="+str(time.time()-t))
 
     while(criterion >= 0 and i<max_iter):
@@ -371,6 +377,8 @@ def HMC_step(init, target_density,k, dt, max_iter):
         l_Ub.append(Ub)
         l_U .append(U)
         l_c.append(criterion)
+        l_xt.append(xt)
+        l_cc.append(cross_correlation(psim, target_density.data))
 
     H = U+K
 
@@ -383,7 +391,7 @@ def HMC_step(init, target_density,k, dt, max_iter):
         print("ACCEPTED")
         a=1
 
-    return xt, l_Up, l_Ub, l_U, a, i, l_c
+    return xt, l_Up, l_Ub, l_U, a, i, l_c, l_xt, l_cc
 
 
 
@@ -418,10 +426,11 @@ def HMCNMA(init, target_density, n_iter, n_warmup, max_iter, k, dxt, dqt, m_test
     l_c2=[]
     ll_xt=[]
     ll_qt=[]
+    l_cc=[]
     t=time.time()
     for i in range(n_iter):
         print("HMC ITER = "+str(i))
-        xt, qt,  Up, Ub, U, c2, L , c, lxt, lqt= HMCNMA_step(init=init, x_init=xt, q_init = qt, target_density=target_density,
+        xt, qt,  Up, Ub, U, c2, L , c, lxt, lqt, cc= HMCNMA_step(init=init, x_init=xt, q_init = qt, target_density=target_density,
                     k=k, dxt=dxt, dqt=dqt, max_iter=max_iter, m_test=m_test)
 
         l_Up += Up
@@ -434,6 +443,7 @@ def HMCNMA(init, target_density, n_iter, n_warmup, max_iter, k, dxt, dqt, m_test
         l_qt.append(qt)
         ll_xt += lxt
         ll_qt += lqt
+        l_cc += cc
 
     fig, ax =plt.subplots(2,3, figsize=(15,8))
     ax[0,0].plot(l_Up)
@@ -465,7 +475,7 @@ def HMCNMA(init, target_density, n_iter, n_warmup, max_iter, k, dxt, dqt, m_test
     print("CC = "+str(cc))
 
 
-    return mol, np.array(l_xt), np.array(l_qt), l_U, l_L, ll_xt, ll_qt
+    return mol, ll_xt, ll_qt, l_L, l_cc
 
 def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_test):
     # Initial conditions
@@ -505,6 +515,7 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
     l_c2=[]
     l_xt=[]
     l_qt=[]
+    l_cc=[]
 
     while(criterion >= 0 and i< max_iter):
 
@@ -561,6 +572,7 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
         l_c2.append(c2)
         l_xt.append(xt)
         l_qt.append(qt)
+        l_cc.append(cross_correlation(psim, target_density.data))
 
     H = U+K
 
@@ -574,7 +586,7 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
         print("ACCEPTED")
         a=1
 
-    return xt, qt, l_Up, l_Ub, l_U, l_c2, i, l_c, l_xt, l_qt
+    return xt, qt, l_Up, l_Ub, l_U, l_c2, i, l_c, l_xt, l_qt, l_cc
 
 
 def HMCNMA2(init, target_density, n_iter, n_warmup, max_iter, lambda1,lambda2,lambda3, lambda4, dxt, dqt, q_init=None):
@@ -791,16 +803,20 @@ def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
     l_L = []
     l_qt=[]
     l_c = []
+    ll_qt =[]
+    l_cc=[]
     t=time.time()
     for i in range(n_iter):
         print("HMC ITER = "+str(i))
-        qt, U, L , c= HNMA_step(init = init, q_init = qt, target_density=target_density, k=k,
+        qt, U, L , c, lqt, cc= HNMA_step(init = init, q_init = qt, target_density=target_density, k=k,
                     dt=dt)
 
         l_U +=U
         l_c += c
         l_L.append(L)
         l_qt.append(qt)
+        ll_qt += lqt
+        l_cc += cc
 
     fig, ax =plt.subplots(1,3)
     ax[0].plot(l_U)
@@ -822,7 +838,7 @@ def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
     cc= cross_correlation(mol_density.data, target_density.data)
     print("CC = "+str(cc))
 
-    return mol, np.array(l_qt)
+    return mol, ll_qt,  l_L, l_cc
 
 def HNMA_step(init, q_init,  target_density,k,  dt):
     # Initial conditions
@@ -850,6 +866,8 @@ def HNMA_step(init, q_init,  target_density,k,  dt):
 
     l_U = []
     l_c =[]
+    l_qt=[]
+    l_cc=[]
 
     while(criterion >= 0 ):
 
@@ -889,10 +907,12 @@ def HNMA_step(init, q_init,  target_density,k,  dt):
         criterion =  np.dot((xt - q_init), vt)
         i+=1
 
-        print("iter=" + str(i) + " ; rmsd=" + str(U) +"  ; UP=" +str(Up)+" ; dq=" + str(Ft)+ " ; Crit=" + str(criterion))
+        print("iter=" + str(i) + " ; rmsd=" + str(U) +"  ; UP=" +str(Up)+" ; q=" + str(xt)+ " ; Crit=" + str(criterion))
 
         l_U .append(U)
         l_c.append(criterion)
+        l_qt.append(xt)
+        l_cc.append(cross_correlation(psim, target_density.data))
 
     H = U+K
 
@@ -906,7 +926,7 @@ def HNMA_step(init, q_init,  target_density,k,  dt):
         print("ACCEPTED")
         a=1
 
-    return  xt, l_U, i, l_c
+    return  xt, l_U, i, l_c, l_qt, l_cc
 
 
 class FlexibleFitting:
