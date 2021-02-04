@@ -436,8 +436,4 @@ def generate_rotation_matrix(angle, vector):
                  [ ux*uz*(1-c) - uy*s, uy*uz*(1-c) + ux*s, uz*uz*(1-c) + c   ]])
     return M
 
-def print_step(keys, values):
-    s = ""
-    for i in range(len(keys)):
-        s+= keys[i] + "=" + str(np.linalg.norm(values[i])) + " ; "
-    print(s)
+

@@ -65,9 +65,9 @@ target_density.show()
 
 mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4)
 
-mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=300, k=100, dxt=0.02, dqt=0.4, m_test=10)
+mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=50, k=100, dxt=0.02, dqt=0.4, m_test=10)
 
-mol3, x_res3, l3, cc3 = HMC(init=init, target_density=target_density, n_iter = 20, n_warmup=10, k=100, dt=0.02, max_iter=300)
+mol3, x_res3, l3, cc3 = HMC(init=init, target_density=target_density, n_iter = 20, n_warmup=10, k=100, dt=0.02, max_iter=50)
 
 
 cc_init = cross_correlation(init.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold).data, target_density.data)
@@ -150,3 +150,45 @@ with open('results/EUSIPCO/HMCNMA'+str(number)+'.pkl', 'wb') as f:
 # fitted = src.molecule.Molecule(coord, chain_id=init.chain_id)
 # src.viewers.chimera_fit_viewer(mol1, target_density, genfile="data/P97/5ftm.pdb")
 #
+
+########################################################################
+#
+# from src.flexible_fitting import *
+# import src.io
+#
+# # import PDB
+# init =src.io.read_pdb("data/P97/5ftm.pdb")
+# init.center_structure()
+# init.add_modes("data/P97/modes/vec.", n_modes=43)
+# init.select_modes(np.array([10, 13, 28])-7)
+# init = init.select_atoms(pattern='CA')
+# target =src.io.read_pdb("data/P97/5ftn.pdb")
+# target.center_structure()
+# target = target.select_atoms(pattern='CA')
+# size=128
+# sampling_rate=2
+# threshold=4
+# gaussian_sigma=2
+# target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
+# target_density.show()
+#
+# params ={
+#     "x_init" : np.zeros(init.coords.shape),
+#     "q_init" : np.zeros(init.modes.shape[1]),
+#
+#     "lb" : 100,
+#     "lp" : 1,
+#     "lx" : 0,
+#     "lq" : 0,
+#
+#     "max_iter": 1000,
+#     "criterion" :True,
+#
+#     "dxt" : 0.02,
+#     "dqt" : 0.4,
+#
+#     "m_vt" : 1e-15,
+#     "m_wt" : 1e-15,
+# }
+# fit  =FlexibleFitting(init, target_density)
+# fit.HMC(mode="HMCNMA", params=params, n_iter=5, n_warmup=None)

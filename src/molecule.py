@@ -72,18 +72,18 @@ class Molecule:
     def show(self):
         src.viewers.structures_viewer(self)
 
-    def to_density(self,size, gaussian_sigma, sampling_rate=1, threshold = None):
-        halfN = int(size / 2)
-        if ((self.coords < -size * sampling_rate / 2).any() or (self.coords > size * sampling_rate / 2).any()):
-            print("WARNING !! box size = -" + str(np.max([
-                (size * sampling_rate / 2) - np.max(self.coords),
-                (size * sampling_rate / 2) + np.min(self.coords)]
-            )))
-        else:
-            print("box size = " + str(np.max([
-                (size * sampling_rate / 2) - np.max(self.coords),
-                (size * sampling_rate / 2) + np.min(self.coords)]
-            )))
+    def to_density(self,size, gaussian_sigma, sampling_rate=1, threshold = None, box_size=True):
+        if box_size :
+            if ((self.coords < -size * sampling_rate / 2).any() or (self.coords > size * sampling_rate / 2).any()):
+                print("WARNING !! box size = -" + str(np.max([
+                    (size * sampling_rate / 2) - np.max(self.coords),
+                    (size * sampling_rate / 2) + np.min(self.coords)]
+                )))
+            else:
+                print("box size = " + str(np.max([
+                    (size * sampling_rate / 2) - np.max(self.coords),
+                    (size * sampling_rate / 2) + np.min(self.coords)]
+                )))
 
         if threshold is not None :
             density = src.functions.volume_from_pdb_fast3(self.coords,size=size, sampling_rate=sampling_rate,

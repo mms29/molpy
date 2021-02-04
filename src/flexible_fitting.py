@@ -331,7 +331,7 @@ def HMC_step(init, target_density,k, dt, max_iter):
     l_xt =[]
     print("dt="+str(time.time()-t))
 
-    while(criterion >= 0 and i<max_iter):
+    while(i<max_iter):
 
 
         # Position update
@@ -481,8 +481,8 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
     # Initial conditions
 
     xt = x_init
-    vt = np.random.normal(0, 1, xt.shape)
     qt = q_init
+    vt = np.random.normal(0, 1, xt.shape)
     vqt = np.random.normal(0, m_test, qt.shape)
     init_coord = init.coords + np.dot(qt, init.modes) + xt
     coordt= init_coord
@@ -505,6 +505,8 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
     criterion = 0
 
     i=0
+    print("ITER=" + str(i) + " ; Ub=" + str(k * Ub) + " ; Up=" + str(Up) + " ; dUq=" + str(k * dUq)
+          + " ; dUpq=" + str(dUpq) + " ; q=" + str(qt) + " ; K=" + str(K) + " ; Crit=" + str(criterion))
 
     H_init = U + K
 
@@ -517,7 +519,7 @@ def HMCNMA_step(init, x_init, q_init,  target_density, k, dxt, dqt, max_iter,m_t
     l_qt=[]
     l_cc=[]
 
-    while(criterion >= 0 and i< max_iter):
+    while( i< max_iter):
 
 
         # Position update
@@ -933,11 +935,232 @@ class FlexibleFitting:
     def __init__(self, init, target):
         self.init = init
         self.target = target
+        self.fit = {}
+
 
     def HMC(self, mode, n_iter, n_warmup, params):
-        if mode == "MC":
-            HMC(init = self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup,params=params)
-        elif mode =="MCNMA":
-            HMCNMA(init=self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup, params=params)
-        elif mode =="NMA":
-            HNMA(init=self.init, target_density=self.target, n_iter=n_iter, n_warmup=n_warmup, params=params)
+
+        # define variables to be estimated
+        self.fit= {
+            "U" : [],
+            "U_potential": [],
+            "U_biased" :[],
+            "K" : [],
+            "C" : [],
+            "mol": [self.init],
+            "molt": [],
+            "L" : [],
+            "CC" : []
+        }
+        if "HMC" in mode:
+            self.fit["x"] = [params["x_init"]]
+            self.fit["xt"] = []
+            self.fit["vt"] = []
+        if "NMA" in mode:
+            self.fit["q"] = [params["q_init"]]
+            self.fit["qt"] = []
+            self.fit["wt"] = []
+
+        # HMC Loop
+        for i in range(n_iter):
+            print("HMC ITER = " + str(i))
+            self.HMC_step(mode, params)
+
+
+    def _get(self, x):
+        return self.fit[x][-1]
+
+    def _get_energy(self, mode, params, psim):
+        U = 0
+
+        U_biased = get_RMSD(psim=psim, pexp=self.target.data)
+        U+= U_biased * params["lb"]
+        self.fit["U_biased"].append(U_biased)
+
+        U_potential = get_energy(self._get("molt"), verbose=False)
+        U+= U_potential * params["lp"]
+        self.fit["U_potential"].append(U_potential)
+
+        if "HMC" in mode:
+            U_positions = np.square(np.linalg.norm(self._get("xt")))
+            U += U_positions * params["lx"]
+
+        if "NMA" in mode:
+            U_modes = np.square(np.linalg.norm(self._get("qt")))
+            U += U_modes * params["lq"]
+
+        self.fit["U"].append(U)
+        return U
+
+    def _get_gradient(self, mode, params, psim):
+        molt = self._get("molt")
+
+        if "HMC" == mode:
+            dU_biased_x = get_grad_RMSD3(coord=molt.coords, psim=psim, pexp=self.target.data,
+                                         size=self.target.size,
+                                         sampling_rate=self.target.sampling_rate,
+                                         sigma=self.target.gaussian_sigma, threshold=self.target.threshold)
+            dU_potential_x = get_autograd(molt)
+            dU_positions = 2 *  self._get("xt")
+            Fx = -((params["lb"] * dU_biased_x) + (params["lp"] * dU_potential_x) + (params["lx"] * dU_positions))
+            return Fx, None
+
+        elif "HMCNMA" == mode:
+            dU_biased_x, dU_biased_q = get_grad_RMSD3_NMA(coord=molt.coords, psim=psim,
+                                                          pexp=self.target.data,
+                                                          size=self.target.size, A_modes=self.init.modes,
+                                                          sampling_rate=self.target.sampling_rate,
+                                                          sigma=self.target.gaussian_sigma,
+                                                          threshold=self.target.threshold)
+
+            dU_potential_x, dU_potential_q = get_autograd_NMA(self.init,  self._get("xt"),  self._get("qt"), self.init.modes)
+            dU_modes = 2 *  self._get("qt")
+            dU_positions = 2 *  self._get("xt")
+            Fx = -((params["lb"] * dU_biased_x) + (params["lp"] * dU_potential_x) + (params["lx"] * dU_positions))
+            Fq = -((params["lb"] * dU_biased_q) + (params["lp"] * dU_potential_q) + (params["lq"] * dU_modes))
+
+
+
+            return Fx, Fq
+
+        elif "NMA" == mode:
+            _, dU_biased_q = get_grad_RMSD3_NMA(coord=molt.coords, psim=psim, pexp=self.target.data,
+                                                          size=self.target.size, A_modes=self.init.modes,
+                                                          sampling_rate=self.target.sampling_rate,
+                                                          sigma=self.target.gaussian_sigma,
+                                                          threshold=self.target.threshold)
+            dU_modes = 2 *  self._get("qt")
+            Fq = -((params["lb"] * dU_biased_q) + (params["lq"] * dU_modes))
+            return None, Fq
+
+    def _get_kinetic(self, mode, params):
+        K=0
+        if "HMC" in mode:
+            K += 1 / 2 * np.sum(np.square(self._get("vt")))
+        if "NMA" in mode:
+            K += 1 / 2 * np.sum(np.square(self._get("wt")))
+        self.fit["K"].append(K)
+        return K
+
+    def _get_criterion(self, mode, params):
+        C = 0
+        if params["criterion"]:
+            if "HMC" in mode:
+                C += np.dot((self._get("xt").flatten() - self._get("x").flatten()), self._get("vt").flatten())
+            if "NMA" in mode:
+                C += np.dot((self._get("qt") - self._get("q")), self._get("wt"))
+            self.fit["C"].append(C)
+        return C
+
+    def _print_step(self, keys, values):
+        s = ""
+        for i in range(len(keys)):
+            s += keys[i] + "=" + str(values[i]) + " ; "
+        print(s)
+
+    def HMC_step(self, mode , params):
+
+        # Initial coordinates
+        coordt = np.array(self.init.coords)
+        if "HMC" in mode:
+            self.fit["xt"].append(self._get("x"))
+            self.fit["vt"].append(np.random.normal(0, params["m_vt"], self.init.coords.shape))
+            coordt += self._get("xt")
+        if "NMA" in mode:
+            self.fit["qt"].append(self._get("q"))
+            self.fit["wt"].append(np.random.normal(0, params["m_wt"], self.init.modes.shape[1]))
+            coordt += np.dot(self._get("qt"), self.init.modes)
+
+        self.fit["molt"].append(src.molecule.Molecule(coordt, chain_id=self.init.chain_id))
+
+        # initial density
+        try :
+            psim = self._get("molt").to_density(size=self.target.size, sampling_rate=self.target.sampling_rate,
+                                     gaussian_sigma=self.target.gaussian_sigma, threshold=self.target.threshold, box_size=False).data
+        except RuntimeError:
+            print("WALA")
+
+        # Initial Potential Energy
+        U = self._get_energy(mode, params, psim)
+
+        # Initial gradient
+        Fx, Fq = self._get_gradient(mode, params, psim)
+
+        # Initial Kinetic Energy
+        K = self._get_kinetic(mode, params)
+
+        # Initial Hamiltonian
+        H_init = U + K
+
+        criterion = 0
+
+        L = 0
+
+        while (criterion >= 0 and L < params["max_iter"]):
+
+            # Coordinate update
+            coordt = np.array(self.init.coords)
+            if "HMC" in mode:
+                self.fit["xt"].append(self._get("xt") + (params["dxt"] * self._get("vt") ) + params["dxt"] ** 2 * (Fx / 2))
+                coordt += self._get("xt")
+            if "NMA" in mode:
+                self.fit["qt"].append(self._get("qt") + (params["dqt"] * self._get("wt") ) + params["dqt"] ** 2 * (Fq / 2))
+                coordt += np.dot(self._get("qt"), self.init.modes)
+            self.fit["molt"].append(src.molecule.Molecule(coordt, chain_id=self.init.chain_id))
+
+            # Density update
+            psim = self._get("molt").to_density(size=self.target.size, sampling_rate=self.target.sampling_rate,
+                                              gaussian_sigma=self.target.gaussian_sigma, threshold=self.target.threshold, box_size=False).data
+
+            # CC update
+            self.fit["CC"].append(cross_correlation(psim, self.target.data))
+
+            # Potential energy update
+            U = self._get_energy(mode, params, psim)
+
+            # Gradient Update
+            Fxt, Fqt = self._get_gradient(mode, params, psim)
+
+            # velocities update
+            if "HMC" in mode:
+                self.fit["vt"].append(self._get("vt") + (params["dxt"] * (Fx + Fxt) / 2))
+                Fx = Fxt
+            if "NMA" in mode:
+                self.fit["wt"].append(self._get("wt") + (params["dqt"] * (Fq + Fqt) / 2))
+                Fq = Fqt
+
+
+            # Kineticupdate
+            K = self._get_kinetic(mode, params)
+
+            # criterion update
+            criterion = self._get_criterion(mode, params)
+
+            self._print_step(["ITER", "U", "K", "C", "CC"],
+                       [L, self._get("U"),self._get("K"),self._get("C"),self._get("CC")])
+            L+=1
+
+        # Hamiltonian update
+        H = U + K
+
+        # Metropolis acceptation
+        accept_p = np.min([1, np.exp(H_init - H)])
+        if True: #accept_p > np.random.rand()
+            print("ACCEPTED " + str(accept_p))
+            if "HMC" in mode:
+                self.fit["x"].append(self._get("xt"))
+            if "NMA" in mode:
+                self.fit["q"].append(self._get("qt"))
+            self.fit["mol"].append(self._get("molt"))
+        else:
+            print("REJECTED " + str(accept_p))
+            if "HMC" in mode:
+                self.fit["x"].append(self._get("x"))
+            if "NMA" in mode:
+                self.fit["q"].append(self._get("q"))
+            self.fit["mol"].append(self._get("mol"))
+
+
+
+
+
