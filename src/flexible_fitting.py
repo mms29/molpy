@@ -973,21 +973,21 @@ class FlexibleFitting:
     def _get_energy(self, mode, params, psim):
         U = 0
 
-        U_biased = get_RMSD(psim=psim, pexp=self.target.data)
-        U+= U_biased * params["lb"]
+        U_biased = get_RMSD(psim=psim, pexp=self.target.data) * params["lb"]
         self.fit["U_biased"].append(U_biased)
+        U+= U_biased
 
-        U_potential = get_energy(self._get("molt"), verbose=False)
-        U+= U_potential * params["lp"]
+        U_potential = get_energy(self._get("molt"), verbose=False)* params["lp"]
         self.fit["U_potential"].append(U_potential)
+        U+= U_potential
 
         if "HMC" in mode:
-            U_positions = np.square(np.linalg.norm(self._get("xt")))
-            U += U_positions * params["lx"]
+            U_positions = np.square(np.linalg.norm(self._get("xt"))) * params["lx"]
+            U += U_positions
 
         if "NMA" in mode:
-            U_modes = np.square(np.linalg.norm(self._get("qt")))
-            U += U_modes * params["lq"]
+            U_modes = np.square(np.linalg.norm(self._get("qt")))* params["lq"]
+            U += U_modes
 
         self.fit["U"].append(U)
         return U
@@ -1036,7 +1036,7 @@ class FlexibleFitting:
     def _get_kinetic(self, mode, params):
         K=0
         if "HMC" in mode:
-            K += 1 / 2 * np.sum(np.square(self._get("vt")))
+            K += 1 / 2 * src.constants.CARBON_MASS*np.sum(np.square(self._get("vt")))
         if "NMA" in mode:
             K += 1 / 2 * np.sum(np.square(self._get("wt")))
         self.fit["K"].append(K)
@@ -1132,12 +1132,13 @@ class FlexibleFitting:
 
             # Kineticupdate
             K = self._get_kinetic(mode, params)
+            T = 2 * K / (src.constants.K_BOLTZMANN * 3* self.init.n_atoms)
 
             # criterion update
             criterion = self._get_criterion(mode, params)
 
-            self._print_step(["ITER", "U", "K", "C", "CC"],
-                       [L, self._get("U"),self._get("K"),self._get("C"),self._get("CC")])
+            self._print_step(["ITER", "U_biased", "U_potential", "K", "T",  "C", "CC"],
+                       [L, self._get("U_biased"),self._get("U_potential"),self._get("K"),T, self._get("C"),self._get("CC")])
             L+=1
 
         # Hamiltonian update
@@ -1152,6 +1153,7 @@ class FlexibleFitting:
             if "NMA" in mode:
                 self.fit["q"].append(self._get("qt"))
             self.fit["mol"].append(self._get("molt"))
+            self.fit["L"].append(L)
         else:
             print("REJECTED " + str(accept_p))
             if "HMC" in mode:
@@ -1159,6 +1161,26 @@ class FlexibleFitting:
             if "NMA" in mode:
                 self.fit["q"].append(self._get("q"))
             self.fit["mol"].append(self._get("mol"))
+
+    def plot(self):
+        fig, ax = plt.subplots(2, 3, figsize=(10, 5))
+        ax[0, 0].plot(self.fit['U'])
+        ax[0, 1].plot(self.fit['U_potential'])
+        ax[0, 2].plot(self.fit['U_biased'])
+        ax[1, 0].plot(np.array(self.fit['K']) + np.array(self.fit['U']))
+        ax[1, 0].plot(self.fit['U'])
+        ax[1, 0].plot(self.fit['K'])
+        ax[1, 1].plot(self.fit['C'])
+        ax[1, 2].plot(self.fit['CC'])
+
+        ax[0, 0].set_title('U')
+        ax[0, 1].set_title('U_potential')
+        ax[0, 2].set_title('U_biased')
+        ax[1, 0].set_title('H=U+K')
+        ax[1, 1].set_title('C')
+        ax[1, 2].set_title('CC')
+
+        fig.tight_layout()
 
 
 

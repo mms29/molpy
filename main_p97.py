@@ -65,9 +65,9 @@ target_density.show()
 
 mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4)
 
-mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=50, k=100, dxt=0.02, dqt=0.4, m_test=10)
+mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=50, k=100, dxt=0.005, dqt=0.4, m_test=10)
 
-mol3, x_res3, l3, cc3 = HMC(init=init, target_density=target_density, n_iter = 20, n_warmup=10, k=100, dt=0.02, max_iter=50)
+mol3, x_res3, l3, cc3 = HMC(init=init, target_density=target_density, n_iter = 20, n_warmup=10, k=100, dt=0.005, max_iter=50)
 
 
 cc_init = cross_correlation(init.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold).data, target_density.data)
@@ -155,6 +155,7 @@ with open('results/EUSIPCO/HMCNMA'+str(number)+'.pkl', 'wb') as f:
 #
 # from src.flexible_fitting import *
 # import src.io
+# from src.constants import *
 #
 # # import PDB
 # init =src.io.read_pdb("data/P97/5ftm.pdb")
@@ -172,23 +173,28 @@ with open('results/EUSIPCO/HMCNMA'+str(number)+'.pkl', 'wb') as f:
 # target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 #
+# # np.sqrt(K_BOLTZMANN*Ti / (CARBON_MASS* (3 * xt.shape[0])))
+# # T = K / (1 / 2 *K_BOLTZMANN )
+# T =1000
+#
 # params ={
 #     "x_init" : np.zeros(init.coords.shape),
 #     "q_init" : np.zeros(init.modes.shape[1]),
 #
-#     "lb" : 100,
-#     "lp" : 1,
+#     "lb" : CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *100,
+#     "lp" : CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
 #     "lx" : 0,
 #     "lq" : 0,
 #
 #     "max_iter": 1000,
 #     "criterion" :True,
 #
-#     "dxt" : 0.02,
-#     "dqt" : 0.4,
+#     "dxt" : 0.0001,
+#     "dqt" : 0.8,
 #
-#     "m_vt" : 1e-15,
-#     "m_wt" : 1e-15,
+#     "m_vt" : np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
+#     "m_wt" : 0,
 # }
 # fit  =FlexibleFitting(init, target_density)
-# fit.HMC(mode="HMCNMA", params=params, n_iter=5, n_warmup=None)
+# fit.HMC(mode="HMC", params=params, n_iter=5, n_warmup=None)
+#
