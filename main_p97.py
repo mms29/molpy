@@ -54,8 +54,8 @@ target = target.select_atoms(pattern='CA')
 
 size=128
 sampling_rate=2
-threshold=4
-gaussian_sigma=4
+threshold=6
+gaussian_sigma=6
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 target_density.show()
 
@@ -63,7 +63,7 @@ target_density.show()
 #               HMC
 ########################################################################################################
 
-mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4)
+mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4, max_iter=50)
 
 mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=50, k=100, dxt=0.005, dqt=0.4, m_test=10)
 

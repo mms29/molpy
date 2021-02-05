@@ -794,7 +794,7 @@ def HMCNMA2_step(init, x_init, q_init,  target_density, lambda1,lambda2,lambda3,
 
 
 
-def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
+def HNMA(init, target_density, n_iter, n_warmup, k, dt, max_iter, q_init=None):
     if q_init is not None:
         qt = q_init
     else:
@@ -811,7 +811,7 @@ def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
     for i in range(n_iter):
         print("HMC ITER = "+str(i))
         qt, U, L , c, lqt, cc= HNMA_step(init = init, q_init = qt, target_density=target_density, k=k,
-                    dt=dt)
+                    dt=dt, max_iter=max_iter)
 
         l_U +=U
         l_c += c
@@ -842,7 +842,7 @@ def HNMA(init, target_density, n_iter, n_warmup, k, dt, q_init=None):
 
     return mol, ll_qt,  l_L, l_cc
 
-def HNMA_step(init, q_init,  target_density,k,  dt):
+def HNMA_step(init, q_init,  target_density,k,  dt, max_iter):
     # Initial conditions
 
     xt = q_init
@@ -871,7 +871,7 @@ def HNMA_step(init, q_init,  target_density,k,  dt):
     l_qt=[]
     l_cc=[]
 
-    while(criterion >= 0 ):
+    while(i <max_iter):
 
 
         # Position update
