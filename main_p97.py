@@ -28,12 +28,13 @@ init.add_modes("data/P97/modes/vec.", n_modes=43)
 init.select_modes(np.array([10, 13, 28])-7)
 init = init.select_atoms(pattern='CA')
 
-# sim = src.simulation.Simulator(init)
+sim = src.simulation.Simulator(init)
 # target = sim.nma_deform([1000,0,0,-1000, -1000, -1000, 0, 500])
 # target = nma.energy_min(500000, 0.01)
-# nma = sim.nma_deform([1000,0,0,0, 0, 0, 0, 0])
-# target = nma.energy_min(500000, 0.01)
-#
+nma = sim.nma_deform([2000,0,0])
+target = nma.energy_min(500000, 0.01)
+structures_viewer([target, init, nma])
+
 # i =init.chain_id[1]
 # coords = np.array(sim.deformed_mol[-1].coords)
 # coords[0:i] += np.dot(np.array([2000,0,0,0,0,0,0,0]), init.modes[0:i])
@@ -42,11 +43,11 @@ init = init.select_atoms(pattern='CA')
 # # target = target.energy_min(U_lim=210000, step=0.01)
 #
 # chimera_structure_viewer([target, init], genfile="data/P97/5ftm.pdb")
-# structures_viewer([target, init])
+# structures_viewer([target, init, nma])
 #
-target =src.io.read_pdb("data/P97/5ftn.pdb")
-target.center_structure()
-target = target.select_atoms(pattern='CA')
+# target =src.io.read_pdb("data/P97/5ftn.pdb")
+# target.center_structure()
+# target = target.select_atoms(pattern='CA')
 # target.rotate([0,np.pi/2,0])
 
 # structures_viewer([test, init, target])
@@ -54,8 +55,8 @@ target = target.select_atoms(pattern='CA')
 
 size=128
 sampling_rate=2
-threshold=6
-gaussian_sigma=6
+threshold=4
+gaussian_sigma=2
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 target_density.show()
 
@@ -63,7 +64,7 @@ target_density.show()
 #               HMC
 ########################################################################################################
 
-mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, k=1, dt=0.4, max_iter=50)
+mol1, q_res1, l1, cc1 = HNMA(init=init, q_init = None, target_density=target_density, n_iter = 50, n_warmup=10, k=1, dt=0.4, max_iter=50)
 
 mol2, x_res2, q_res2, l2, cc2= HMCNMA(init=init, q_init = None, target_density=target_density, n_iter = 20, n_warmup=10, max_iter=50, k=100, dxt=0.005, dqt=0.4, m_test=10)
 
