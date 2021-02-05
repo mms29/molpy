@@ -55,7 +55,7 @@ target = target.select_atoms(pattern='CA')
 size=128
 sampling_rate=2
 threshold=4
-gaussian_sigma=2
+gaussian_sigma=4
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 target_density.show()
 

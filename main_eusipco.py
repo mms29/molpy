@@ -19,7 +19,7 @@ l3 =[]
 
 
 for i in range(20):
-    with open("results/EUSIPCO/HMCNMA"+str(i+1)+".pkl", "rb") as f:
+    with open("results/EUSIPCO2/HMCNMA"+str(i+1)+".pkl", "rb") as f:
         dic = pickle.load(file=f)
 
         l1.append(np.cumsum([1]+dic["NMA"]["l"])-1)
@@ -44,5 +44,5 @@ ax.set_ylabel("Cross Correlation")
 ax.set_xlabel("Integrator Steps")
 ax.legend()
 fig.tight_layout()
-fig.savefig('results/EUSIPCO/HMCNMA_0.4.png', format='png', dpi=1000)
+# fig.savefig('results/EUSIPCO/HMCNMA_0.4.png', format='png', dpi=1000)
 
