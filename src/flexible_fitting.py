@@ -4,6 +4,7 @@ import numpy as np
 from src.functions import *
 from src.force_field import *
 import time
+import pickle
 
 
 def run_md(mol, dt, total_time, temperature=300):
@@ -966,6 +967,16 @@ class FlexibleFitting:
             print("HMC ITER = " + str(i))
             self.HMC_step(mode, params)
 
+        self.res = {
+            "mol" : src.molecule.Molecule(np.mean(np.array([i.coords for i in self.fit["mol"][n_warmup+1:]]), axis=0), chain_id=self.init.chain_id)
+        }
+        if "HMC" in mode:
+            self.res["x"] = np.mean(np.array(self.fit["x"][n_warmup+1:]), axis=0)
+        if "NMA" in mode:
+            self.res["q"] = np.mean(np.array(self.fit["q"][n_warmup+1:]), axis=0)
+
+        return self.res
+
 
     def _get(self, x):
         return self.fit[x][-1]
@@ -1050,6 +1061,8 @@ class FlexibleFitting:
             if "NMA" in mode:
                 C += np.dot((self._get("qt") - self._get("q")), self._get("wt"))
             self.fit["C"].append(C)
+        else:
+            self.fit["C"].append(0)
         return C
 
     def _print_step(self, keys, values):
@@ -1162,7 +1175,7 @@ class FlexibleFitting:
                 self.fit["q"].append(self._get("q"))
             self.fit["mol"].append(self._get("mol"))
 
-    def plot(self):
+    def show(self):
         fig, ax = plt.subplots(2, 3, figsize=(10, 5))
         ax[0, 0].plot(self.fit['U'])
         ax[0, 1].plot(self.fit['U_potential'])
@@ -1181,6 +1194,20 @@ class FlexibleFitting:
         ax[1, 2].set_title('CC')
 
         fig.tight_layout()
+
+    def show_3D(self, genfile):
+        src.viewers.chimera_fit_viewer(self.res["mol"], self.target, genfile=genfile)
+
+    def save(self, file):
+        with open(file, 'wb') as f:
+            pickle.dump(file=f, obj=self)
+
+    @classmethod
+    def load(cls, file):
+        with open(file, 'rb') as f:
+            fit = pickle.load(file=f)
+            return fit
+
 
 
 
