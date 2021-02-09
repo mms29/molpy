@@ -185,7 +185,7 @@ sampling_rate=2
 threshold=4
 gaussian_sigma=2
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
-target_density.show()
+# target_density.show()
 
 # np.sqrt(K_BOLTZMANN*Ti / (CARBON_MASS* (3 * xt.shape[0])))
 # T = K / (1 / 2 *K_BOLTZMANN )
