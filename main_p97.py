@@ -161,6 +161,7 @@ from src.flexible_fitting import *
 import src.io
 from src.constants import *
 from matplotlib.ticker import MaxNLocator
+import src.simulation
 
 # import PDB
 init =src.io.read_pdb("data/P97/5ftm.pdb")
@@ -169,9 +170,16 @@ init.add_modes("data/P97/modes/vec.", n_modes=43)
 init.select_modes(np.array([10])-7)
 # init.select_modes(np.array([10, 13, 28])-7)
 init = init.select_atoms(pattern='CA')
-target =src.io.read_pdb("data/P97/5ftn.pdb")
-target.center_structure()
-target = target.select_atoms(pattern='CA')
+
+
+# target =src.io.read_pdb("data/P97/5ftn.pdb")
+# target.center_structure()
+# target = target.select_atoms(pattern='CA')
+
+sim = src.simulation.Simulator(init)
+nma = sim.nma_deform([2000])
+target = nma.energy_min(500000, 0.01)
+
 size=128
 sampling_rate=2
 threshold=4
@@ -227,7 +235,7 @@ ax.set_ylim(0.71,1)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
 
-fig.savefig('results/EUSIPCO/HMCNMA_test1_'+str(number)+'.png', format='png', dpi=1000)
-fit1.save('results/EUSIPCO/HMCNMA_test1_'+str(number)+'_fit1.pkl')
-fit2.save('results/EUSIPCO/HMCNMA_test1_'+str(number)+'_fit2.pkl')
-fit3.save('results/EUSIPCO/HMCNMA_test1_'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_test2_'+str(number)+'.png', format='png', dpi=1000)
+fit1.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit1.pkl')
+fit2.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit2.pkl')
+fit3.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit3.pkl')
