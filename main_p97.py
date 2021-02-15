@@ -232,8 +232,8 @@ params ={
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
 }
-n_iter=10
-n_warmup = 5
+n_iter=100
+n_warmup = 50
 
 fit1  =FlexibleFitting(init, target_density)
 fit1.HMC(mode="HMCNMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
