@@ -170,26 +170,49 @@ init.add_modes("data/P97/modes/vec.", n_modes=43)
 init.select_modes(np.array([10])-7)
 # init.select_modes(np.array([10, 13, 28])-7)
 init = init.select_atoms(pattern='CA')
+# init.rotate(np.array([0,-np.pi/2,0]))
 
 
-# target =src.io.read_pdb("data/P97/5ftn.pdb")
-# target.center_structure()
-# target = target.select_atoms(pattern='CA')
+target =src.io.read_pdb("data/P97/5ftn.pdb")
+target.center_structure()
+# target.rotate(np.array([0,-np.pi/2,0]))
 
-sim = src.simulation.Simulator(init)
-nma = sim.nma_deform([2000])
-target = nma.energy_min(500000, 0.01)
+target = target.select_atoms(pattern='CA')
+
+# sim = src.simulation.Simulator(init)
+# nma = sim.nma_deform([-2000])
+# target = nma.energy_min(500000, 0.01)
+# # structures_viewer([target, init])
 
 size=128
-sampling_rate=2
+sampling_rate=1.4576250314712524
 threshold=4
-gaussian_sigma=2
+gaussian_sigma=1.8
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 
+
+target_density2 = src.io.load_density('data/P97/emd_3299_128_filtered.mrc')
+# src.io.save_density( target_density2,'data/P97/emd_3299_128_filtered2.mrc')
+# target_density2.data = np.transpose(target_density2.data, (2,1,0))
+# target_density2.show()
+# src.io.save_density(target_density,'data/P97/5ftn_128.mrc' )
+# src.viewers.chimera_fit_viewer(init, target_density, genfile="data/P97/5ftm.pdb")
 # np.sqrt(K_BOLTZMANN*Ti / (CARBON_MASS* (3 * xt.shape[0])))
 # T = K / (1 / 2 *K_BOLTZMANN )
 T =1000
+
+target_density.data.max()
+target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
+target_density2.threshold = threshold
+target_density2.gaussian_sigma = gaussian_sigma
+
+# h1  = plt.hist(target_density.data.flatten(),100)
+# h2  = plt.hist(target_density2.data.flatten(),100)
+#
+# plt.plot(h1[1][:-1] , np.cumsum(h1[0]))
+# plt.plot(h2[1][:-1] , np.cumsum(h2[0]))
+target_density = target_density2
 
 params ={
     "x_init" : np.zeros(init.coords.shape),
@@ -203,14 +226,14 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.01,
+    "dxt" : 0.015,
     "dqt" : 0.1,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
 }
-n_iter=100
-n_warmup = 50
+n_iter=10
+n_warmup = 5
 
 fit1  =FlexibleFitting(init, target_density)
 fit1.HMC(mode="HMCNMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
@@ -231,11 +254,11 @@ ax.plot(np.array([0.7]+fit3.fit["CC"])[L3], '-', color="tab:blue", label=r"$\Del
 ax.set_ylabel("Cross Correlation")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
-ax.set_ylim(0.71,1)
+ax.set_ylim(0.71,1.01)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
 
-fig.savefig('results/EUSIPCO/HMCNMA_test2_'+str(number)+'.png', format='png', dpi=1000)
-fit1.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit1.pkl')
-fit2.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit2.pkl')
-fit3.save('results/EUSIPCO/HMCNMA_test2_'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_emd_'+str(number)+'.png', format='png', dpi=1000)
+fit1.save('results/EUSIPCO/HMCNMA_emd_'+str(number)+'_fit1.pkl')
+fit2.save('results/EUSIPCO/HMCNMA_emd_'+str(number)+'_fit2.pkl')
+fit3.save('results/EUSIPCO/HMCNMA_emd_'+str(number)+'_fit3.pkl')

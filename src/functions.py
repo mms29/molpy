@@ -132,6 +132,152 @@ def get_grad_RMSD(coord, psim, pexp, size, sampling_rate, sigma):
                 dx += 2* pdiff[i,j,k]*dpsim
     return dx
 
+def image_from_pdb(coord, size, sampling_rate, sigma):
+    image = np.zeros((size, size))
+    for i in range(size):
+        for j in range(size):
+            mu = ((np.array([i, j]) - np.ones(2) * (size / 2)) * sampling_rate)
+            image[i, j] = np.sum(np.exp(-np.square(np.linalg.norm(coord[:, :2] - mu, axis=1)) / (2 * (sigma ** 2))))
+    return image
+
+def image_from_pdb_fast(coord, size, sampling_rate, sigma):
+    mu = (np.mgrid[0:size, 0:size] - size / 2) * sampling_rate
+    x = np.repeat(coord[:,:2], size ** 2).reshape(coord.shape[0], 2, size, size)
+    return np.sum(np.exp(-np.square(np.linalg.norm(x - mu, axis=1)) / (2 * (sigma ** 2))), axis=0)
+
+def image_from_pdb_fast2(coord, size, sampling_rate, sigma):
+    image = np.zeros((size, size))
+    mu = (np.mgrid[0:size, 0:size] - size / 2) * sampling_rate
+    n_atoms= coord.shape[0]
+    for i in range(n_atoms):
+        x = np.repeat(coord[i, :2], size ** 2).reshape(2, size, size)
+        image+=np.exp(-np.square(np.linalg.norm(x - mu, axis=0))/(2*(sigma ** 2)))
+    return image
+
+def image_from_pdb_fast3(coord, size, sampling_rate, sigma, threshold):
+    vox, n_pix = select_voxels(coord, size, sampling_rate, threshold)
+    pix = vox[:,:2]
+    n_atoms = coord.shape[0]
+    img = np.zeros((size, size))
+    for i in range(n_atoms):
+        mu = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix] - size / 2) * sampling_rate
+        x = np.repeat(coord[i,:2], n_pix ** 2).reshape(2, n_pix, n_pix)
+        img[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix] += np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
+
+    return img
+
+
+def get_grad_RMSD_img(coord, psim, pexp, size, sampling_rate, sigma):
+
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+    dx = np.zeros(coord.shape)
+    for i in range(size):
+        for j in range(size):
+            mu = ((np.array([i, j]) - np.ones(2) * (size / 2)) * sampling_rate)
+            dpsim =-(1/(sigma**2)) * (coord[:,:2]-mu) * np.repeat(np.exp(-np.square(np.linalg.norm(coord[:,:2]-mu, axis=1))/(2*(sigma ** 2))),2).reshape(n_atoms,2)
+            dx[:,:2] += 2* pdiff[i,j]*dpsim
+    return dx
+
+def get_grad_RMSD2_img_rot(coord, psim, pexp, size, sampling_rate, sigma, angles, coord0):
+    # coord= x0*R
+    # coord0 = x0
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dcoord = np.zeros(coord.shape)
+    dangles = np.zeros(3)
+    mu = (np.mgrid[0:size, 0:size] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        x = np.repeat(coord[i, :2], size ** 2).reshape(2, size, size)
+        tmp = 2* pdiff*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        da, db, dc, dx, dy, dz = gradient_rotation(angles=angles, coord=coord0[i], mu=mu)
+        dpsimx =-(1/(sigma**2)) * np.array([dx,dy,dz]) * np.array([tmp,tmp, tmp])
+        dcoord[i] = np.sum(dpsimx, axis=(1,2))
+
+        dpsimangles = -(1/(sigma**2)) * np.array([da,db,dc]) * np.array([tmp,tmp,tmp])
+        dangles += np.sum(dpsimangles, axis=(1,2))
+    return dcoord, dangles
+
+def get_grad_RMSD2_img(coord, psim, pexp, size, sampling_rate, sigma):
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    mu = (np.mgrid[0:size, 0:size] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        x = np.repeat(coord[i, :2], size ** 2).reshape(2, size, size)
+        tmp = 2* pdiff*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp])
+        dx[i,:2] = np.sum(dpsim, axis=(1,2))
+    return dx
+
+def get_grad_RMSD3_img(coord, psim, pexp, size, sampling_rate, sigma,threshold):
+    vox, n_pix = select_voxels(coord, size, sampling_rate, threshold)
+    pix = vox[:, :2]
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    for i in range(n_atoms):
+        x = np.repeat(coord[i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
+        mu = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix] - size / 2) * sampling_rate
+        tmp = 2* pdiff[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix]*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp])
+        dx[i,:2] = np.sum(dpsim, axis=(1,2))
+    return dx
+
+def get_grad_RMSD_NMA_img(coord, psim, pexp, size, sampling_rate, sigma, A_modes):
+    # NB : coord = x0 + q* A
+
+    n_atoms = coord.shape[0]
+    n_modes = A_modes.shape[1]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    dq = np.zeros(n_modes)
+    mu = (np.mgrid[0:size, 0:size] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        x = np.repeat(coord[i,:2], size ** 2).reshape(2, size, size)
+        tmp = 2* pdiff*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+
+        dpsimx =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp])
+        dx[i,:2] = np.sum(dpsimx, axis=(1,2))
+
+        dpsimq = -(1 / (sigma ** 2)) * (x - mu) * np.array([tmp, tmp])
+        dq += np.dot(A_modes[i, :,:2] , np.sum(dpsimq, axis=(1, 2)))
+
+    return dx, dq
+
+def get_grad_RMSD3_NMA_img(coord, psim, pexp, size, sampling_rate, sigma, A_modes, threshold):
+    vox, n_pix = select_voxels(coord, size, sampling_rate, threshold)
+    pix = vox[:, :2]
+
+    n_atoms = coord.shape[0]
+    n_modes = A_modes.shape[1]
+    pdiff = psim - pexp
+
+    dx = np.zeros(coord.shape)
+    dq = np.zeros(n_modes)
+    for i in range(n_atoms):
+        x = np.repeat(coord[i,:2], n_pix ** 2).reshape(2, n_pix, n_pix)
+        mu = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix] - size / 2) * sampling_rate
+        tmp = 2* pdiff[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix]*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+
+        dpsimx =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp])
+        dx[i,:2] = np.sum(dpsimx, axis=(1,2))
+
+        dpsimq = -(1 / (sigma ** 2)) * (x - mu) * np.array([tmp, tmp])
+        dq += np.dot(A_modes[i, :,:2] , np.sum(dpsimq, axis=(1, 2)))
+
+    return dx, dq
+
 def get_grad_RMSD2(coord, psim, pexp, size, sampling_rate, sigma):
 
     n_atoms = coord.shape[0]
@@ -166,6 +312,53 @@ def get_grad_RMSD3(coord, psim, pexp, size, sampling_rate, sigma, threshold):
         dx[i] = np.sum(dpsim, axis=(1,2,3))
 
     return dx
+
+def gradient_rotation(angles, coord, mu):
+    a,b,c =angles
+    cos=np.cos
+    sin=np.sin
+    x = coord[0]
+    y = coord[1]
+    z = coord[2]
+    u = mu[0]
+    v = mu[1]
+
+    ##################################################################################
+    # f = (x * (cos(a) * cos(b)) + y * (sin(a) * cos(b)) - z * sin(b) - u) ^ 2 + (
+    #             x * (cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) + y * (
+    #                 sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) + z * (cos(b) * sin(c)) - v) ^ 2
+    ################################################################################
+
+    da = 2 * cos(b) * (y * cos(a) - x * sin(a)) * (cos(b) * (y * sin(a) + x * cos(a)) - sin(b) * z - u) + 2 * (
+            y * (sin(b) * sin(c) * cos(a) - cos(c) * sin(a)) - x * (sin(b) * sin(c) * sin(a) + cos(c) * cos(a))) * (
+                 y * (sin(b) * sin(c) * sin(a) + cos(c) * cos(a)) - x * (
+                 cos(c) * sin(a) - sin(b) * sin(c) * cos(a)) + cos(b) * sin(c) * z - v)
+
+    db = 2 * (-sin(c) * z * sin(b) + sin(a) * sin(c) * y * cos(b) + cos(a) * sin(c) * x * cos(b)) * (
+            y * (sin(a) * sin(c) * sin(b) + cos(a) * cos(c)) + x * (
+            cos(a) * sin(c) * sin(b) - sin(a) * cos(c)) + sin(c) * z * cos(b) - v) + 2 * (
+                 -sin(a) * y * sin(b) - cos(a) * x * sin(b) - z * cos(b)) * (
+                 -z * sin(b) + sin(a) * y * cos(b) + cos(a) * x * cos(b) - u)
+
+    dc = -2 * ((cos(a) * y - sin(a) * x) * sin(c) + (-cos(b) * z - sin(a) * sin(b) * y - cos(a) * sin(b) * x) * cos(
+        c)) * ((cos(b) * z + sin(a) * sin(b) * y + cos(a) * sin(b) * x) * sin(c) + (cos(a) * y - sin(a) * x) * cos(
+             c) - v)
+
+    dx = 2 * (cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) * (
+                (cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) * x + cos(b) * sin(c) * z + (
+                    sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) * y - v) + 2 * cos(a) * cos(b) * (
+                cos(a) * cos(b) * x - sin(b) * z + sin(a) * cos(b) * y - u)
+
+    dy = 2 * (sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) * (
+                (sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) * y + cos(b) * sin(c) * z + (
+                    cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) * x - v) + 2 * sin(a) * cos(b) * (
+                sin(a) * cos(b) * y - sin(b) * z + cos(a) * cos(b) * x - u)
+
+    dz = 2 * cos(b) * sin(c) * (cos(b) * sin(c) * z + (sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) * y + (
+                cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) * x - v) - 2 * sin(b) * (
+                -sin(b) * z + sin(a) * cos(b) * y + cos(a) * cos(b) * x - u)
+
+    return da, db, dc, dx, dy, dz
 
 def get_grad_RMSD_NMA(coord, psim, pexp, size, sampling_rate, sigma, A_modes):
     # NB : coord = x0 + q* A
@@ -239,9 +432,6 @@ def volume_from_pdb(x, N, sigma, sampling_rate=1):
 def select_voxels(coord, size, sampling_rate, threshold):
     n_atoms = coord.shape[0]
     n_vox = threshold*2 +1
-    vox_range = np.array([np.arange(n_vox),
-                          np.arange(n_vox),
-                          np.arange(n_vox)])
     l=np.zeros((n_atoms,3))
 
     for i in range(n_atoms):
@@ -436,4 +626,12 @@ def generate_rotation_matrix(angle, vector):
                  [ ux*uz*(1-c) - uy*s, uy*uz*(1-c) + ux*s, uz*uz*(1-c) + c   ]])
     return M
 
+def generate_euler_matrix(angles):
+    a, b, c = angles
+    cos = np.cos
+    sin = np.sin
+    R = [[cos(a) * cos(b), cos(a) * sin(b) * sin(c) - sin(a) * cos(c), cos(a) * sin(b) * cos(c) + sin(a) * sin(c)],
+         [sin(a) * cos(b), sin(a) * sin(b) * sin(c) + cos(a) * cos(c), sin(a) * sin(b) * cos(c) - cos(a) * sin(c)],
+         [-sin(b), cos(b) * sin(c), cos(b) * cos(c)]]
+    return R
 

@@ -73,14 +73,14 @@ def save_pdb(mol, file, gen_file):
                         file.write("END\n")
     print("Done")
 
-def save_density(density, outfilename):
+def save_density(density, file):
     """
     Save the density to an mrc file. The origin of the grid will be (0,0,0)
     • outfilename: the mrc file name for the output
     """
     print("Saving mrc file ...")
     data = density.data.astype('float32')
-    with mrcfile.new(outfilename, overwrite=True) as mrc:
+    with mrcfile.new(file, overwrite=True) as mrc:
         mrc.set_data(data.T)
         mrc.voxel_size = density.sampling_rate
         origin = -density.sampling_rate*density.size/2
@@ -90,3 +90,9 @@ def save_density(density, outfilename):
         mrc.update_header_from_data()
         mrc.update_header_stats()
     print("Done")
+
+def load_density(file):
+    with mrcfile.open(file) as mrc:
+        data = np.transpose(mrc.data, (2, 1, 0))
+        sampling_rate = np.float(mrc.voxel_size['x'])
+        return src.molecule.Density(data, sampling_rate, gaussian_sigma=None, threshold=None)

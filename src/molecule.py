@@ -93,14 +93,13 @@ class Molecule:
                                                           sigma=gaussian_sigma)
         return Density(data=density, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 
-    def to_image(self, size, gaussian_sigma, sampling_rate=1):
-        image = np.zeros((size,size))
-        for i in range(size):
-            for j in range(size):
-                mu = ((np.array([i, j]) - np.ones(2) * (size / 2)) * sampling_rate)
-                image[i, j] = np.sum(
-                        np.exp(-np.square(np.linalg.norm(self.coords[:,:2] - mu, axis=1)) / (2 * (gaussian_sigma ** 2))))
-        return Image(image, sampling_rate, gaussian_sigma)
+    def to_image(self, size, gaussian_sigma, sampling_rate=1, threshold = None):
+        if threshold is not None:
+            img = src.functions.image_from_pdb_fast3(self.coords, size=size, sampling_rate=sampling_rate,
+                                                    sigma=gaussian_sigma, threshold=threshold)
+        else:
+            img = src.functions.image_from_pdb_fast(self.coords, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma)
+        return Image(img, sampling_rate, gaussian_sigma, threshold)
 
     def rotate(self, angles):
         a, b, c = angles
@@ -114,6 +113,16 @@ class Molecule:
             if self.modes is not None :
                 self.modes[i] =  np.dot(self.modes[i], R)
 
+    def rotate2(self, angles):
+        a, b, c = angles
+        cos = np.cos
+        sin = np.sin
+        x = self.coords[:,0] * (cos(a) * cos(b))                            + self.coords[:,1] * (sin(a) * cos(b))                            + self.coords[:,2]* (-sin(b))
+        y = self.coords[:,0] * (cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) + self.coords[:,1] * (sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) + self.coords[:,2]* (cos(b) * sin(c))
+        z = self.coords[:,0] * (cos(a) * sin(b) * cos(c) + sin(a) * sin(c)) + self.coords[:,1] * (sin(a) * sin(b) * cos(c) - cos(a) * sin(c)) + self.coords[:,2]* (cos(b) * cos(c))
+        self.coords[:, 0] = x
+        self.coords[:, 1] = y
+        self.coords[:, 2] = z
     # def show_internal(self):
     #     src.viewers.internal_viewer(self)
 
@@ -162,11 +171,12 @@ class Density:
 
 class Image:
 
-    def __init__(self, data, sampling_rate, gaussian_sigma=None):
+    def __init__(self, data, sampling_rate, gaussian_sigma=None, threshold=None):
         self.data =data
         self.sampling_rate = sampling_rate
         self.gaussian_sigma = gaussian_sigma
         self.size = data.shape[0]
+        self.threshold = threshold
 
     def show(self):
         src.viewers.image_viewer(self)

@@ -12,9 +12,9 @@ modes = src.functions.read_modes("data/AK/modes/vec.", n_modes=5)[ca][:]
 atoms= src.functions.center_pdb(atoms)[ca][:]
 n_atoms=atoms.shape[0]
 
-size=32
+size=256
 gaussian_sigma = 2
-sampling_rate = 3
+sampling_rate = 0.5
 
 # t_slow= time.time()
 # density_slow = volume_from_pdb_slow(atoms, size, gaussian_sigma, sampling_rate)
@@ -48,3 +48,32 @@ plt.imshow(density_fast3[int(size/2)])
 print("err="+str(np.sum(np.square(density_fast2-density_fast3))))
 
 
+# IMAGES
+
+t = time.time()
+img0 = image_from_pdb(coord=atoms, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma)
+t0 = time.time()- t
+print("t0="+str(t0))
+
+t = time.time()
+img1 = image_from_pdb_fast(coord=atoms, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma)
+t1 = time.time()- t
+print("t1="+str(t1))
+
+
+t = time.time()
+img2 = image_from_pdb_fast2(coord=atoms, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma)
+t2 = time.time()- t
+print("t2="+str(t2))
+
+
+t = time.time()
+img3 = image_from_pdb_fast3(coord=atoms, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma, threshold=10)
+t3 = time.time()- t
+print("t3="+str(t3))
+
+plt.figure()
+plt.imshow(img1)
+
+plt.figure()
+plt.imshow(img3)
