@@ -168,10 +168,10 @@ from src.viewers import structures_viewer, chimera_structure_viewer
 init =src.io.read_pdb("data/P97/5ftm.pdb")
 init.center_structure()
 # init.add_modes("data/P97/modes/vec.", n_modes=43)
-init.add_modes("data/P97/modes_atoms/vec.", n_modes=4)
-init.select_modes(np.array([9])-7)
-# init.select_modes(np.array([10, 13, 28])-7)
 init = init.select_atoms(pattern='CA')
+init.add_modes("data/P97/modes_ca/vec.", n_modes=4)
+init.select_modes(np.array([10])-7)
+# init.select_modes(np.array([10, 13, 28])-7)
 # init.rotate(np.array([0,-np.pi/2,0]))
 
 
@@ -182,9 +182,12 @@ init = init.select_atoms(pattern='CA')
 # target = target.select_atoms(pattern='CA')
 
 sim = src.simulation.Simulator(init)
-nma = sim.nma_deform([-2000])
-target = nma.energy_min(init.get_energy(), 0.01)
+nma = sim.nma_deform([-1000])
+structures_viewer([nma, init])
+
+target = nma.energy_min(500000, 0.01)
 # structures_viewer([nma, init])
+src.io.save_pdb(target, file="data/P97/emd_synth_target2.pdb", genfile="data/P97/5ftm.pdb")
 
 size=128
 sampling_rate=2#1.4576250314712524
@@ -192,9 +195,9 @@ threshold=4
 gaussian_sigma=1.8
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
-# src.viewers.chimera_fit_viewer(init, target_density2, genfile="data/P97/5ftm.pdb", ca=True)
+# src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-target_density2 = src.io.load_density('data/P97/emd_synth_target.mrc')
+target_density2 = src.io.load_density('data/P97/emd_synth_target2.mrc')
 target_density2.sampling_rate =sampling_rate
 # # src.io.save_density( target_density2,'data/P97/emd_3299_128_filtered2.mrc')
 # # target_density2.data = np.transpose(target_density2.data, (2,1,0))
@@ -231,7 +234,7 @@ params ={
     "criterion" :False,
 
     "dxt" : 0.01,
-    "dqt" : 0.1,
+    "dqt" : 0.15,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
@@ -262,7 +265,7 @@ ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
 
-fig.savefig('results/EUSIPCO/HMCNMA_emd_synth'+str(number)+'.png', format='png', dpi=1000)
-fit1.save('results/EUSIPCO/HMCNMA_emd_synth'+str(number)+'_fit1.pkl')
-fit2.save('results/EUSIPCO/HMCNMA_emd_synth'+str(number)+'_fit2.pkl')
-fit3.save('results/EUSIPCO/HMCNMA_emd_synth'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_emd_synth2'+str(number)+'.png', format='png', dpi=1000)
+fit1.save('results/EUSIPCO/HMCNMA_emd_synth2'+str(number)+'_fit1.pkl')
+fit2.save('results/EUSIPCO/HMCNMA_emd_synth2'+str(number)+'_fit2.pkl')
+fit3.save('results/EUSIPCO/HMCNMA_emd_synth2'+str(number)+'_fit3.pkl')
