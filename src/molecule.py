@@ -39,6 +39,7 @@ class Molecule:
     def add_modes(self, file, n_modes):
         self.modes = src.functions.read_modes(file, n_modes=n_modes)
 
+
     def select_modes(self, selected_modes):
         self.modes = self.modes[:, selected_modes]
 
