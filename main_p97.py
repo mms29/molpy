@@ -181,7 +181,7 @@ target.center_structure()
 # target = target.select_atoms(pattern='CA')
 #
 # sim = src.simulation.Simulator(init)
-# nma = sim.nma_deform([0,0,-1000,0])
+# nma = sim.nma_deform([0,0,-1500,0])
 # structures_viewer([nma, init])
 
 # target = nma.energy_min(500000, 0.01)
@@ -190,8 +190,8 @@ target.center_structure()
 
 size=128
 sampling_rate=2#1.4576250314712524
-threshold=6
-gaussian_sigma=3
+threshold=4
+gaussian_sigma=2
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 # src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
@@ -238,8 +238,8 @@ params ={
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
 }
-n_iter=50
-n_warmup = 25
+n_iter=100
+n_warmup = 50
 target_density.gaussian_sigma = 2
 target_density.threshold=4
 
