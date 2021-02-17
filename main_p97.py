@@ -181,7 +181,7 @@ target.center_structure()
 # target = target.select_atoms(pattern='CA')
 #
 # sim = src.simulation.Simulator(init)
-# nma = sim.nma_deform([0,0,-1500,0])
+# nma = sim.nma_deform([0,0,-400,0])
 # structures_viewer([nma, init])
 
 # target = nma.energy_min(500000, 0.01)
@@ -189,36 +189,26 @@ target.center_structure()
 # src.io.save_pdb(target, file="data/P97/5ftn_mode10_min.pdb", genfile="data/P97/5ftm.pdb")
 
 size=128
-sampling_rate=2#1.4576250314712524
+sampling_rate=1.4576250314712524
 threshold=4
 gaussian_sigma=2
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 # src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-# target_density2 = src.io.load_density('data/P97/emd_synth_target2.mrc')
-# target_density2.sampling_rate =sampling_rate
-# # src.io.save_density( target_density2,'data/P97/emd_3299_128_filtered2.mrc')
-# # target_density2.data = np.transpose(target_density2.data, (2,1,0))
-# # target_density2.show()
-# # src.io.save_density(target_density,'data/P97/5ftn_128.mrc' )
-# #
-# # np.sqrt(K_BOLTZMANN*Ti / (CARBON_MASS* (3 * xt.shape[0])))
-# # T = K / (1 / 2 *K_BOLTZMANN )
-# T =1000
+target_density2 = src.io.load_density('data/P97/emd_3299_128_filtered.mrc')
+target_density2.sampling_rate =sampling_rate
+target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
+target_density2.threshold = threshold
+target_density2.gaussian_sigma = gaussian_sigma
 #
-# target_density.data.max()
-# target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
-# target_density2.threshold = threshold
-# target_density2.gaussian_sigma = gaussian_sigma
-# #
-# h1  = plt.hist(target_density.data.flatten(),100)
-# h2  = plt.hist(target_density2.data.flatten(),100)
-#
-# plt.figure()
-# plt.plot(h1[1][:-1] , np.cumsum(h1[0]))
-# plt.plot(h2[1][:-1] , np.cumsum(h2[0]))
-# target_density = target_density2
+h1  = plt.hist(target_density.data.flatten(),100)
+h2  = plt.hist(target_density2.data.flatten(),100)
+
+plt.figure()
+plt.plot(h1[1][:-1] , np.cumsum(h1[0]))
+plt.plot(h2[1][:-1] , np.cumsum(h2[0]))
+target_density = target_density2
 
 params ={
     "x_init" : np.zeros(init.coords.shape),
@@ -239,9 +229,7 @@ params ={
     "m_wt" : 10,
 }
 n_iter=100
-n_warmup = 50
-target_density.gaussian_sigma = 2
-target_density.threshold=4
+n_warmup = int(n_iter/2)
 
 fit1  =FlexibleFitting(init, target_density)
 fit1.HMC(mode="HMCNMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
@@ -262,8 +250,10 @@ ax.legend(loc="lower right", fontsize=9)
 # ax.set_ylim(0.71,1.01)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
+# src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-fig.savefig('results/EUSIPCO/HMCNMA_allatoms'+str(number)+'.png', format='png', dpi=1000)
-fit1.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit1.pkl')
-fit2.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit2.pkl')
-fit3.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit3.pkl')
+
+fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'.png', format='png', dpi=1000)
+fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit1.pkl')
+fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit2.pkl')
+fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit3.pkl')
