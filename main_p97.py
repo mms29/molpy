@@ -178,7 +178,7 @@ init = init.select_atoms(pattern='CA')
 target =src.io.read_pdb("data/P97/5ftn.pdb")
 target.center_structure()
 # # target.rotate(np.array([0,-np.pi/2,0]))
-target = target.select_atoms(pattern='CA')
+# target = target.select_atoms(pattern='CA')
 #
 # sim = src.simulation.Simulator(init)
 # nma = sim.nma_deform([0,0,-1000,0])
@@ -191,7 +191,7 @@ target = target.select_atoms(pattern='CA')
 size=128
 sampling_rate=2#1.4576250314712524
 threshold=6
-gaussian_sigma=4
+gaussian_sigma=3
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 # src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
@@ -224,7 +224,7 @@ params ={
     "x_init" : np.zeros(init.coords.shape),
     "q_init" : np.zeros(init.modes.shape[1]),
 
-    "lb" : 200,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
+    "lb" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
     "lp" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
     "lx" : 0,
     "lq" : 0,
@@ -232,7 +232,7 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.001,
+    "dxt" : 0.005,
     "dqt" : 0.15,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
@@ -252,13 +252,10 @@ fit2.HMC(mode="HMC", params=params, n_iter=n_iter, n_warmup=n_warmup)
 fit3  =FlexibleFitting(init, target_density)
 fit3.HMC(mode="NMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
 
-L1 = np.cumsum(([1] + fit1.fit["L"])).astype(int)-1
-L2 = np.cumsum(([1] + fit2.fit["L"])).astype(int)-1
-L3 = np.cumsum(([1] + fit3.fit["L"])).astype(int)-1
 fig, ax = plt.subplots(1,1, figsize=(5,2))
-ax.plot(np.array([0.4]+fit1.fit["CC"])[L1], '-', color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
-ax.plot(np.array([0.4]+fit2.fit["CC"])[L2], '-', color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
-ax.plot(np.array([0.4]+fit3.fit["CC"])[L3], '-', color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
+ax.plot(np.array(fit1.fit["CC"]), '-', color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
+ax.plot(np.array(fit2.fit["CC"]), '-', color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
+ax.plot(np.array(fit3.fit["CC"]), '-', color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
 ax.set_ylabel("Cross Correlation")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
@@ -266,7 +263,7 @@ ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
 
-fig.savefig('results/EUSIPCO/HMCNMA_sigma'+str(number)+'.png', format='png', dpi=1000)
-fit1.save('results/EUSIPCO/HMCNMA_sigma'+str(number)+'_fit1.pkl')
-fit2.save('results/EUSIPCO/HMCNMA_sigma'+str(number)+'_fit2.pkl')
-fit3.save('results/EUSIPCO/HMCNMA_sigma'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_allatoms'+str(number)+'.png', format='png', dpi=1000)
+fit1.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit1.pkl')
+fit2.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit2.pkl')
+fit3.save(  'results/EUSIPCO/HMCNMA_allatoms'+str(number)+'_fit3.pkl')
