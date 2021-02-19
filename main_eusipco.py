@@ -135,18 +135,18 @@ cc2 =[]
 cc3 =[]
 coord=[]
 for i in range(11,21):
-    fit1 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_synth2"+str(i)+"_fit1.pkl")
-    fit2 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_synth2"+str(i)+"_fit2.pkl")
-    fit3 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_synth2"+str(i)+"_fit3.pkl")
+    fit1 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit1.pkl")
+    fit2 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit2.pkl")
+    fit3 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit3.pkl")
     L1 = np.cumsum(([1] + fit1.fit["L"])).astype(int) - 1
     L2 = np.cumsum(([1] + fit2.fit["L"])).astype(int) - 1
     L3 = np.cumsum(([1] + fit3.fit["L"])).astype(int) - 1
-    cc1.append(np.array([0.4]+fit1.fit["CC"])[L1])
-    cc2.append(np.array([0.4]+fit2.fit["CC"])[L2])
-    cc3.append(np.array([0.4]+fit3.fit["CC"])[L3])
+    cc1.append(np.array([0.7]+fit1.fit["CC"])[L1])
+    cc2.append(np.array([0.7]+fit2.fit["CC"])[L2])
+    cc3.append(np.array([0.7]+fit3.fit["CC"])[L3])
     coord.append(fit1.res["mol"].coords)
 cc1 = np.array(cc1)
-cc2 = np.array(cc2)+ np.arange(101)*0.0001
+cc2 = np.array(cc2)
 cc3 = np.array(cc3)
 
 
@@ -157,13 +157,13 @@ ax.plot(np.arange(101),np.mean(cc3, axis=0), color="tab:blue", label=r"$\Delta \
 ax.set_ylabel("Cross Correlation")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
-ax.set_ylim(0.5,0.85)
+ax.set_ylim(0.7,0.85)
 ax.set_xlim(-5,105)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
-fig.savefig('results/EUSIPCO/avg_emd_synth2.png', format='png', dpi=1000)
+fig.savefig('results/EUSIPCO/avg_emd_allatoms.png', format='png', dpi=1000)
 
-src.viewers.chimera_fit_viewer(fit1.res["mol"], fit1.target, genfile="data/P97/5ftm.pdb", ca=True)
+src.viewers.chimera_fit_viewer(fit1.fit["molt"][-1], fit1.target, genfile="data/P97/5ftm.pdb", ca=True)
 
 src.io.save_pdb(src.molecule.Molecule(coords=np.mean(coord, axis=0)), file="results/EUSIPCO/emd_synth2_fitted.pdb", genfile="data/P97/5ftm.pdb", ca=True)
 src.io.save_density(fit1.target, file="results/EUSIPCO/emd_synth2_target.mrc" )

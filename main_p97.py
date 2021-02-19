@@ -180,9 +180,9 @@ target.center_structure()
 # # target.rotate(np.array([0,-np.pi/2,0]))
 # target = target.select_atoms(pattern='CA')
 #
-# sim = src.simulation.Simulator(init)
-# nma = sim.nma_deform([0,0,-400,0])
-# structures_viewer([nma, init])
+sim = src.simulation.Simulator(init)
+nma = sim.nma_deform([0,0,-1500,0])
+structures_viewer([nma, init])
 
 # target = nma.energy_min(500000, 0.01)
 # # structures_viewer([target, init])
@@ -191,10 +191,10 @@ target.center_structure()
 size=128
 sampling_rate=1.4576250314712524
 threshold=4
-gaussian_sigma=2
+gaussian_sigma=1.8
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
-# src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
+# src.viewers.chimera_fit_viewer(nma, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
 target_density2 = src.io.load_density('data/P97/emd_3299_128_filtered.mrc')
 target_density2.sampling_rate =sampling_rate
@@ -214,7 +214,7 @@ params ={
     "x_init" : np.zeros(init.coords.shape),
     "q_init" : np.zeros(init.modes.shape[1]),
 
-    "lb" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
+    "lb" : 200,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
     "lp" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
     "lx" : 0,
     "lq" : 0,
@@ -222,14 +222,15 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.005,
+    "dxt" : 0.004,
     "dqt" : 0.15,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
 }
-n_iter=100
-n_warmup = int(n_iter/2)
+n_iter=50
+n_warmup = n_iter // 2
+
 
 fit1  =FlexibleFitting(init, target_density)
 fit1.HMC(mode="HMCNMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
@@ -240,20 +241,29 @@ fit2.HMC(mode="HMC", params=params, n_iter=n_iter, n_warmup=n_warmup)
 fit3  =FlexibleFitting(init, target_density)
 fit3.HMC(mode="NMA", params=params, n_iter=n_iter, n_warmup=n_warmup)
 
+init_density = init.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
+cc_init= cross_correlation(init_density.data, target_density.data)
+L1 = np.cumsum(([1] + fit1.fit["L"])).astype(int) - 1
+L2 = np.cumsum(([1] + fit2.fit["L"])).astype(int) - 1
+L3 = np.cumsum(([1] + fit3.fit["L"])).astype(int) - 1
 fig, ax = plt.subplots(1,1, figsize=(5,2))
-ax.plot(np.array(fit1.fit["CC"]), '-', color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
-ax.plot(np.array(fit2.fit["CC"]), '-', color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
-ax.plot(np.array(fit3.fit["CC"]), '-', color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
+ax.plot(np.array([cc_init]+fit1.fit["CC"])[L1], '-', color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
+ax.plot(np.array([cc_init]+fit2.fit["CC"])[L2], '-', color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
+ax.plot(np.array([cc_init]+fit3.fit["CC"])[L3], '-', color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
 ax.set_ylabel("Cross Correlation")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 # ax.set_ylim(0.71,1.01)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
-# src.viewers.chimera_fit_viewer(target, target_density, genfile="data/P97/5ftm.pdb", ca=True)
+# src.viewers.chimera_fit_viewer(fit1.res["mol"], target_density, genfile="data/P97/5ftm.pdb", ca=True)
+# src.viewers.chimera_structure_viewer([fit1.res["mol"], init], genfile="data/P97/5ftm.pdb")
 
 
 fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'.png', format='png', dpi=1000)
 fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit1.pkl')
 fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit2.pkl')
 fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit3.pkl')
+
+src.io.save_pdb(fit1.res["mol"], file="results/EUSIPCO/emd_allatoms.pdb", genfile="data/P97/5ftm.pdb", ca=True)
+src.io.save_density(fit1.target, file="results/EUSIPCO/emd_target.mrc" )
