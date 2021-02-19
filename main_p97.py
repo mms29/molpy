@@ -186,7 +186,7 @@ structures_viewer([nma, init])
 
 # target = nma.energy_min(500000, 0.01)
 # # structures_viewer([target, init])
-# src.io.save_pdb(target, file="data/P97/5ftn_mode10_min.pdb", genfile="data/P97/5ftm.pdb")
+# src.io.save_pdb(nma, file="data/P97/5ftm_deformed_mode9.pdb", genfile="data/P97/5ftm.pdb")
 
 size=128
 sampling_rate=1.4576250314712524
@@ -194,9 +194,9 @@ threshold=4
 gaussian_sigma=1.8
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
-# src.viewers.chimera_fit_viewer(nma, target_density, genfile="data/P97/5ftm.pdb", ca=True)
+# src.viewers.chimera_fit_viewer(init, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-target_density2 = src.io.load_density('data/P97/emd_3299_128_filtered.mrc')
+target_density2 = src.io.load_density('data/P97/5ftm_deformed_mode9.mrc')
 target_density2.sampling_rate =sampling_rate
 target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
 target_density2.threshold = threshold
@@ -215,7 +215,7 @@ params ={
     "q_init" : np.zeros(init.modes.shape[1]),
 
     "lb" : 200,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
-    "lp" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
+    "lp" : 10,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
     "lx" : 0,
     "lq" : 0,
 
@@ -223,7 +223,7 @@ params ={
     "criterion" :False,
 
     "dxt" : 0.004,
-    "dqt" : 0.15,
+    "dqt" : 0.004,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
     "m_wt" : 10,
@@ -260,10 +260,10 @@ fig.tight_layout()
 # src.viewers.chimera_structure_viewer([fit1.res["mol"], init], genfile="data/P97/5ftm.pdb")
 
 
-fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'.png', format='png', dpi=1000)
-fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit1.pkl')
-fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit2.pkl')
-fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'.png', format='png', dpi=1000)
+fit1.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit1.pkl')
+fit2.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit2.pkl')
+fit3.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit3.pkl')
 
 src.io.save_pdb(fit1.res["mol"], file="results/EUSIPCO/emd_allatoms.pdb", genfile="data/P97/5ftm.pdb", ca=True)
 src.io.save_density(fit1.target, file="results/EUSIPCO/emd_target.mrc" )
