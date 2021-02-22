@@ -199,7 +199,7 @@ target_density = target.to_density(size=size, sampling_rate=sampling_rate, gauss
 # target_density.show()
 # src.viewers.chimera_fit_viewer(init, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-target_density2 = src.io.load_density('data/P97/5ftm_deformed_mode9_min.mrc')
+target_density2 = src.io.load_density('data/P97/emd_3299_128_filtered.mrc')
 target_density2.sampling_rate =sampling_rate
 target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
 target_density2.threshold = threshold
@@ -263,10 +263,10 @@ fig.tight_layout()
 # src.viewers.chimera_structure_viewer([fit1.res["mol"], init], genfile="data/P97/5ftm.pdb")
 
 
-fig.savefig('results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'.png', format='png', dpi=1000)
-fit1.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit1.pkl')
-fit2.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit2.pkl')
-fit3.save(  'results/EUSIPCO/HMCNMA_synth_allatoms'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'.png', format='png', dpi=1000)
+fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit1.pkl')
+fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit2.pkl')
+fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms'+str(number)+'_fit3.pkl')
 
-src.io.save_pdb(fit1.res["mol"], file="results/EUSIPCO/emd_allatoms.pdb", genfile="data/P97/5ftm.pdb", ca=True)
-src.io.save_density(fit1.target, file="results/EUSIPCO/emd_target.mrc" )
+# src.io.save_pdb(fit1.res["mol"], file="results/EUSIPCO/emd_allatoms.pdb", genfile="data/P97/5ftm.pdb", ca=True)
+# src.io.save_density(fit1.target, file="results/EUSIPCO/emd_target.mrc" )
