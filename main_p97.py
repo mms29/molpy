@@ -225,7 +225,7 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.003,
+    "dxt" : 0.006,
     "dqt" : 0.02,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
