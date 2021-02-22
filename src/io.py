@@ -83,12 +83,14 @@ def save_pdb(mol, file, genfile, ca=True):
                             file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (
                             l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]))
                             n += 1
-                    if split_line[0] == 'TER':
+                    elif split_line[0] == 'TER':
                         file.write(line)
 
-                    if split_line[0] == 'END':
+                    elif split_line[0] == 'END':
                         # file.write(line)
                         file.write("END\n")
+                    # else :
+                    #     file.write(line)
     print("Done")
 
 def save_density(density, file):

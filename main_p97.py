@@ -175,28 +175,31 @@ init = init.select_atoms(pattern='CA')
 # init.rotate(np.array([0,-np.pi/2,0]))
 
 
-target =src.io.read_pdb("data/P97/5ftn.pdb")
-target.center_structure()
+# target =src.io.read_pdb("data/P97/5ftm_deformed_mode9_min.pdb")
+# target.center_structure()
 # # target.rotate(np.array([0,-np.pi/2,0]))
 # target = target.select_atoms(pattern='CA')
 #
 sim = src.simulation.Simulator(init)
 nma = sim.nma_deform([0,0,-1500,0])
-structures_viewer([nma, init])
+new_coords= np.random.normal(nma.coords, 1) + 0.5
+target = src.molecule.Molecule(coords=new_coords, modes=init.modes, chain_id=init.chain_id)
+structures_viewer([nma, target])
+target.center_structure()
 
-# target = nma.energy_min(500000, 0.01)
+
 # # structures_viewer([target, init])
-# src.io.save_pdb(nma, file="data/P97/5ftm_deformed_mode9.pdb", genfile="data/P97/5ftm.pdb")
+# src.io.save_pdb(target, file="data/P97/5ftm_deformed_mode9_shake.pdb", genfile="data/P97/5ftm.pdb", ca=False)
 
 size=128
 sampling_rate=1.4576250314712524
 threshold=4
-gaussian_sigma=1.8
+gaussian_sigma=2
 target_density = target.to_density(size=size, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
 # target_density.show()
 # src.viewers.chimera_fit_viewer(init, target_density, genfile="data/P97/5ftm.pdb", ca=True)
 
-target_density2 = src.io.load_density('data/P97/5ftm_deformed_mode9.mrc')
+target_density2 = src.io.load_density('data/P97/5ftm_deformed_mode9_min.mrc')
 target_density2.sampling_rate =sampling_rate
 target_density2.data = (target_density2.data / target_density2.data.max())* target_density.data.max()
 target_density2.threshold = threshold
@@ -215,20 +218,20 @@ params ={
     "q_init" : np.zeros(init.modes.shape[1]),
 
     "lb" : 200,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms) *200,
-    "lp" : 10,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
+    "lp" : 1,#CARBON_MASS /(K_BOLTZMANN*T *3*init.n_atoms),
     "lx" : 0,
     "lq" : 0,
 
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.004,
-    "dqt" : 0.004,
+    "dxt" : 0.003,
+    "dqt" : 0.05,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
-    "m_wt" : 10,
+    "m_wt" : 1,
 }
-n_iter=50
+n_iter=100
 n_warmup = n_iter // 2
 
 
@@ -250,7 +253,7 @@ fig, ax = plt.subplots(1,1, figsize=(5,2))
 ax.plot(np.array([cc_init]+fit1.fit["CC"])[L1], '-', color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
 ax.plot(np.array([cc_init]+fit2.fit["CC"])[L2], '-', color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
 ax.plot(np.array([cc_init]+fit3.fit["CC"])[L3], '-', color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
-ax.set_ylabel("Cross Correlation")
+ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 # ax.set_ylim(0.71,1.01)
