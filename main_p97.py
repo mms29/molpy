@@ -225,11 +225,11 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.003,
-    "dqt" : 0.05,
+    "dxt" : 0.001,
+    "dqt" : 0.02,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
-    "m_wt" : 1,
+    "m_wt" : 10,
 }
 n_iter=100
 n_warmup = n_iter // 2

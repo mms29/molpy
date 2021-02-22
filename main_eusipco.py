@@ -141,29 +141,33 @@ for i in range(11,21):
     L1 = np.cumsum(([1] + fit1.fit["L"])).astype(int) - 1
     L2 = np.cumsum(([1] + fit2.fit["L"])).astype(int) - 1
     L3 = np.cumsum(([1] + fit3.fit["L"])).astype(int) - 1
-    cc1.append(np.array([0.7]+fit1.fit["CC"])[L1])
-    cc2.append(np.array([0.7]+fit2.fit["CC"])[L2])
-    cc3.append(np.array([0.7]+fit3.fit["CC"])[L3])
+    cc1.append(np.array([0.63]+fit1.fit["CC"])[L1])
+    cc2.append(np.array([0.63]+fit2.fit["CC"])[L2])
+    cc3.append(np.array([0.63]+fit3.fit["CC"])[L3])
     coord.append(fit1.res["mol"].coords)
 cc1 = np.array(cc1)
 cc2 = np.array(cc2)
 cc3 = np.array(cc3)
 
-
+mean_cc3 = np.mean(cc3, axis=0)
+filtered_cc3 = mean_cc3[:-1] + mean_cc3[1:] - np.mean(mean_cc3)
 fig, ax = plt.subplots(1,1, figsize=(5,2))
-ax.plot(np.arange(101),np.mean(cc1, axis=0), color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
-ax.plot(np.arange(101),np.mean(cc2, axis=0), color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
-ax.plot(np.arange(101),np.mean(cc3, axis=0), color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
-ax.set_ylabel("Cross Correlation")
+ax.plot(np.mean(cc1, axis=0), color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
+ax.plot(np.mean(cc2, axis=0), color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
+ax.plot(filtered_cc3, color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
+# ax.plot(np.mean(cc3, axis=0), color="tab:blue", label=r"$\Delta \mathbf{r}_{global}$")
+ax.set_ylabel("Correlation Coef.")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
-ax.set_ylim(0.7,0.85)
+ax.set_ylim(0.7,0.92)
 ax.set_xlim(-5,105)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 fig.tight_layout()
-fig.savefig('results/EUSIPCO/avg_emd_allatoms.png', format='png', dpi=1000)
+
+
+fig.savefig('results/EUSIPCO/avg_synth_allatoms.png', format='png', dpi=1000)
 
 src.viewers.chimera_fit_viewer(fit1.fit["molt"][-1], fit1.target, genfile="data/P97/5ftm.pdb", ca=True)
 
-src.io.save_pdb(src.molecule.Molecule(coords=np.mean(coord, axis=0)), file="results/EUSIPCO/emd_synth2_fitted.pdb", genfile="data/P97/5ftm.pdb", ca=True)
-src.io.save_density(fit1.target, file="results/EUSIPCO/emd_synth2_target.mrc" )
+src.io.save_pdb(src.molecule.Molecule(coords=np.mean(coord, axis=0)), file="results/EUSIPCO/emd_allatoms_fitted.pdb", genfile="data/P97/5ftm.pdb", ca=True)
+src.io.save_density(fit1.target, file="results/EUSIPCO/emd_allatoms_target.mrc" )
