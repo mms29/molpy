@@ -135,9 +135,9 @@ cc2 =[]
 cc3 =[]
 coord=[]
 for i in range(11,21):
-    fit1 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit1.pkl")
-    fit2 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit2.pkl")
-    fit3 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_emd_allatoms"+str(i)+"_fit3.pkl")
+    fit1 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_synth_allatoms"+str(i)+"_fit1.pkl")
+    fit2 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_synth_allatoms"+str(i)+"_fit2.pkl")
+    fit3 = FlexibleFitting.load("results/EUSIPCO/HMCNMA_synth_allatoms"+str(i)+"_fit3.pkl")
     L1 = np.cumsum(([1] + fit1.fit["L"])).astype(int) - 1
     L2 = np.cumsum(([1] + fit2.fit["L"])).astype(int) - 1
     L3 = np.cumsum(([1] + fit3.fit["L"])).astype(int) - 1
@@ -150,7 +150,9 @@ cc2 = np.array(cc2)
 cc3 = np.array(cc3)
 
 mean_cc3 = np.mean(cc3, axis=0)
-filtered_cc3 = mean_cc3[:-1] + mean_cc3[1:] - np.mean(mean_cc3)
+filtered_cc3 = np.zeros(101)
+filtered_cc3[:-1] = mean_cc3[:-1] + mean_cc3[1:] - np.mean(mean_cc3)
+filtered_cc3[-1] =filtered_cc3[-2]
 fig, ax = plt.subplots(1,1, figsize=(5,2))
 ax.plot(np.mean(cc1, axis=0), color="tab:red", label=r"$\Delta \mathbf{r}_{local}$ " +"\n"+r"+ $\Delta \mathbf{r}_{global}$")
 ax.plot(np.mean(cc2, axis=0), color="tab:green", label=r"$\Delta \mathbf{r}_{local}$")
