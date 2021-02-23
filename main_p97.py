@@ -225,7 +225,7 @@ params ={
     "max_iter": 10,
     "criterion" :False,
 
-    "dxt" : 0.006,
+    "dxt" : 0.003,
     "dqt" : 0.02,
 
     "m_vt" : 1,#np.sqrt(K_BOLTZMANN*T /CARBON_MASS),
@@ -263,10 +263,10 @@ fig.tight_layout()
 # src.viewers.chimera_structure_viewer([fit1.res["mol"], init], genfile="data/P97/5ftm.pdb")
 
 
-fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms2'+str(number)+'.png', format='png', dpi=1000)
-fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms2'+str(number)+'_fit1.pkl')
-fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms2'+str(number)+'_fit2.pkl')
-fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms2'+str(number)+'_fit3.pkl')
+fig.savefig('results/EUSIPCO/HMCNMA_emd_allatoms3'+str(number)+'.png', format='png', dpi=1000)
+fit1.save(  'results/EUSIPCO/HMCNMA_emd_allatoms3'+str(number)+'_fit1.pkl')
+fit2.save(  'results/EUSIPCO/HMCNMA_emd_allatoms3'+str(number)+'_fit2.pkl')
+fit3.save(  'results/EUSIPCO/HMCNMA_emd_allatoms3'+str(number)+'_fit3.pkl')
 
 # src.io.save_pdb(fit1.res["mol"], file="results/EUSIPCO/emd_allatoms.pdb", genfile="data/P97/5ftm.pdb", ca=True)
 # src.io.save_density(fit1.target, file="results/EUSIPCO/emd_target.mrc" )
