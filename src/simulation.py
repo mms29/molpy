@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from src.molecule import Molecule
-from src.force_field import get_energy
+from src.forcefield import get_energy
 
 
 class Simulator:
@@ -12,18 +12,13 @@ class Simulator:
         self.deformed_mol = [mol]
         self.n_atoms = mol.n_atoms
 
-    def nma_deform(self, amplitude=200):
+    def nma_deform(self, q):
         if self.deformed_mol[0].modes is not None:
             n_modes = self.deformed_mol[0].modes.shape[1]
-            if isinstance(amplitude, list):
-                self.q= amplitude
-            else:
-                self.q =np.random.uniform(-amplitude, amplitude, n_modes)
-
-            deformed_coords = np.zeros((self.n_atoms,3))
-            deformed_coords = np.dot(self.q, self.deformed_mol[-1].modes) + self.deformed_mol[-1].coords
-
-            self.deformed_mol.append(Molecule(deformed_coords, modes=self.deformed_mol[-1].modes, chain_id= self.deformed_mol[-1].chain_id))
+            self.q =q
+            deformed_mol = Molecule.from_molecule(self.deformed_mol[0])
+            deformed_mol.coords = np.dot(self.q, self.deformed_mol[-1].modes) + self.deformed_mol[-1].coords
+            self.deformed_mol.append(deformed_mol)
 
             return self.deformed_mol[-1]
 

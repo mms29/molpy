@@ -105,22 +105,21 @@ def density_viewer(density):
     ax.imshow(volume[ax.index], cmap='gray')
     fig.canvas.mpl_connect('key_press_event', process_key)
 
-def chimera_fit_viewer(mol, target, genfile, ca=True):
-    src.io.save_pdb(mol, "mol.pdb" , genfile, ca=ca)
-    src.io.save_density(target, "vol.mrc")
+def chimera_fit_viewer(mol, target):
+    src.io.save_pdb(mol, "mol.pdb")
+    src.io.save_mrc(target, "vol.mrc")
     cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; open vol.mrc ; volume #2 level 0.7 ; volume #2 transparency 0.7 ; hide atoms ; show cartoons\""
     os.system(cmd)
 
-def chimera_structure_viewer(mol, genfile,ca=True):
+def chimera_structure_viewer(mol):
     if isinstance(mol, list):
-        if not isinstance(genfile, list) :
-            genfile = [genfile for i in range(len(mol))]
+
         cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \""
         for i in range(len(mol)):
-            src.io.save_pdb(mol[i], "mol"+str(i)+".pdb", genfile[i], ca=ca)
+            src.io.save_pdb(mol[i], "mol"+str(i)+".pdb")
             cmd+= "open mol"+str(i)+".pdb ; "
         cmd+="hide atoms ; show cartoons\""
     else:
-        src.io.save_pdb(mol, "mol.pdb", genfile, ca=ca)
+        src.io.save_pdb(mol, "mol.pdb")
         cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; hide atoms ; show cartoons\""
     os.system(cmd)

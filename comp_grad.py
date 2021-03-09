@@ -7,7 +7,7 @@ import time
 from src.functions import *
 from mpl_toolkits.mplot3d import axes3d
 import src.constants
-import src.force_field
+import src.forcefield
 import src.simulation
 import src.functions
 import src.flexible_fitting
@@ -135,10 +135,10 @@ import time
 from src.functions import *
 from mpl_toolkits.mplot3d import axes3d
 import src.constants
-import src.force_field
+import src.forcefield
 import src.simulation
 import src.viewers
-from src.force_field import get_energy, get_autograd
+from src.forcefield import get_energy, get_autograd
 # import PDB
 init =src.io.read_pdb("data/AK/AK.pdb")
 init.add_modes("data/AK/modes/vec.", n_modes=3)
@@ -179,7 +179,7 @@ print(time.time() -t)
 dUp = get_autograd(xt)
 dU = k * dUb + dUp
 F = -dU
-K = src.force_field.get_kinetic_energy(vt)
+K = src.forcefield.get_kinetic_energy(vt)
 T = K / (3 / 2 * (3*xt.shape[0])* src.constants.K_BOLTZMANN )
 # T = K / (1 / 2 * src.constants.K_BOLTZMANN )
 
@@ -222,7 +222,7 @@ for i in range(1000):
     F = Ft
 
     # Kinetic & temperature update
-    K = src.force_field.get_kinetic_energy(vt)
+    K = src.forcefield.get_kinetic_energy(vt)
     T = K / (3 / 2 * (3*xt.shape[0])* src.constants.K_BOLTZMANN )
 
     # velocities rescaling

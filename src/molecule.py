@@ -1,17 +1,22 @@
 import src.functions
-import src.force_field
+import src.forcefield
 import numpy as np
 import src.viewers
-
+from itertools import permutations
+import src.io
+from src.constants import *
+import copy
 
 class Molecule:
 
-    def __init__(self, coords, modes=None, atom_type=None, chain_id=None):
+    def __init__(self, coords, modes=None, atom_type=None, chain_id=None, genfile=None, coarse_grained=False):
         self.n_atoms= coords.shape[0]
 
         self.coords = coords
         self.modes=modes
         self.atom_type = atom_type
+        self.genfile=genfile
+        self.coarse_grained=coarse_grained
         if chain_id is None:
             self.chain_id = [0,self.n_atoms]
             self.n_chain=1
@@ -29,15 +34,21 @@ class Molecule:
 
         return cls(coords=coords, modes=modes, atom_type=atom_type,chain_id=chain_id)
 
+    @classmethod
+    def from_molecule(cls, mol):
+        return copy.deepcopy(mol)
+
 
     def get_energy(self, verbose=False):
-        return src.force_field.get_energy(self,verbose)
+        return src.forcefield.get_energy(self, self.coords, verbose=verbose)
 
     def get_gradient(self):
-        return src.force_field.get_autograd(self)
+        return src.forcefield.get_autograd(self)
 
     def add_modes(self, file, n_modes):
         self.modes = src.functions.read_modes(file, n_modes=n_modes)
+        if self.modes.shape[0] != self.n_atoms:
+            raise RuntimeError("Modes vectors and coordinates do not match : ("+str(self.modes.shape[0])+") != ("+str(self.n_atoms)+")")
 
 
     def select_modes(self, selected_modes):
@@ -46,26 +57,14 @@ class Molecule:
     def get_chain(self, id):
         return self.coords[self.chain_id[id]:self.chain_id[id+1]]
 
-    def select_atoms(self, pattern ='CA'):
-        selected_atoms = []
+    def select_atoms(self, pattern="CA"):
+        self.coarse_grained = True
+        atom_idx = np.where(self.atom_type == pattern)[0]
+        self.coords = self.coords[atom_idx]
+        self.n_atoms = self.coords.shape[0]
+        self.chain_id= [np.argmin(np.abs(atom_idx - self.chain_id[i])) for i in range(self.n_chain)] + [self.n_atoms]
         if self.modes is not None:
-            selected_modes = []
-        else :
-            selected_modes = None
-
-        new_chain_id=[0]
-        for j in range(self.n_chain):
-            for i in range(self.chain_id[j],self.chain_id[j+1]):
-                if self.atom_type[i] ==  pattern:
-                    selected_atoms.append(self.coords[i])
-                    if self.modes is not None:
-                        selected_modes.append(self.modes[i])
-            new_chain_id.append(len(selected_atoms))
-        if self.modes is not None:
-            selected_modes = np.array(selected_modes)
-        selected_atoms =np.array(selected_atoms)
-
-        return Molecule(coords=selected_atoms , modes=selected_modes, chain_id=new_chain_id)
+            self.modes = self.modes[atom_idx]
 
     def center_structure(self):
         self.coords -= np.mean(self.coords)
@@ -73,46 +72,12 @@ class Molecule:
     def show(self):
         src.viewers.structures_viewer(self)
 
-    def to_density(self,size, gaussian_sigma, sampling_rate=1, threshold = None, box_size=True):
-        if box_size :
-            if ((self.coords < -size * sampling_rate / 2).any() or (self.coords > size * sampling_rate / 2).any()):
-                print("WARNING !! box size = -" + str(np.max([
-                    (size * sampling_rate / 2) - np.max(self.coords),
-                    (size * sampling_rate / 2) + np.min(self.coords)]
-                )))
-            else:
-                print("box size = " + str(np.max([
-                    (size * sampling_rate / 2) - np.max(self.coords),
-                    (size * sampling_rate / 2) + np.min(self.coords)]
-                )))
-
-        if threshold is not None :
-            density = src.functions.volume_from_pdb_fast3(self.coords,size=size, sampling_rate=sampling_rate,
-                                                          sigma=gaussian_sigma, threshold=threshold)
-        else :
-            density = src.functions.volume_from_pdb_fast2(self.coords, size=size, sampling_rate=sampling_rate,
-                                                          sigma=gaussian_sigma)
-        return Density(data=density, sampling_rate=sampling_rate, gaussian_sigma=gaussian_sigma, threshold=threshold)
-
-    def to_image(self, size, gaussian_sigma, sampling_rate=1, threshold = None):
-        if threshold is not None:
-            img = src.functions.image_from_pdb_fast3(self.coords, size=size, sampling_rate=sampling_rate,
-                                                    sigma=gaussian_sigma, threshold=threshold)
-        else:
-            img = src.functions.image_from_pdb_fast(self.coords, size=size, sampling_rate=sampling_rate, sigma=gaussian_sigma)
-        return Image(img, sampling_rate, gaussian_sigma, threshold)
-
     def rotate(self, angles):
-        a, b, c = angles
-        cos = np.cos
-        sin = np.sin
-        R = [[cos(a) * cos(b), cos(a) * sin(b) * sin(c) - sin(a) * cos(c), cos(a) * sin(b) * cos(c) + sin(a) * sin(c)],
-             [sin(a) * cos(b), sin(a) * sin(b) * sin(c) + cos(a) * cos(c), sin(a) * sin(b) * cos(c) - cos(a) * sin(c)],
-             [-sin(b), cos(b) * sin(c), cos(b) * cos(c)]];
+        R= src.functions.generate_euler_matrix(angles)
+        self.coords = np.dot(R, self.coords.T).T
         for i in range(self.n_atoms):
-            self.coords[i] = np.dot(self.coords[i], R)
             if self.modes is not None :
-                self.modes[i] =  np.dot(self.modes[i], R)
+                self.modes[i] =  np.dot(R , self.modes[i].T).T
 
     def rotate2(self, angles):
         a, b, c = angles
@@ -135,7 +100,7 @@ class Molecule:
             first[i] = self.get_chain(i)[:3]
         return internals, first
 
-    def energy_min(self, U_lim, step):
+    def energy_min(self, U_lim, step, verbose=True):
         U_step = self.get_energy()
         print("U_init = "+str(U_step))
         deformed_coords=np.array(self.coords)
@@ -143,42 +108,154 @@ class Molecule:
         accept=[]
         while U_lim < U_step:
             candidate_coords = deformed_coords +  np.random.normal(0, step, (self.n_atoms,3))
-            candidate_mol = Molecule(candidate_coords, chain_id=self.chain_id)
-            U_candidate = candidate_mol.get_energy()
+            U_candidate = src.forcefield.get_energy(self, candidate_coords, verbose=False)
 
             if U_candidate < U_step :
                 U_step = U_candidate
                 deformed_coords = candidate_coords
                 accept.append(1)
-                print("U_step = "+str(U_step)+ " ; acceptance_rate="+str(np.mean(accept)))
+                if verbose : print("U_step = "+str(U_step)+ " ; acceptance_rate="+str(np.mean(accept)))
             else:
                 accept.append(0)
                 # print("rejected\r")
             if len(accept) > 20 : accept = accept[-20:]
 
-        return Molecule(deformed_coords,chain_id=self.chain_id, modes=self.modes)
+        new_mol =Molecule.from_molecule(self)
+        new_mol.coords = deformed_coords
+        return new_mol
 
-class Density:
+    def set_forcefield(self, psf_file=None):
 
-    def __init__(self, data, sampling_rate, gaussian_sigma=None, threshold=None):
-        self.data =data
-        self.sampling_rate = sampling_rate
-        self.gaussian_sigma = gaussian_sigma
-        self.threshold=threshold
-        self.size = data.shape[0]
+        if psf_file is not None:
+            psf = src.io.read_psf(psf_file)
+            self.bonds= psf["bonds"]
+            self.angles= psf["angles"]
+            self.dihedrals= psf["dihedrals"]
+            self.atoms= psf["atoms"]
+            self.prm = MoleculeForcefieldPrm.from_prm_file(self, prm_file=PARAMETER_FILE)
 
-    def show(self):
-        src.viewers.density_viewer(self)
+        else:
+            bonds     = [[],[]]
+            angles    = [[],[],[]]
+            dihedrals = [[],[],[],[]]
 
-class Image:
+            for i in range(self.n_chain) :
+                idx = np.arange(self.chain_id[i], self.chain_id[i+1])
+                bonds[0] += list(idx[:-1])
+                bonds[1] += list(idx[1:])
 
-    def __init__(self, data, sampling_rate, gaussian_sigma=None, threshold=None):
-        self.data =data
-        self.sampling_rate = sampling_rate
-        self.gaussian_sigma = gaussian_sigma
-        self.size = data.shape[0]
-        self.threshold = threshold
+                angles[0] += list(idx[:-2])
+                angles[1] += list(idx[1:-1])
+                angles[2] += list(idx[2:])
 
-    def show(self):
-        src.viewers.image_viewer(self)
+                dihedrals[0] += list(idx[:-3])
+                dihedrals[1] += list(idx[1:-2])
+                dihedrals[2] += list(idx[2:-1])
+                dihedrals[3] += list(idx[3:])
 
+            self.bonds = np.array(bonds).T
+            self.angles = np.array(angles).T
+            self.dihedrals = np.array(dihedrals).T
+            self.prm = MoleculeForcefieldPrm.from_default(self)
+
+class MoleculeForcefieldPrm:
+
+    def __init__(self, Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass):
+        self.Kb = Kb
+        self.b0 = b0
+        self.KTheta = KTheta
+        self.Theta0 = Theta0
+        self.Kchi = Kchi
+        self.n = n
+        self.delta = delta
+        self.charge = charge
+        self.mass  = mass
+
+    @classmethod
+    def from_prm_file(cls, mol, prm_file):
+        charmm_force_field = src.io.read_prm(prm_file)
+
+        atom_type = []
+        for i in range(mol.n_atoms):
+            atom_type.append(mol.atoms[i][2])
+        atom_type = np.array(atom_type)
+
+        n_bonds = len(mol.bonds)
+        n_angles = len(mol.angles)
+        n_dihedrals = len(mol.dihedrals)
+
+        Kb = np.zeros(n_bonds)
+        b0 = np.zeros(n_bonds)
+        KTheta= np.zeros(n_angles)
+        Theta0= np.zeros(n_angles)
+        Kchi= np.zeros(n_dihedrals)
+        n= np.zeros(n_dihedrals)
+        delta= np.zeros(n_dihedrals)
+        charge= np.array(mol.atoms)[:, 3].astype(float)
+        mass= np.array(mol.atoms)[:, 4].astype(float)
+
+        for i in range(n_bonds):
+            comb = atom_type[mol.bonds[i]]
+            found = False
+            for perm in [comb, comb[::-1]]:
+                bond = "-".join(perm)
+                if bond in charmm_force_field["bonds"]:
+                    Kb[i] = charmm_force_field["bonds"][bond][0]
+                    b0[i] = charmm_force_field["bonds"][bond][1]
+                    found = True
+                    break
+            if not found:
+                print("Err")
+
+        for i in range(n_angles):
+            comb = atom_type[mol.angles[i]]
+            found = False
+            for perm in [comb, comb[::-1]]:
+                angle = "-".join(perm)
+                if angle in charmm_force_field["angles"]:
+                    KTheta[i] = charmm_force_field["angles"][angle][0]
+                    Theta0[i] = charmm_force_field["angles"][angle][1]
+                    found = True
+                    break
+            if not found:
+                print("Err")
+
+        for i in range(n_dihedrals):
+            comb = list(atom_type[mol.dihedrals[i]])
+            found = False
+            for perm in permutations(comb):
+                dihedral = "-".join(perm)
+                if dihedral in charmm_force_field["dihedrals"]:
+                    Kchi[i] = charmm_force_field["dihedrals"][dihedral][0]
+                    n[i] = charmm_force_field["dihedrals"][dihedral][1]
+                    delta[i] = charmm_force_field["dihedrals"][dihedral][2]
+                    found = True
+                    break
+            if not found:
+                found = False
+                for perm in permutations(comb):
+                    dihedral = "-".join(['X'] + list(perm[1:3]) + ['X'])
+                    if dihedral in charmm_force_field["dihedrals"]:
+                        Kchi[i] = charmm_force_field["dihedrals"][dihedral][0]
+                        n[i] = charmm_force_field["dihedrals"][dihedral][1]
+                        delta[i] = charmm_force_field["dihedrals"][dihedral][2]
+                        found = True
+                        break
+                if not found:
+                    print("Err")
+
+        return cls(Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass)
+
+    @classmethod
+    def from_default(cls, mol):
+        Kb = np.ones(mol.bonds.shape[0]) * K_BONDS
+        b0 = np.ones(mol.bonds.shape[0]) * R0_BONDS
+        KTheta = np.ones(mol.angles.shape[0]) * K_ANGLES
+        Theta0 = np.ones(mol.angles.shape[0]) * THETA0_ANGLES
+        Kchi = np.ones(mol.dihedrals.shape[0]) * K_TORSIONS
+        n = np.ones(mol.dihedrals.shape[0]) * N_TORSIONS
+        delta = np.ones(mol.dihedrals.shape[0]) * DELTA_TORSIONS
+        charge = np.zeros(mol.n_atoms)
+        mass = np.ones(mol.n_atoms) * CARBON_MASS
+
+        return cls(Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass)

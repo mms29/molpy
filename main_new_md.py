@@ -4,7 +4,7 @@ from src.functions import *
 from src.io import read_pdb
 import src.constants
 import src
-import src.force_field
+import src.forcefield
 import src.molecule
 import src.flexible_fitting
 

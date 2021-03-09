@@ -5,6 +5,10 @@ import os.path
 import hashlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from src.flexible_fitting import FlexibleFitting
+import multiprocessing.pool
+import autograd.numpy as npg
+from autograd import elementwise_grad
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -113,6 +117,21 @@ def volume_from_pdb_fast3(coord, size, sigma, sampling_rate=1, threshold=2):
             vox[i,1]:vox[i,1]+n_vox,
             vox[i,2]:vox[i,2]+n_vox]+=np.exp(-np.square(np.linalg.norm(x - mu, axis=0))/(2*(sigma ** 2)))
 
+    return vol
+
+def volume_from_pdb_fast4(coord, size, sigma, sampling_rate=1, threshold=2):
+    vox, n_vox = select_voxels(coord, size, sampling_rate, threshold)
+    n_atoms= coord.shape[0]
+    vol = np.zeros((size, size, size))
+    x = np.repeat(coord, n_vox ** 3).reshape(n_atoms, 3, n_vox, n_vox, n_vox)
+    i=0
+    mu = (np.mgrid[vox[i,0]:vox[i,0]+n_vox,
+                     vox[i,1]:vox[i,1]+n_vox,
+                     vox[i,2]:vox[i,2]+n_vox] - size / 2) * sampling_rate
+    for i in range(n_atoms):
+        vol[vox[i,0]:vox[i,0]+n_vox,
+            vox[i,1]:vox[i,1]+n_vox,
+            vox[i,2]:vox[i,2]+n_vox]+=np.exp(-np.square(np.linalg.norm(x[i] - mu, axis=0))/(2*(sigma ** 2)))
     return vol
 
 def get_RMSD(psim, pexp):
@@ -400,11 +419,9 @@ def get_grad_RMSD3_NMA(coord, psim, pexp, size, sampling_rate, sigma, A_modes, t
                   vox[i, 1]:vox[i, 1] + n_vox,
                   vox[i, 2]:vox[i, 2] + n_vox] * np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
 
-        dpsimx =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
-        dx[i] = np.sum(dpsimx, axis=(1,2,3))
-
-        dpsimq = -(1 / (sigma ** 2)) * (x - mu) * np.array([tmp, tmp, tmp])
-        dq += np.dot(A_modes[i] , np.sum(dpsimq, axis=(1, 2, 3)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsim, axis=(1,2,3))
+        dq += np.dot(A_modes[i] ,dx[i])
 
     return dx, dq
 
@@ -628,10 +645,107 @@ def generate_rotation_matrix(angle, vector):
 
 def generate_euler_matrix(angles):
     a, b, c = angles
+    cos = npg.cos
+    sin = npg.sin
+    R = npg.array([[ cos(c) *  cos(b) * cos(a) -  sin(c) * sin(a), cos(c) * cos(b) * sin(a) +  sin(c) * cos(a), -cos(c) * sin(b)],
+                  [- sin(c) *  cos(b) * cos(a) - cos(c) * sin(a), - sin(c) * cos(b) * sin(a) + cos(c) * cos(a), sin(c) * sin(b)],
+                  [sin(b) * cos(a), sin(b) * sin(a), cos(b)]])
+    return R
+#
+# def get_euler_autograd(coord,A , x, q, angles):
+#     def rotate(coord, A, x, q, angles):
+#         tmp = coord + x + npg.dot(q, A)
+#         return npg.dot(generate_euler_matrix(angles), tmp.T).T
+#     grad = elementwise_grad(rotate, (2,3,4))
+#     return grad(coord,A,x, q, angles)
+
+def get_euler_grad(angles, coord):
+    a,b,c = angles
+    x, y, z = coord
     cos = np.cos
     sin = np.sin
-    R = [[cos(a) * cos(b), cos(a) * sin(b) * sin(c) - sin(a) * cos(c), cos(a) * sin(b) * cos(c) + sin(a) * sin(c)],
-         [sin(a) * cos(b), sin(a) * sin(b) * sin(c) + cos(a) * cos(c), sin(a) * sin(b) * cos(c) - cos(a) * sin(c)],
-         [-sin(b), cos(b) * sin(c), cos(b) * cos(c)]]
-    return R
+
+    dR = np.array([[x* (cos(c) *  cos(b) * -sin(a) -  sin(c) * cos(a)) + y* ( cos(c) * cos(b) * cos(a) +  sin(c) * -sin(a)),
+                    x* (- sin(c) *  cos(b) * -sin(a) - cos(c) * cos(a)) + y* ( - sin(c) * cos(b) * cos(a) + cos(c) * -sin(a)),
+                    x* (sin(b) * -sin(a)) + y* (sin(b) * cos(a))],
+
+                   [x* (cos(c) * -sin(b) * cos(a)) + y* ( cos(c) * -sin(b) * sin(a)) + z* ( -cos(c) * cos(b)),
+                    x* (- sin(c) *  -sin(b) * cos(a)) + y* ( - sin(c) * -sin(b) * sin(a)) + z* (sin(c) * cos(b)),
+                    x* (cos(b) * cos(a)) + y* (cos(b) * sin(a)) + z* (-sin(b))],
+
+                   [x* (-sin(c) *  cos(b) * cos(a) -  cos(c) * sin(a)) + y* ( -sin(c) * cos(b) * sin(a) +  cos(c) * cos(a)) + z* ( sin(c) * sin(b)),
+                    x * (- cos(c) * cos(b) * cos(a) + sin(c) * sin(a)) + y* ( - cos(c) * cos(b) * sin(a) - sin(c) * cos(a))+ z* (cos(c) * sin(b)),
+                    0]])
+
+    return dR
+
+# def generate_euler_matrix2(angles):
+#     a, b, c = angles
+#     cos = np.cos
+#     sin = np.sin
+#     ca = cos(a)
+#     sa = sin(a)
+#     cb = cos(b)
+#     sb = sin(b)
+#     cg = cos(c)
+#     sg = sin(c)
+#     cc = cb * ca
+#     cs = cb * sa
+#     sc = sb * ca
+#     ss = sb * sa
+#     R = np.zeros((3, 3))
+#     R[0, 0] = cg * cc - sg * sa
+#     R[0, 1] = cg * cs + sg * ca
+#     R[0, 2] = -cg * sb
+#     R[1, 0] = -sg * cc - cg * sa
+#     R[1, 1] = -sg * cs + cg * ca
+#     R[1, 2] = sg * sb
+#     R[2, 0] = sc
+#     R[2, 1] = ss
+#     R[2, 2] = cb
+#     return R
+
+class NoDaemonProcess(multiprocessing.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, value):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context())):
+    Process = NoDaemonProcess
+
+class NestablePool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(NestablePool, self).__init__(*args, **kwargs)
+
+def multiple_fitting(init, targets, mode, n_chain, n_iter, n_warmup, params, n_proc):
+    ff = []
+    N = len(targets)
+    for t in targets :
+        ff.append(FlexibleFitting(init=init, target = t, mode=mode, n_chain=n_chain,
+                                  n_iter=n_iter, n_warmup=n_warmup, params=params))
+    ff = np.array(ff)
+
+    n_loop = (N * n_chain) //n_proc
+    n_last_process = ((N * n_chain) % n_proc)//n_chain
+    n_process = n_proc//n_chain
+    process = [np.arange(i*n_process, (i+1)*n_process) for i in range(n_loop)]
+    process.append(np.arange(n_loop*n_process, n_loop*n_process + n_last_process))
+    fits=[]
+    print("Number of loops : "+str(n_loop))
+    for i in process:
+
+        print("\t fitting models # "+str(i))
+        try :
+            with NestablePool(n_process) as p:
+                fits += p.map(FlexibleFitting.HMC, ff[i])
+                p.close()
+                p.join()
+        except RuntimeError:
+            print("Failed")
+    return fits
 
