@@ -1,5 +1,3 @@
-import numpy as np
-
 K_BOLTZMANN = 1.380649e-23
 CARBON_MASS = 1.99264671e-26
 

@@ -1,12 +1,18 @@
-import numpy as np
-import src.molecule
-import mrcfile
 import os
-from src.constants import TOPOLOGY_FILE, PARAMETER_FILE
 
+import mrcfile
+import numpy as np
+
+from src.constants import TOPOLOGY_FILE
 
 
 def read_pdb(file):
+    """
+    Read PDB file
+    :param file: PDF file
+    :return: coord, atom_type, chain_id, genfile :  the Cartesian coordinates, list of atom types,
+                                                    list of chain indexes and generative PDB file
+    """
     coords = []
     atom_type=[]
     chain_id =[0]
@@ -23,27 +29,14 @@ def read_pdb(file):
     if len(chain_id) == 1:
         chain_id.append(len(coords))
 
-    return src.molecule.Molecule(np.array(coords), atom_type=np.array(atom_type), chain_id=chain_id, genfile=file)
-# def read_pdb(file):
-#     coords = [[]]
-#     atom_type=[[]]
-#     n_chain = 0
-#     with open(file, "r") as file :
-#         for line in file:
-#             l = line.split()
-#             if len(l) >0:
-#                 if l[0] == 'ATOM':
-#                     coords[n_chain].append([float(l[6]), float(l[7]), float(l[8])])
-#                     atom_type[n_chain].append(l[2])
-#                 if l[0] == 'TER':
-#                     coords[n_chain] = np.array(coords[n_chain])
-#                     coords.append([])
-#                     atom_type.append([])
-#                     n_chain += 1
-#
-#     return src.molecule.Molecule(coords, atom_type=atom_type)
+    return np.array(coords), np.array(atom_type), chain_id, file
 
 def save_pdb(mol, file):
+    """
+    Save Molecule to PDB file
+    :param mol: Molecule to save
+    :param file: PDB file
+    """
     genfile = mol.genfile
     print("Saving pdb file ...")
     with open(file, "w") as file:
@@ -83,10 +76,22 @@ def save_pdb(mol, file):
                     #     file.write(line)
     print("Done")
 
+def read_mrc(file):
+    """
+    Read MRC volume file
+    :param file: MRC file
+    :return: data, voxel_size : the voxels array of data, the voxel size
+    """
+    with mrcfile.open(file) as mrc:
+        data = np.transpose(mrc.data, (2, 1, 0))
+        voxel_size = np.float(mrc.voxel_size['x'])
+        return data, voxel_size
+
 def save_mrc(vol, file):
     """
-    Save the density to an mrc file. The origin of the grid will be (0,0,0)
-    • outfilename: the mrc file name for the output
+    Save the Volume to an mrc file. The origin of the grid will be (0,0,0)
+    :param vol: Volume to save
+    :param file: the mrc file name for the output
     """
     print("Saving mrc file ...")
     data = vol.data.astype('float32')
@@ -101,13 +106,10 @@ def save_mrc(vol, file):
         mrc.update_header_stats()
     print("Done")
 
-def read_mrc(file):
-    with mrcfile.open(file) as mrc:
-        data = np.transpose(mrc.data, (2, 1, 0))
-        voxel_size = np.float(mrc.voxel_size['x'])
-        return data, voxel_size
-
 def read_xmd(file):
+    """
+    Experimental TODO
+    """
     header=[]
     modes = []
     shifts = []
@@ -132,6 +134,10 @@ def read_xmd(file):
     return np.array(modes), np.array(shifts), np.array(angles)
 
 def create_psf( file):
+    """
+    Generate PSF file using VMD from a PDB file
+    :param file: PDB file to construct PSF file from (the output PSF file will have the same name with only extension changed
+    """
     pre, ext = os.path.splitext(file)
 
     with open("psfgen.tcl", "w") as psfgen :
@@ -163,6 +169,11 @@ def create_psf( file):
     os.system("vmd -dispdev text -e psfgen.tcl")
 
 def read_psf(file):
+    """
+    Read PSF file
+    :param file: PSF file
+    :return: dic containing structure data (bonds, angles, dihedrals etc.)
+    """
     with open(file) as psf_file:
         dic = {}
         section = {
@@ -203,6 +214,11 @@ def read_psf(file):
     return dic
 
 def read_prm(file):
+    """
+    Rad PRM file (CHARMM parameters file)
+    :param file: PRM file
+    :return: dic containing parameters data (bonds, angles, dihedrals etc.)
+    """
     dic ={
         "bonds" : {},
         "angles" : {},

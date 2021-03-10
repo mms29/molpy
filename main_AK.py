@@ -1,10 +1,8 @@
-
-import matplotlib.pyplot as plt
-import src.simulation
-from src.viewers import structures_viewer, chimera_structure_viewer
-from src.flexible_fitting import *
 import src.io
-from src.constants import *
+import src.simulation
+from src.flexible_fitting import *
+from src.viewers import structures_viewer, chimera_structure_viewer
+
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
@@ -61,7 +59,7 @@ n_iter=20
 n_warmup = n_iter // 2
 
 
-fit  =FlexibleFitting(init = init, target= target_density, mode="HMC", params=params,
+fit  =FlexibleFitting(init = init, target= target_density, vars=["q"], params=params,
                       n_iter=n_iter, n_warmup=n_warmup, n_chain=4, verbose=2)
 
 fit.HMC()

@@ -1,14 +1,15 @@
+import hashlib
+import multiprocessing.pool
+import os.path
+import pickle
+
+import autograd.numpy as npg
+import matplotlib.pyplot as plt
 import numpy as np
 import pystan
-import pickle
-import os.path
-import hashlib
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
 from src.flexible_fitting import FlexibleFitting
-import multiprocessing.pool
-import autograd.numpy as npg
-from autograd import elementwise_grad
+
 
 def md5(fname):
     hash_md5 = hashlib.md5()
@@ -722,11 +723,11 @@ class NestablePool(multiprocessing.pool.Pool):
         kwargs['context'] = NoDaemonContext()
         super(NestablePool, self).__init__(*args, **kwargs)
 
-def multiple_fitting(init, targets, mode, n_chain, n_iter, n_warmup, params, n_proc):
+def multiple_fitting(init, targets, vars, n_chain, n_iter, n_warmup, params, n_proc):
     ff = []
     N = len(targets)
     for t in targets :
-        ff.append(FlexibleFitting(init=init, target = t, mode=mode, n_chain=n_chain,
+        ff.append(FlexibleFitting(init=init, target = t, vars=vars, n_chain=n_chain,
                                   n_iter=n_iter, n_warmup=n_warmup, params=params))
     ff = np.array(ff)
 

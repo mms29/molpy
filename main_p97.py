@@ -157,13 +157,13 @@
 
 ########################################################################
 
-from src.flexible_fitting import *
-import src.io
-from src.constants import *
-from matplotlib.ticker import MaxNLocator
-import src.simulation
-from src.viewers import structures_viewer, chimera_structure_viewer
 import mkl
+from matplotlib.ticker import MaxNLocator
+
+import src.io
+import src.simulation
+from src.flexible_fitting import *
+
 mkl.set_num_threads(1)
 
 # import PDB

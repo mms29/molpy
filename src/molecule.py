@@ -1,17 +1,30 @@
-import src.functions
-import src.forcefield
-import numpy as np
-import src.viewers
-from itertools import permutations
-import src.io
-from src.constants import *
 import copy
+from itertools import permutations
+import numpy as np
+
+import src.forcefield
+import src.functions
+import src.io
+import src.viewers
+from src.constants import *
+
 
 class Molecule:
+    """
+    Atomic structure of a molecule
+    """
 
     def __init__(self, coords, modes=None, atom_type=None, chain_id=None, genfile=None, coarse_grained=False):
+        """
+        Contructor
+        :param coords: numpy array N*3 of Cartesian coordinates of N atoms
+        :param modes: numpy array of N*M*3 of normal modes vectors of M modes and N atoms
+        :param atom_type: list of name of atoms
+        :param chain_id: list of number of atoms where the chains of the proteins begins
+        :param genfile: PDB file used to generate the class
+        :param coarse_grained: boolean of type of Molecula if coarse grained
+        """
         self.n_atoms= coords.shape[0]
-
         self.coords = coords
         self.modes=modes
         self.atom_type = atom_type
@@ -25,39 +38,62 @@ class Molecule:
             self.n_chain = len(chain_id) -1
 
     @classmethod
-    def from_internals(cls, internals, first, chain_id, modes=None, atom_type=None, ):
-        n_chain = internals.shape[0]
-        n_atoms = internals.shape[1] +3
-        coords = np.zeros((n_atoms*n_chain,3))
-        for i in range(n_chain):
-            coords[chain_id[i]:chain_id[i+1]] = src.functions.internal_to_cartesian(internal=internals[0], first=first[0])
-
-        return cls(coords=coords, modes=modes, atom_type=atom_type,chain_id=chain_id)
+    def from_file(cls, file):
+        """
+        Constructor from PDB file
+        :param file: PDB file
+        :return: Molecule
+        """
+        coords, atom_type, chain_id, genfile =src.io.read_pdb(file)
+        return cls(coords=coords, atom_type=atom_type, chain_id=chain_id, genfile=genfile)
 
     @classmethod
     def from_molecule(cls, mol):
+        """
+        Copy Constructor
+        """
         return copy.deepcopy(mol)
 
 
     def get_energy(self, verbose=False):
-        return src.forcefield.get_energy(self, self.coords, verbose=verbose)
-
-    def get_gradient(self):
-        return src.forcefield.get_autograd(self)
+        """
+        Compute Potential energy of the object
+        :param verbose: verbose level
+        :return: the Total Potential energy
+        """
+        return src.forcefield.get_energy(coord=self.coords, molstr = self.psf, molprm = self.prm, verbose=verbose)
 
     def add_modes(self, file, n_modes):
+        """
+        Add normal modes vectors to the object
+        :param file: directory containing the normal modes
+        :param n_modes: number of desired normal modes
+        """
         self.modes = src.functions.read_modes(file, n_modes=n_modes)
         if self.modes.shape[0] != self.n_atoms:
             raise RuntimeError("Modes vectors and coordinates do not match : ("+str(self.modes.shape[0])+") != ("+str(self.n_atoms)+")")
 
 
     def select_modes(self, selected_modes):
+        """
+        select specific normal modes vectors
+        :param selected_modes: index of selected modes
+        """
         self.modes = self.modes[:, selected_modes]
 
     def get_chain(self, id):
+        """
+        Return coordinates of a specific chain
+        :param id: chain number
+        :return: coordinates of the chain
+        """
         return self.coords[self.chain_id[id]:self.chain_id[id+1]]
 
     def select_atoms(self, pattern="CA"):
+        """
+        Select atoms following a specific pattern, transform the molecule to a coarse-grained model
+        :param pattern: CA to select Carbon Alpha atoms
+        """
         self.coarse_grained = True
         atom_idx = np.where(self.atom_type == pattern)[0]
         self.coords = self.coords[atom_idx]
@@ -67,100 +103,120 @@ class Molecule:
             self.modes = self.modes[atom_idx]
 
     def center_structure(self):
+        """
+        Center the structure coordinates around 0
+        """
         self.coords -= np.mean(self.coords)
 
     def show(self):
+        """
+        Show the structure using matplotlib
+        """
         src.viewers.structures_viewer(self)
 
     def rotate(self, angles):
+        """
+        Rotate the molecule
+        :param angles: list of 3 Euler angles
+        """
         R= src.functions.generate_euler_matrix(angles)
         self.coords = np.dot(R, self.coords.T).T
         for i in range(self.n_atoms):
             if self.modes is not None :
                 self.modes[i] =  np.dot(R , self.modes[i].T).T
 
-    def rotate2(self, angles):
-        a, b, c = angles
-        cos = np.cos
-        sin = np.sin
-        x = self.coords[:,0] * (cos(a) * cos(b))                            + self.coords[:,1] * (sin(a) * cos(b))                            + self.coords[:,2]* (-sin(b))
-        y = self.coords[:,0] * (cos(a) * sin(b) * sin(c) - sin(a) * cos(c)) + self.coords[:,1] * (sin(a) * sin(b) * sin(c) + cos(a) * cos(c)) + self.coords[:,2]* (cos(b) * sin(c))
-        z = self.coords[:,0] * (cos(a) * sin(b) * cos(c) + sin(a) * sin(c)) + self.coords[:,1] * (sin(a) * sin(b) * cos(c) - cos(a) * sin(c)) + self.coords[:,2]* (cos(b) * cos(c))
-        self.coords[:, 0] = x
-        self.coords[:, 1] = y
-        self.coords[:, 2] = z
-    # def show_internal(self):
-    #     src.viewers.internal_viewer(self)
-
-    def get_internal(self):
-        internals =np.zeros((self.n_chain, self.n_atoms-3, 3))
-        first = np.zeros((self.n_chain, 3, 3))
-        for i in range(self.n_chain):
-            internals[i]  = src.functions.cartesian_to_internal(self.get_chain(i))
-            first[i] = self.get_chain(i)[:3]
-        return internals, first
-
-    def energy_min(self, U_lim, step, verbose=True):
-        U_step = self.get_energy()
-        print("U_init = "+str(U_step))
-        deformed_coords=np.array(self.coords)
-
-        accept=[]
-        while U_lim < U_step:
-            candidate_coords = deformed_coords +  np.random.normal(0, step, (self.n_atoms,3))
-            U_candidate = src.forcefield.get_energy(self, candidate_coords, verbose=False)
-
-            if U_candidate < U_step :
-                U_step = U_candidate
-                deformed_coords = candidate_coords
-                accept.append(1)
-                if verbose : print("U_step = "+str(U_step)+ " ; acceptance_rate="+str(np.mean(accept)))
-            else:
-                accept.append(0)
-                # print("rejected\r")
-            if len(accept) > 20 : accept = accept[-20:]
-
-        new_mol =Molecule.from_molecule(self)
-        new_mol.coords = deformed_coords
-        return new_mol
-
     def set_forcefield(self, psf_file=None):
-
+        """
+        Set the force field structure and parameters for the Molecule.
+        :param psf_file: .psf file associated to the molecule; If None, default parameters are assigned (CA only)
+        """
         if psf_file is not None:
-            psf = src.io.read_psf(psf_file)
-            self.bonds= psf["bonds"]
-            self.angles= psf["angles"]
-            self.dihedrals= psf["dihedrals"]
-            self.atoms= psf["atoms"]
-            self.prm = MoleculeForcefieldPrm.from_prm_file(self, prm_file=PARAMETER_FILE)
-
+            self.psf = MoleculeStructure.from_psf_file(psf_file)
+            self.prm = MoleculeForcefieldPrm.from_prm_file(self.psf, prm_file=PARAMETER_FILE)
         else:
-            bonds     = [[],[]]
-            angles    = [[],[],[]]
-            dihedrals = [[],[],[],[]]
+            self.psf = MoleculeStructure.from_default(self.chain_id)
+            self.prm = MoleculeForcefieldPrm.from_default(self.psf)
 
-            for i in range(self.n_chain) :
-                idx = np.arange(self.chain_id[i], self.chain_id[i+1])
-                bonds[0] += list(idx[:-1])
-                bonds[1] += list(idx[1:])
+class MoleculeStructure:
+    """
+    Structure of the Molecule
+    """
 
-                angles[0] += list(idx[:-2])
-                angles[1] += list(idx[1:-1])
-                angles[2] += list(idx[2:])
+    def __init__(self, bonds, angles, dihedrals, atoms):
+        """
+        Constructor
+        :param bonds: numpy array of size Nb*2 of Nb bonds index
+        :param angles: numpy array of size Na*3 of Na angles index
+        :param dihedrals: numpy array of size Nd*4 of Nd dihedrals index
+        :param atoms: TODO
+        """
+        self.bonds = bonds
+        self.angles=angles
+        self.dihedrals = dihedrals
+        self.atoms=atoms
+        self.n_atoms = len(atoms)
 
-                dihedrals[0] += list(idx[:-3])
-                dihedrals[1] += list(idx[1:-2])
-                dihedrals[2] += list(idx[2:-1])
-                dihedrals[3] += list(idx[3:])
+    @classmethod
+    def from_psf_file(cls, file):
+        """
+        Constructor from psf file
+        :param file: .psf file
+        :return: MoleculeStructure
+        """
+        psf = src.io.read_psf(file)
+        return cls(bonds=psf["bonds"], angles=psf["angles"], dihedrals=psf["dihedrals"], atoms=psf["atoms"])
 
-            self.bonds = np.array(bonds).T
-            self.angles = np.array(angles).T
-            self.dihedrals = np.array(dihedrals).T
-            self.prm = MoleculeForcefieldPrm.from_default(self)
+    @classmethod
+    def from_default(cls, chain_id):
+        """
+        Constructor from default structure (consecutive atoms in a chain are bonded)
+        :param chain_id: list of chain index
+        :return: MoleculeStructure
+        """
+        bonds = [[], []]
+        angles = [[], [], []]
+        dihedrals = [[], [], [], []]
+
+        for i in range(len(chain_id)-1):
+            idx = np.arange(chain_id[i], chain_id[i + 1])
+            bonds[0] += list(idx[:-1])
+            bonds[1] += list(idx[1:])
+
+            angles[0] += list(idx[:-2])
+            angles[1] += list(idx[1:-1])
+            angles[2] += list(idx[2:])
+
+            dihedrals[0] += list(idx[:-3])
+            dihedrals[1] += list(idx[1:-2])
+            dihedrals[2] += list(idx[2:-1])
+            dihedrals[3] += list(idx[3:])
+
+        bonds = np.array(bonds).T
+        angles = np.array(angles).T
+        dihedrals = np.array(dihedrals).T
+
+        # TODO : atoms
+        return cls(bonds=bonds, angles=angles, dihedrals=dihedrals, atoms=np.zeros(chain_id[-1]))
+
 
 class MoleculeForcefieldPrm:
+    """
+    Parameters of the force field of the Molecule
+    """
 
     def __init__(self, Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass):
+        """
+        Constructor
+        :param Kb: bonds K
+        :param b0: bonds b0
+        :param KTheta: angles K
+        :param Theta0:  angles theta0
+        :param Kchi: dihedrals K
+        :param n: dihedrals n
+        :param delta: dihedrals delta
+        :param charge: atoms charge
+        :param mass: atoms mass
+        """
         self.Kb = Kb
         self.b0 = b0
         self.KTheta = KTheta
@@ -173,6 +229,12 @@ class MoleculeForcefieldPrm:
 
     @classmethod
     def from_prm_file(cls, mol, prm_file):
+        """
+        Set the force field parameters from a .prm file (CHARMM)
+        :param mol: MoleculeStructure
+        :param prm_file: .prm parameter file
+        :return: MoleculeForcefieldPrm
+        """
         charmm_force_field = src.io.read_prm(prm_file)
 
         atom_type = []
@@ -248,6 +310,11 @@ class MoleculeForcefieldPrm:
 
     @classmethod
     def from_default(cls, mol):
+        """
+        Set the force field parameters from default values (CA only)
+        :param mol: MoleculeStructure
+        :return: MoleculeForcefieldPrm
+        """
         Kb = np.ones(mol.bonds.shape[0]) * K_BONDS
         b0 = np.ones(mol.bonds.shape[0]) * R0_BONDS
         KTheta = np.ones(mol.angles.shape[0]) * K_ANGLES

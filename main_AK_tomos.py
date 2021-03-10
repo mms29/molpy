@@ -1,15 +1,11 @@
-
-import matplotlib.pyplot as plt
-import src.simulation
-from src.viewers import structures_viewer, chimera_structure_viewer, chimera_fit_viewer
-from src.flexible_fitting import *
-import src.io
-from src.constants import *
-import copy
-from src.functions import multiple_fitting
-from src.molecule import Molecule
-from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
+from sklearn.decomposition import PCA
+
+import src.io
+import src.simulation
+from src.flexible_fitting import *
+from src.functions import multiple_fitting
+from src.viewers import chimera_structure_viewer
 
 N=100
 test = "test_noise_no_mw"
