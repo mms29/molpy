@@ -16,7 +16,8 @@ N=100
 # # gt_angles = gt_angles*np.pi/180
 
 # import PDB
-print("hello")
+import os
+print(os.getcwd())
 init =Molecule.from_file("bayesian-md-nma/data/AK_tomos/AK.pdb")
 init.center_structure()
 fnModes = np.array(["bayesian-md-nma/data/AK_tomos/modes/vec."+str(i+7) for i in range(3)])
