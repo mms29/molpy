@@ -63,13 +63,15 @@ class Molecule:
         """
         return src.forcefield.get_energy(coord=self.coords, molstr = self.psf, molprm = self.prm, verbose=verbose)
 
-    def add_modes(self, file, n_modes):
+    def add_modes(self, files, selection=None):
         """
         Add normal modes vectors to the object
-        :param file: directory containing the normal modes
+        :param files: directory containing the normal modes
         :param n_modes: number of desired normal modes
         """
-        self.modes = src.functions.read_modes(file, n_modes=n_modes)
+        if selection is not None:
+            files = list(np.array(files)[np.array(selection)-1])
+        self.modes = src.io.read_modes(files)
         if self.modes.shape[0] != self.n_atoms:
             raise RuntimeError("Modes vectors and coordinates do not match : ("+str(self.modes.shape[0])+") != ("+str(self.n_atoms)+")")
 
@@ -112,7 +114,7 @@ class Molecule:
         """
         Show the structure using matplotlib
         """
-        src.viewers.structures_viewer(self)
+        src.viewers.molecule_viewer(self)
 
     def rotate(self, angles):
         """
@@ -136,6 +138,13 @@ class Molecule:
         else:
             self.psf = MoleculeStructure.from_default(self.chain_id)
             self.prm = MoleculeForcefieldPrm.from_default(self.psf)
+
+    def save_pdb(self, file):
+        """
+        Save to PDB Format
+        :param file: pdb file path
+        """
+        src.io.save_pdb(self, file)
 
 class MoleculeStructure:
     """

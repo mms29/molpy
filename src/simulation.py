@@ -19,6 +19,7 @@ def nma_deform(mol, q):
 def energy_min(mol, U_lim, step, verbose=True):
     """
     Minimize the Potential Energy of the molecule by random walk
+    :param mol: Molecule to deform
     :param U_lim: Energy limit to reach
     :param step: step of the random walk
     :param verbose: verbose level
@@ -31,7 +32,7 @@ def energy_min(mol, U_lim, step, verbose=True):
     accept=[]
     while U_lim < U_step:
         candidate_coords = deformed_coords +  np.random.normal(0, step, (mol.n_atoms,3))
-        U_candidate = src.forcefield.get_energy(mol, candidate_coords, verbose=False)
+        U_candidate = src.forcefield.get_energy(coord=candidate_coords, molstr =mol.psf, molprm = mol.prm, verbose=False)
 
         if U_candidate < U_step :
             U_step = U_candidate

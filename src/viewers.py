@@ -94,10 +94,10 @@ def fit_viewer(fit):
     Matplotlib Vierwer for fitting statistics
     :param fit: FlexibleFitting
     """
-    if isinstance(fit, list):
-        fits = fit
+    if isinstance(fit.fit, list):
+        fits = fit.fit
     else:
-        fits = [fit]
+        fits = [fit.fit]
     fig, ax = plt.subplots(2, 3, figsize=(10, 5))
     for i in range(len(fits)):
         ax[0, 0].plot(fits[i]['U'])

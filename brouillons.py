@@ -103,7 +103,9 @@ chimera_structure_viewer([test, target])
 
 
 
-
+############################################################
+###  AUTOGRAD
+############################################################
 
 
 
@@ -138,3 +140,94 @@ a = get_autograd(init,  d)
 
 from src.forcefield import get_gradient_auto
 get_gradient_auto(init, {"x": init.coords, "angles": [0.0,.0,.0]})
+
+
+############################################################
+###  FIND CHAIN IN PSEUDOATOMS
+############################################################
+
+from src.molecule import Molecule
+from src.viewers import chimera_molecule_viewer
+import numpy as np
+import matplotlib.pyplot as plt
+import copy
+
+mol =Molecule.from_file(file="/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/001192_FlexProtConvertToPseudoAtoms/pseudoatoms.pdb")
+
+dist = np.zeros((mol.n_atoms, mol.n_atoms))
+for i in range(mol.n_atoms):
+    for j in range(mol.n_atoms):
+        dist[i,j] = np.linalg.norm(mol.coords[i]-mol.coords[j])
+        if i==j :
+            dist[i,j]=100.0
+plt.pcolormesh(dist)
+np.where(dist==dist.min())
+
+mol.set_forcefield()
+U =mol.get_energy()
+
+n=0
+l=[]
+while(n<1000):
+    for i in range(mol.n_atoms-1):
+        molc = copy.deepcopy(mol)
+        tmp1 = copy.deepcopy(molc.coords[i])
+        tmp2 = copy.deepcopy(molc.coords[i+1])
+        molc.coords[i] = tmp2
+        molc.coords[i+1] = tmp1
+        molc.set_forcefield()
+        Uc = molc.get_energy()
+        if Uc < U:
+            print("yes"+str(n)+" ; "+str(np.mean(l)))
+            mol = molc
+            U=Uc
+            l.append(1)
+
+        else :
+            l.append(0)
+        if len(l)>20:
+            l=l[1:]
+    n+=1
+
+
+
+############################################################
+###  P97
+############################################################
+
+from src.molecule import Molecule
+import numpy as np
+import copy
+from src.viewers import chimera_molecule_viewer
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+
+init = Molecule.from_file("data/P97/5ftm.pdb")
+init.center_structure()
+fnModes = np.array(["data/P97/modes_atoms/vec."+str(i+7) for i in range(4)])
+init.add_modes(fnModes)
+
+N=1000
+mols = []
+q = np.random.randint(0,2,(N,6))
+for n in range(N):
+    mol = copy.deepcopy(init)
+    for i in range(mol.n_chain):
+        mol.coords[mol.chain_id[i]:mol.chain_id[i+1]] += np.dot(np.array([0,0,q[n,i]*-1500,0]), mol.modes[mol.chain_id[i]:mol.chain_id[i+1]])
+    mols.append(mol)
+
+# chimera_molecule_viewer([mols[1]])
+
+
+n_components=mol.n_chain
+res_arr = np.array([i.coords.flatten() for i in mols])
+res_pca = PCA(n_components=n_components)
+res_pca.fit(res_arr.T)
+
+i=0
+plt.figure()
+plt.plot(res_pca.components_[0+i], res_pca.components_[1+i], 'o',label='ground truth',markeredgecolor='black')
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(res_pca.components_[0], res_pca.components_[1], res_pca.components_[2], s=10, label='ground truth')

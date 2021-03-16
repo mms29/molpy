@@ -5,6 +5,16 @@ import numpy as np
 
 from src.constants import TOPOLOGY_FILE
 
+def read_modes(files):
+    """
+    Read normal mode vectors list of files
+    :param files: list of normal mode files to read
+    :return: Normal mode vector Matrix
+    """
+    A = []
+    for i in files:
+        A.append(np.loadtxt(i))
+    return np.transpose(np.array(A),(1,0,2))
 
 def read_pdb(file):
     """
@@ -18,12 +28,15 @@ def read_pdb(file):
     chain_id =[0]
     with open(file, "r") as f :
         for line in f:
-            l = line.split()
-            if len(l) >0:
-                if l[0] == 'ATOM':
+            spl = line.split()
+            if len(spl) >0:
+                if spl[0] == 'ATOM':
+                    l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
+                         line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
+                    l = [i.strip() for i in l]
                     coords.append([float(l[6]), float(l[7]), float(l[8])])
                     atom_type.append(l[2])
-                if l[0] == 'TER':
+                if spl[0] == 'TER':
                     chain_id.append(len(coords))
 
     if len(chain_id) == 1:

@@ -1,15 +1,15 @@
 import time
+import multiprocessing
+import multiprocessing.pool
 from multiprocessing import Pool
-import mkl
+import copy
+import pickle
 
 import src.constants
-from src.density import *
-from src.forcefield import *
+import src.density
+import src.forcefield
 from src.functions import *
-from src.molecule import *
-
-# force numpy to use 1 thread per operation (It speeds up the computation)
-mkl.set_num_threads(1)
+import src.molecule
 
 class FlexibleFitting:
     """
@@ -49,7 +49,7 @@ class FlexibleFitting:
             p.join()
 
         # Regroup the chains results
-        self.res = {"mol": Molecule.from_molecule(self.init)}
+        self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
         self.res["mol"].coords = np.mean([fittings[i].res["mol"].coords for i in range(self.n_chain)], axis=0)
         for v in self.vars:
             self.res[v] = np.mean([fittings[i].res[v] for i in range(self.n_chain)], axis=0)
@@ -64,6 +64,7 @@ class FlexibleFitting:
 
         # set the random seed of numpy for parallel computation
         np.random.seed()
+        t = time.time()
 
         # initialize fit variables
         self.fit= {"coord":[copy.deepcopy(self.init.coords)]}
@@ -76,10 +77,18 @@ class FlexibleFitting:
             self.HMC_step()
 
         # Generate results
-        self.res = {"mol" : Molecule.from_molecule(self.init)}
+        self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
         self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.n_warmup + 1:]), axis=0)
         for i in self.vars:
             self.res[i] = np.mean(np.array(self.fit[i][self.n_warmup+1:]), axis=0)
+
+        # End
+        if self.verbose >0:
+            print("############### HMC FINISHED ##########################")
+            print("### Total execution time : "+str(time.time()-t)+" s")
+            print("### Initial CC value : "+str(self.fit["CC"][0]))
+            print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.n_warmup:])))
+            print("#######################################################")
 
         return self
 
@@ -114,7 +123,7 @@ class FlexibleFitting:
         U+= U_biased
 
         # Energy Potential
-        U_potential = get_energy(coord=self._get("coordt"), molstr = self.init.psf,
+        U_potential = src.forcefield.get_energy(coord=self._get("coordt"), molstr = self.init.psf,
                                  molprm= self.init.prm, verbose=False)* self.params["lp"]
         self._add("U_potential", U_potential)
         U += U_potential
@@ -139,7 +148,7 @@ class FlexibleFitting:
             vals[i] = self._get(i+"_t")
 
         dU_biased = self.target.get_gradient_RMSD(self.init, psim, vals)
-        dU_potential = get_autograd(params=vals, mol = self.init)
+        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
 
         for i in self.vars:
             F = -((self.params["lb"] * dU_biased[i]) + (self.params["lp"] *  dU_potential[i]))
@@ -175,12 +184,12 @@ class FlexibleFitting:
         Compute the density (Image or Volume)
         :return: Density object (Image or Volume)
         """
-        if isinstance(self.target, Volume):
-            return Volume.from_coords(coord=self._get("coordt"), size=self.target.size,
+        if isinstance(self.target, src.density.Volume):
+            return src.density.Volume.from_coords(coord=self._get("coordt"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
         else:
-            return Image.from_coords(coord=self._get("coordt"), size=self.target.size,
+            return src.density.Image.from_coords(coord=self._get("coordt"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
 
@@ -339,6 +348,47 @@ class FlexibleFitting:
         with open(file, 'rb') as f:
             fit = pickle.load(file=f)
             return fit
+
+
+def multiple_fitting(models, n_chain, n_proc):
+    class NoDaemonProcess(multiprocessing.Process):
+        @property
+        def daemon(self):
+            return False
+
+        @daemon.setter
+        def daemon(self, value):
+            pass
+
+    class NoDaemonContext(type(multiprocessing.get_context())):
+        Process = NoDaemonProcess
+
+    class NestablePool(multiprocessing.pool.Pool):
+        def __init__(self, *args, **kwargs):
+            kwargs['context'] = NoDaemonContext()
+            super(NestablePool, self).__init__(*args, **kwargs)
+
+    models = np.array(models)
+
+    N = len(models)
+    n_loop = (N * n_chain) // n_proc
+    n_last_process = ((N * n_chain) % n_proc)//n_chain
+    n_process = n_proc//n_chain
+    process = [np.arange(i*n_process, (i+1)*n_process) for i in range(n_loop)]
+    process.append(np.arange(n_loop*n_process, n_loop*n_process + n_last_process))
+    fits=[]
+    print("Number of loops : "+str(n_loop))
+    for i in process:
+
+        print("\t fitting models # "+str(i))
+        try :
+            with NestablePool(n_process) as p:
+                fits += p.map(FlexibleFitting.HMC, models[i])
+                p.close()
+                p.join()
+        except RuntimeError:
+            print("Failed")
+    return fits
 
 
 
