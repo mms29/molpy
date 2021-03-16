@@ -16,9 +16,10 @@ N=100
 # # gt_angles = gt_angles*np.pi/180
 
 # import PDB
-init =Molecule.from_file("data/AK_tomos/AK.pdb")
+print("hello")
+init =Molecule.from_file("bayesian-md-nma/data/AK_tomos/AK.pdb")
 init.center_structure()
-fnModes = np.array(["data/AK_tomos/modes/vec."+str(i+7) for i in range(3)])
+fnModes = np.array(["bayesian-md-nma/data/AK_tomos/modes/vec."+str(i+7) for i in range(3)])
 init.add_modes(fnModes)
 # init.set_forcefield(psf_file="data/AK/AK.psf")
 init.select_atoms(pattern='CA')
