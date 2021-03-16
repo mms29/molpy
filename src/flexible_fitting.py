@@ -83,7 +83,7 @@ class FlexibleFitting:
             self.res[i] = np.mean(np.array(self.fit[i][self.n_warmup+1:]), axis=0)
 
         # End
-        if self.verbose >0:
+        if self.verbose ==-1:
             print("############### HMC FINISHED ##########################")
             print("### Total execution time : "+str(time.time()-t)+" s")
             print("### Initial CC value : "+str(self.fit["CC"][0]))
@@ -379,7 +379,7 @@ def multiple_fitting(models, n_chain, n_proc):
     fits=[]
     print("Number of loops : "+str(n_loop))
     for i in process:
-
+        t = time.time()
         print("\t fitting models # "+str(i))
         try :
             with NestablePool(n_process) as p:
@@ -388,6 +388,7 @@ def multiple_fitting(models, n_chain, n_proc):
                 p.join()
         except RuntimeError:
             print("Failed")
+        print("\t\t done : "+str(time.time()-t))
     return fits
 
 

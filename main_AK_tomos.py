@@ -108,7 +108,7 @@ n_warmup = n_iter // 2
 models= []
 for i in target_densities:
     models.append(FlexibleFitting(init=init, target=i, vars=["x", "q"], params=params,
-                                                n_iter=n_iter, n_warmup=n_warmup, n_chain=4, verbose=0))
+                                                n_iter=n_iter, n_warmup=n_warmup, n_chain=4, verbose=-1))
 
 
 fits = multiple_fitting(models, n_chain=4, n_proc=24)
