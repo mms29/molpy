@@ -118,6 +118,7 @@ def fit_viewer(fit, save=None):
     fig.tight_layout()
     if save is not None:
         fig.savefig(save)
+        plt.close(fig)
 
 def chimera_fit_viewer(mol, target):
     """
