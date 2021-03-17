@@ -5,6 +5,8 @@ import numpy as np
 import src.functions
 import src.io
 import src.viewers
+from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
+
 
 
 class Density:
@@ -47,15 +49,15 @@ class Density:
         """
         pass
 
-    def rescale(self, density, type="normal"):
+    def rescale(self, density, method="normal"):
         """
         Rescale the density to fit an other density
         :param density: The other density to fit the scale
-        :param type: normal or opt
+        :param method: normal or opt
         """
-        if type=="normal":
+        if method=="normal":
             self.data =  ((self.data-self.data.mean())/self.data.std())*density.data.std() + density.data.mean()
-        elif type =="opt":
+        elif method =="opt":
             min1 = density.data.min()
             min2 = self.data.min()
             max1 = density.data.max()
@@ -71,6 +73,11 @@ class Density:
         """
         h1  = np.histogram(self.data.flatten(),bins=100)
         h2  = np.histogram(density.data.flatten(),bins=100)
+        plt.figure()
+        plt.hist(self.data.flatten(), 100,label="self")
+        plt.hist(density.data.flatten(), 100,label="compared")
+        plt.legend()
+
         plt.figure()
         plt.plot(h1[1][:-1] , np.cumsum(h1[0]), label="self")
         plt.plot(h2[1][:-1] , np.cumsum(h2[0]), label="compared")
@@ -116,20 +123,20 @@ class Volume(Density):
         pdiff = psim - self.data
 
         res = {}
-        if "x" in params:
-            res["x"] = np.zeros(coord.shape)
-            coord += params["x"]
-        if "q" in params:
-            res["q"] = np.zeros(mol.modes.shape[1])
-            coord += np.dot(params["q"], mol.modes)
-        if "angles" in params:
-            res["angles"] = np.zeros(3)
-            R = src.functions.generate_euler_matrix(angles=params["angles"])
+        if FIT_VAR_LOCAL in params:
+            res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
+            coord += params[FIT_VAR_LOCAL]
+        if FIT_VAR_GLOBAL in params:
+            res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
+            coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+        if FIT_VAR_ROTATION in params:
+            res[FIT_VAR_ROTATION] = np.zeros(3)
+            R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
             coord0 = coord
             coord = np.dot(R, coord.T).T
-        if "shift" in params:
-            res["shift"] = np.zeros(3)
-            coord += params["shift"]
+        if FIT_VAR_SHIFT in params:
+            res[FIT_VAR_SHIFT] = np.zeros(3)
+            coord += params[FIT_VAR_SHIFT]
 
         for i in range(mol.n_atoms):
             mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
@@ -140,18 +147,19 @@ class Volume(Density):
                       vox[i, 1]:vox[i, 1] + n_vox,
                       vox[i, 2]:vox[i, 2] + n_vox] * np.exp(
                 -np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (self.sigma ** 2)))
-
             dpsim = np.sum(-(1 / (self.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp, tmp]), axis=(1, 2, 3))
-            if "angles" in params:
-                dR = src.functions.get_euler_grad(params["angles"], coord0[i])
-                res["angles"] += np.dot(dR, dpsim)
+
+
+            if FIT_VAR_ROTATION in params:
+                dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
+                res[FIT_VAR_ROTATION] += np.dot(dR, dpsim)
                 dpsim *= (R[0] + R[1]+ R[2])
-            if "x" in params:
-                res["x"][i] = dpsim
-            if "q" in params:
-                res["q"] += np.dot(mol.modes[i], dpsim)
-            if "shift" in params:
-                res["shift"] += dpsim
+            if FIT_VAR_LOCAL in params:
+                res[FIT_VAR_LOCAL][i] = dpsim
+            if FIT_VAR_GLOBAL in params:
+                res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i], dpsim)
+            if FIT_VAR_SHIFT in params:
+                res[FIT_VAR_SHIFT] += dpsim
 
         return res
 
@@ -185,20 +193,20 @@ class Image(Density):
         pdiff = psim - self.data
 
         res = {}
-        if "x" in params:
-            res["x"] = np.zeros(coord.shape)
-            coord += params["x"]
-        if "q" in params:
-            res["q"] = np.zeros(mol.modes.shape[1])
-            coord += np.dot(params["q"], mol.modes)
-        if "angles" in params:
-            res["angles"] = np.zeros(3)
-            R = src.functions.generate_euler_matrix(angles=params["angles"])
+        if FIT_VAR_LOCAL in params:
+            res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
+            coord += params[FIT_VAR_LOCAL]
+        if FIT_VAR_GLOBAL in params:
+            res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
+            coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+        if FIT_VAR_ROTATION in params:
+            res[FIT_VAR_ROTATION] = np.zeros(3)
+            R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
             coord0 = coord
             coord = np.dot(R, coord.T).T
-        if "shift" in params:
-            res["shift"] = np.zeros(3)
-            coord += params["shift"]
+        if FIT_VAR_SHIFT in params:
+            res[FIT_VAR_SHIFT] = np.zeros(3)
+            coord += params[FIT_VAR_SHIFT]
 
         for i in range(mol.n_atoms):
             mu_grid = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
@@ -207,18 +215,19 @@ class Image(Density):
             tmp = 2 * pdiff[pix[i, 0]:pix[i, 0] + n_pix,
                       pix[i, 1]:pix[i, 1] + n_pix] * np.exp(
                 -np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (self.sigma ** 2)))
-
             dpsim = np.sum(-(1 / (self.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp]), axis=(1, 2))
-            if "angles" in params:
-                dR = src.functions.get_euler_grad(params["angles"], coord0[i])
-                res["angles"] += np.dot(dR[:,:2], dpsim)
+
+
+            if FIT_VAR_ROTATION in params:
+                dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
+                res[FIT_VAR_ROTATION] += np.dot(dR[:,:2], dpsim)
                 dpsim *= (R[0] + R[1]+ R[2])[:2]
-            if "x" in params:
-                res["x"][i] = dpsim
-            if "q" in params:
-                res["q"] += np.dot(mol.modes[i, :, :2], dpsim)
-            if "shift" in params:
-                res["shift"][:2] += dpsim
+            if FIT_VAR_LOCAL in params:
+                res[FIT_VAR_LOCAL][i] = dpsim
+            if FIT_VAR_GLOBAL in params:
+                res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i, :, :2], dpsim)
+            if FIT_VAR_SHIFT in params:
+                res[FIT_VAR_SHIFT][:2] += dpsim
 
         return res
 

@@ -104,6 +104,7 @@ class Molecule:
         if self.modes is not None:
             self.modes = self.modes[atom_idx]
 
+
     def center_structure(self):
         """
         Center the structure coordinates around 0

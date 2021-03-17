@@ -31,6 +31,30 @@ DEFAULT_INPUT_DATA ={
     "d_vdw" : D_VDW,
 }
 
+FIT_VAR_LOCAL = "local"
+FIT_VAR_GLOBAL = "global"
+FIT_VAR_ROTATION = "rotation"
+FIT_VAR_SHIFT = "shift"
+
+DEFAULT_FIT_PARAMS ={
+    "biasing_factor" : 1,
+    "potential_factor" : 1,
+
+    "n_step": 10,
+    "n_iter": 20,
+    "n_warmup": 10,
+    "criterion" :False,
+
+    FIT_VAR_LOCAL+"_dt" : 0.001,
+    FIT_VAR_LOCAL+"_mass" : 1,
+    FIT_VAR_GLOBAL+"_dt" : 0.01,
+    FIT_VAR_GLOBAL+"_mass" : 1,
+    FIT_VAR_ROTATION+"_dt": 0.00001,
+    FIT_VAR_ROTATION+"_mass": 1,
+    FIT_VAR_SHIFT+"_dt": 0.00001,
+    FIT_VAR_SHIFT+"_mass": 1,
+}
+
 TOPOLOGY_FILE = "/home/guest/toppar/top_all36_prot.rtf"
 PARAMETER_FILE = "/home/guest/toppar/par_all36_prot.prm"
 

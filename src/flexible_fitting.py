@@ -4,38 +4,37 @@ import multiprocessing.pool
 from multiprocessing import Pool
 import copy
 import pickle
+import numpy as np
 
 import src.constants
+from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
 import src.density
 import src.forcefield
-from src.functions import *
+import src.functions
 import src.molecule
+from src.viewers import fit_viewer, chimera_fit_viewer
 
 class FlexibleFitting:
     """
     Perform flexible fitting between initial atomic structure and target Density using HMC
     """
 
-    def __init__(self, init, target, vars, n_chain, n_iter, n_warmup, params, verbose=0):
+    def __init__(self, init, target, vars, n_chain, params, verbose=0):
         """
         Constructor
         :param init: inititial atomic structure Molecule
         :param target: target Density
         :param vars: list of fitted variables
         :param n_chain: number of chain
-        :param n_iter: number of iterations
-        :param n_warmup: number of warmup iterations
         :param params: fit parameters
         :param verbose: verbose level
         """
         self.init = init
         self.target = target
-        self.params = params
         self.n_chain = n_chain
-        self.n_iter = n_iter
-        self.n_warmup= n_warmup
         self.verbose = verbose
         self.vars = vars
+        self._set_init_fit_params(params)
 
     def HMC(self):
         """
@@ -72,25 +71,34 @@ class FlexibleFitting:
             self._set(i ,[self.params[i+"_init"]])
 
         # HMC Loop
-        for i in range(self.n_iter):
+        for i in range(self.params["n_iter"]):
             if self.verbose > 0 : print("HMC ITER = " + str(i))
             self.HMC_step()
 
         # Generate results
         self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
-        self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.n_warmup + 1:]), axis=0)
+        self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
         for i in self.vars:
-            self.res[i] = np.mean(np.array(self.fit[i][self.n_warmup+1:]), axis=0)
+            self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
 
         # End
-        if self.verbose ==-1:
+        if self.verbose >0 or self.verbose==-1:
             print("############### HMC FINISHED ##########################")
             print("### Total execution time : "+str(time.time()-t)+" s")
             print("### Initial CC value : "+str(self.fit["CC"][0]))
-            print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.n_warmup:])))
+            print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
             print("#######################################################")
 
         return self
+
+    def _set_init_fit_params(self, params):
+        default_params = copy.deepcopy(src.constants.DEFAULT_FIT_PARAMS)
+        default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
+        default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.modes.shape[1])
+        default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
+        default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
+        default_params.update(params)
+        self.params = default_params
 
     def _get(self, key):
         if isinstance(self.fit[key], list):
@@ -118,20 +126,20 @@ class FlexibleFitting:
         U = 0
 
         # Biased Potential
-        U_biased = src.functions.get_RMSD(psim=psim, pexp=self.target.data) * self.params["lb"]
+        U_biased = src.functions.get_RMSD(psim=psim, pexp=self.target.data) * self.params["biasing_factor"]
         self._add("U_biased", U_biased)
         U+= U_biased
 
         # Energy Potential
         U_potential = src.forcefield.get_energy(coord=self._get("coordt"), molstr = self.init.psf,
-                                 molprm= self.init.prm, verbose=False)* self.params["lp"]
+                                 molprm= self.init.prm, verbose=False)* self.params["potential_factor"]
         self._add("U_potential", U_potential)
         U += U_potential
 
         # Additional Priors on parameters
         for i in self.vars:
-            if "l"+i in self.params:
-                U_var = np.sum(np.square(self._get(i+"_t"))) * self.params["l"+i]
+            if i+"_factor" in self.params:
+                U_var = np.sum(np.square(self._get(i+"_t"))) * self.params[i+"_factor"]
                 self._add("U_"+i, U_var)
                 U += U_var
 
@@ -151,9 +159,9 @@ class FlexibleFitting:
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
 
         for i in self.vars:
-            F = -((self.params["lb"] * dU_biased[i]) + (self.params["lp"] *  dU_potential[i]))
-            if "l" + i in self.params:
-                F+=  - 2* self._get(i+"_t") * self.params["l"+i]
+            F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
+            if i+"_factor" in self.params:
+                F+=  - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)
@@ -228,14 +236,14 @@ class FlexibleFitting:
         Compute the forward model
         """
         coordt = copy.deepcopy(self.init.coords)
-        if "x" in self.vars:
-            coordt += self._get("x_t")
-        if "q" in self.vars:
-            coordt += np.dot(self._get("q_t"), self.init.modes)
-        if "angles" in self.vars:
-            coordt = np.dot( src.functions.generate_euler_matrix(self._get("angles_t")),  coordt.T).T
-        if "shift"  in self.vars:
-            coordt += self._get("shift_t")
+        if FIT_VAR_LOCAL in self.vars:
+            coordt += self._get(FIT_VAR_LOCAL+"_t")
+        if FIT_VAR_GLOBAL in self.vars:
+            coordt += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.modes)
+        if FIT_VAR_ROTATION in self.vars:
+            coordt = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coordt.T).T
+        if FIT_VAR_SHIFT  in self.vars:
+            coordt += self._get(FIT_VAR_SHIFT+"_t")
         self._set("coordt", coordt)
 
     def _acceptation(self,H, H_init):
@@ -266,7 +274,7 @@ class FlexibleFitting:
         """
         s=["L", "U_biased", "U_potential", "CC", "Time", "K"]
         for i in self.vars :
-            if "l"+i in self.params:
+            if i+"_factor" in self.params:
                 s.append("U_"+i)
         printed_string=""
         for i in s:
@@ -295,7 +303,7 @@ class FlexibleFitting:
         self._add("C",0)
         self._add("L", 0)
     # MD loop
-        while (self._get("C") >= 0 and self._get("L")< self.params["max_iter"]):
+        while (self._get("C") >= 0 and self._get("L")< self.params["n_step"]):
             tt = time.time()
         # Coordinate update
             self._update_positions()
@@ -327,17 +335,17 @@ class FlexibleFitting:
     # Metropolis acceptation
         self._acceptation(H, H_init)
 
-    def show(self):
+    def show(self,save=None):
         """
         Show fitting statistics
         """
-        src.viewers.fit_viewer(self)
+        fit_viewer(self,save=save)
 
     def show_3D(self):
         """
         Show fitting results in 3D
         """
-        src.viewers.chimera_fit_viewer(self.res["mol"], self.target)
+        chimera_fit_viewer(self.res["mol"], self.target)
 
     def save(self, file):
         with open(file, 'wb') as f:
@@ -350,7 +358,7 @@ class FlexibleFitting:
             return fit
 
 
-def multiple_fitting(models, n_chain, n_proc):
+def multiple_fitting(models, n_chain, n_proc, save_dir=None):
     class NoDaemonProcess(multiprocessing.Process):
         @property
         def daemon(self):
@@ -389,6 +397,9 @@ def multiple_fitting(models, n_chain, n_proc):
         except RuntimeError:
             print("Failed")
         print("\t\t done : "+str(time.time()-t))
+        if save_dir is not None:
+            for n in i:
+                fits[n].show(save=save_dir+"fit_#"+str(n))
     return fits
 
 

@@ -1,6 +1,7 @@
 import autograd.numpy as npg
 from autograd import elementwise_grad
 
+from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
 import src.functions
 
 
@@ -39,14 +40,14 @@ def get_autograd(params, mol):
         Energy function for automatic differentiation
         """
         coord = npg.array(mol.coords)
-        if "x" in params:
-            coord += params["x"]
-        if "q" in params:
-            coord += npg.dot(params["q"], mol.modes)
-        if "angles" in params:
-            coord = npg.dot(src.functions.generate_euler_matrix(params["angles"]), coord.T).T
-        if "shift" in params:
-            coord += params["shift"]
+        if FIT_VAR_LOCAL in params:
+            coord += params[FIT_VAR_LOCAL]
+        if FIT_VAR_GLOBAL in params:
+            coord += npg.dot(params[FIT_VAR_GLOBAL], mol.modes)
+        if FIT_VAR_ROTATION in params:
+            coord = npg.dot(src.functions.generate_euler_matrix(params[FIT_VAR_ROTATION]), coord.T).T
+        if FIT_VAR_SHIFT in params:
+            coord += params[FIT_VAR_SHIFT]
 
         U_bonds = get_energy_bonds(coord, mol.psf.bonds, mol.prm)
         U_angles = get_energy_angles(coord, mol.psf.angles, mol.prm)

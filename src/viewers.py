@@ -89,10 +89,11 @@ def volume_viewer(vol):
     ax.imshow(volume[ax.index], cmap='gray')
     fig.canvas.mpl_connect('key_press_event', process_key)
 
-def fit_viewer(fit):
+def fit_viewer(fit, save=None):
     """
     Matplotlib Vierwer for fitting statistics
     :param fit: FlexibleFitting
+    :param save: path (str) where to save the figure (PNG)
     """
     if isinstance(fit.fit, list):
         fits = fit.fit
@@ -115,6 +116,8 @@ def fit_viewer(fit):
     ax[1, 1].set_title('C')
     ax[1, 2].set_title('CC')
     fig.tight_layout()
+    if save is not None:
+        fig.savefig(save)
 
 def chimera_fit_viewer(mol, target):
     """

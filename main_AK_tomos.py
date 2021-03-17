@@ -8,6 +8,7 @@ import src.simulation
 import src.viewers
 from src.density import Volume
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
+from src.functions import compute_pca
 
 N=100
 # test = "/home/guest/ScipionUserData/projects/synthesize/Runs/001738_FlexProtSynthesizeSubtomo/extra/"
@@ -107,22 +108,17 @@ n_warmup = n_iter // 2
 
 models= []
 for i in target_densities:
-    models.append(FlexibleFitting(init=init, target=i, vars=["x", "q"], params=params,
-                                                n_iter=n_iter, n_warmup=n_warmup, n_chain=4, verbose=-1))
+    models.append(FlexibleFitting(init=init, target=i, vars=["x", "q"], params=params, n_chain=4, verbose=-1))
 
 
 fits = multiple_fitting(models, n_chain=4, n_proc=24)
 
-n_components=2
-res_arr = np.array([i.coords.flatten() for i in targets]+ [i.res["mol"].coords.flatten() for i in fits])
-res_pca = PCA(n_components=n_components)
-res_pca.fit(res_arr.T)
+pca_n_components=2
+pca_data = [i.coords.flatten() for i in targets]+ [i.res["mol"].coords.flatten() for i in fits]
+pca_length = [len(targets), len(fits)]
+pca_labels = ["Ground Truth", "Fitted"]
+compute_pca(data=pca_data, length=pca_length, labels=pca_labels, n_components=pca_n_components, save="PCA.png")
 
-plt.figure()
-views = ['ground truth','global + local']
-for i in range(len(views)):
-    plt.plot(res_pca.components_[0,i*N:(i+1)*N], res_pca.components_[1,i*N:(i+1)*N], 'o',label=views[i],markeredgecolor='black')
-plt.savefig("PCA.png")
 
 # plt.figure()
 # plt.plot([np.mean([j["CC"][n_warmup:] for j in i.fit]) for i in fits])

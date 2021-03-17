@@ -60,24 +60,25 @@ def save_pdb(mol, file):
 
                 if len(split_line) > 0:
                     if split_line[0] == 'ATOM':
-                        l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
-                             line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
-                        if (mol.coarse_grained and split_line[2] == 'CA') or (not mol.coarse_grained):
-                            coord = mol.coords[n]
-                            l[0] = l[0].ljust(6)  # atom#6s
-                            l[1] = l[1].rjust(5)  # aomnum#5d
-                            l[2] = l[2].center(4)  # atomname$#4s
-                            l[3] = l[3].ljust(3)  # resname#1s
-                            l[4] = l[4].rjust(1)  # Astring
-                            l[5] = l[5].rjust(4)  # resnum
-                            l[6] = str('%8.3f' % (float(coord[0]))).rjust(8)  # x
-                            l[7] = str('%8.3f' % (float(coord[1]))).rjust(8)  # y
-                            l[8] = str('%8.3f' % (float(coord[2]))).rjust(8)  # z\
-                            l[9] = str('%6.2f' % (float(l[9]))).rjust(6)  # occ
-                            l[10] = str('%6.2f' % (float(l[10]))).ljust(6)  # temp
-                            l[11] = l[11].rjust(12)  # elname
-                            file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (l[0],l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]))
-                            n+=1
+                        if n< mol.n_atoms:
+                            l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
+                                 line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
+                            if (mol.coarse_grained and split_line[2] == 'CA') or (not mol.coarse_grained):
+                                coord = mol.coords[n]
+                                l[0] = l[0].ljust(6)  # atom#6s
+                                l[1] = l[1].rjust(5)  # aomnum#5d
+                                l[2] = l[2].center(4)  # atomname$#4s
+                                l[3] = l[3].ljust(3)  # resname#1s
+                                l[4] = l[4].rjust(1)  # Astring
+                                l[5] = l[5].rjust(4)  # resnum
+                                l[6] = str('%8.3f' % (float(coord[0]))).rjust(8)  # x
+                                l[7] = str('%8.3f' % (float(coord[1]))).rjust(8)  # y
+                                l[8] = str('%8.3f' % (float(coord[2]))).rjust(8)  # z\
+                                l[9] = str('%6.2f' % (float(l[9]))).rjust(6)  # occ
+                                l[10] = str('%6.2f' % (float(l[10]))).ljust(6)  # temp
+                                l[11] = l[11].rjust(12)  # elname
+                                file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (l[0],l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]))
+                                n+=1
 
                     elif split_line[0] == 'TER':
                         file.write(line)

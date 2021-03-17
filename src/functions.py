@@ -1,5 +1,9 @@
 import autograd.numpy as npg
 import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
 
 def get_RMSD(psim, pexp):
     return np.linalg.norm(psim-pexp)**2
@@ -65,4 +69,38 @@ def get_euler_grad(angles, coord):
 
     return dR
 
+
+def compute_pca(data, length, labels=None, save=None, n_components=2):
+
+    # Compute PCA
+    arr = np.array(data)
+    pca = PCA(n_components=n_components)
+    pca.fit(arr.T)
+
+    # Prepare plotting data
+    idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
+    print(idx)
+    if labels is None:
+        labels = ["#"+str(i) for i in range(len(length))]
+
+    # Plotter
+    fig = plt.figure()
+    if n_components == 3:
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_zlabel("PCA component 3")
+    else:
+        ax = fig.add_subplot(111)
+    ax.set_xlabel("PCA component 1")
+    ax.set_ylabel("PCA component 2")
+    for i in range(len(length)):
+        if n_components==3:
+            ax.scatter(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]],
+                       pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i])
+        else:
+            ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
+                    label=labels[i], markeredgecolor='black')
+    fig.legend()
+    # fig.tight_layout()
+    if save is not None:
+        fig.savefig(save)
 

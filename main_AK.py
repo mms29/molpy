@@ -9,16 +9,16 @@ from src.density import Volume
 ########################################################################################################
 
 # import PDB
-init =Molecule.from_file("data/AK/AK_PSF.pdb")
+init =Molecule.from_file("data/AK/AK.pdb")
 init.center_structure()
-init.add_modes("data/AK/modes_psf/vec.", n_modes=4)
-
+fnModes = np.array(["data/AK/modes/vec."+str(i+7) for i in range(3)])
+init.add_modes(fnModes)
 
 # init.set_forcefield(psf_file="data/AK/AK.psf")
 init.select_atoms(pattern='CA')
 init.set_forcefield()
 
-q = [100,-100,0,0]
+q = [100,-100,0,]
 target = nma_deform(init, q)
 target.rotate([0.17,-0.13,0.23])
 
@@ -39,42 +39,18 @@ chimera_molecule_viewer([target, init])
 ########################################################################################################
 
 params ={
-    "lb" : 200,
-    "lp" : 1,
-
-    "max_iter": 10,
-    "criterion" :False,
-
-    "x_dt" : 0.005,
-    "x_mass" : 1,
-    "x_init": np.zeros(init.coords.shape),
-
-    "q_dt" : 0.05,
-    "q_mass" : 1,
-    "q_init": np.zeros(init.modes.shape[1]),
-
-    "angles_dt": 0.00005,
-    "angles_mass": 1,
-    "angles_init": np.zeros(3),
-    "langles": 100,
-
-    "shift_dt": 0.00005,
-    "shift_mass": 1,
-    "shift_init": np.zeros(3),
-    "lshift" : 100,
-
+    "biasing_factor" : 200,
+    "n_step": 10,
+    "local_dt" : 0.01,
+    "global_dt" : 0.1,
+    "rotation_dt" : 0.0001,
 }
-n_iter=20
-n_warmup = n_iter // 2
 
 
-fit  =FlexibleFitting(init = init, target= target_density, vars=["x", "angles"], params=params,
-                      n_iter=n_iter, n_warmup=n_warmup, n_chain=4, verbose=2)
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION], params=params, n_chain=4, verbose=2)
 
 fit.HMC()
 fit.show()
 fit.show_3D()
 
 chimera_molecule_viewer([fit.res["mol"], target])
-
-print(fit.res["angles"])
