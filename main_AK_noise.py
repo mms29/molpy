@@ -71,7 +71,7 @@ params ={
 }
 
 n_chain = 4
-n_proc = 80
+n_proc = 72
 models= []
 for i in targets:
     models.append(FlexibleFitting(init=init, target=i, vars=["global", "local"], params=params,n_chain=n_chain, verbose=0))
