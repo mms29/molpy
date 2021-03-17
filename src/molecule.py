@@ -128,14 +128,16 @@ class Molecule:
             if self.modes is not None :
                 self.modes[i] =  np.dot(R , self.modes[i].T).T
 
-    def set_forcefield(self, psf_file=None):
+    def set_forcefield(self, psf_file=None,prm_file=None):
         """
         Set the force field structure and parameters for the Molecule.
         :param psf_file: .psf file associated to the molecule; If None, default parameters are assigned (CA only)
         """
         if psf_file is not None:
             self.psf = MoleculeStructure.from_psf_file(psf_file)
-            self.prm = MoleculeForcefieldPrm.from_prm_file(self.psf, prm_file=PARAMETER_FILE)
+            if prm_file is None:
+                prm_file = PARAMETER_FILE
+            self.prm = MoleculeForcefieldPrm.from_prm_file(self.psf, prm_file=prm_file)
         else:
             self.psf = MoleculeStructure.from_default(self.chain_id)
             self.prm = MoleculeForcefieldPrm.from_default(self.psf)
