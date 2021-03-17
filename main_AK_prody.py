@@ -52,7 +52,7 @@ params ={
 }
 
 n_chain = 4
-n_proc = 48
+n_proc = 72
 verbose=0
 models_global=[]
 models_local =[]
