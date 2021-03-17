@@ -1,3 +1,5 @@
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import matplotlib.pyplot as plt
 import numpy as np
 
