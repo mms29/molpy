@@ -81,5 +81,6 @@ pca_data = [i.coords.flatten() for i in mols] + [i.res["mol"].coords.flatten() f
                                                 [i.res["mol"].coords.flatten() for i in fits_glocal]
 length= [N,N,N,N]
 labels=["Ground Truth", "Global", "Local", "Global + Local"]
-compute_pca(data=pca_data, length=length, labels= labels, n_components=3, save="results/AK_prody_pca.png")
+compute_pca(data=pca_data, length=length, labels= labels, n_components=2, save="results/AK_prody_pca.png")
+compute_pca(data=pca_data, length=length, labels= labels, n_components=3, save="results/AK_prody_pca_3D.png")
 
