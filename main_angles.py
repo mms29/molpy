@@ -4,13 +4,16 @@ from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer
 from src.density import Volume
 from src.constants import *
-from src.functions import show_rmsd_fit
+from src.functions import show_rmsd_fit, get_RMSD_coords
 
+# force numpy to use 1 thread per operation (It speeds up the computation)
+import mkl
+mkl.set_num_threads(1)
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
 
-N=1
+N=100
 
 # import PDB
 init =Molecule.from_file("data/AK/AK.pdb")
@@ -30,8 +33,8 @@ size=64
 sampling_rate=2.2
 threshold= 4
 gaussian_sigma=2
-angles = np.array([[0.5,0.2,-0.2]])
-# angles = np.random.uniform(-np.pi/2, np.pi/2, (N,3))
+# angles = np.array([[1.5,2.0,-2.0]])
+angles = np.random.uniform(-np.pi/2, np.pi/2, (N,3))
 targets=[]
 target_densities=[]
 for i in range(N):
@@ -43,20 +46,63 @@ for i in range(N):
 params ={
     "biasing_factor" : 100,
     "n_step": 20,
-    "criterion": False,
-    "n_iter":20,
-    "n_warmup":10,
+    "criterion": True,
+    "n_iter":10,
+    "n_warmup":5,
     "rotation_dt" : 0.0001,
-    "rotation_mass": 10,}
+    "rotation_mass": 10000,}
 n_chain = 4
 verbose=2
 
-models= []
+models10000= []
+models1000= []
+models100= []
+models10= []
+models1= []
 for i in target_densities:
-    models.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params["rotation_mass"] = 1
+    models1.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params["rotation_mass"] = 10
+    models10.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params["rotation_mass"] = 100
+    models100.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params["rotation_mass"] = 1000
+    models1000.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params["rotation_mass"] = 10000
+    models10000.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
 
-fit = models[0].HMC()
+# fit = models[0].HMC()
+# fit.show()
+# show_rmsd_fit(mol=targets[0], fit=fit)
+models = models1 +  models10 +  models100 +  models1000 +  models10000
 
-fit.show()
+fits = multiple_fitting(models, n_chain=n_chain, n_proc=32)
 
-show_rmsd_fit(mol=targets[0], fit=fit)
+rmsd1 =     [get_RMSD_coords(targets[i].coords, fits[0*N:1*N][i].res["mol"].coords) for i in range(N)]
+rmsd10 =    [get_RMSD_coords(targets[i].coords, fits[1*N:2*N][i].res["mol"].coords) for i in range(N)]
+rmsd100 =   [get_RMSD_coords(targets[i].coords, fits[2*N:3*N][i].res["mol"].coords) for i in range(N)]
+rmsd1000 =  [get_RMSD_coords(targets[i].coords, fits[3*N:4*N][i].res["mol"].coords) for i in range(N)]
+rmsd10000 = [get_RMSD_coords(targets[i].coords, fits[4*N:5*N][i].res["mol"].coords) for i in range(N)]
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+print("Mean 1 : "+str(np.mean(rmsd1)))
+print("STD 1 : "+str(np.std(rmsd1)))
+print("Mean 10 : "+str(np.mean(rmsd10)))
+print("STD 10 : "+str(np.std(rmsd10)))
+print("Mean 100 : "+str(np.mean(rmsd100)))
+print("STD 100 : "+str(np.std(rmsd100)))
+print("Mean 1000 : "+str(np.mean(rmsd1000)))
+print("STD 1000 : "+str(np.std(rmsd1000)))
+print("Mean 10000 : "+str(np.mean(rmsd10000)))
+print("STD 10000 : "+str(np.std(rmsd10000)))
+
+
+plt.figure()
+plt.plot(rmsd1, label="1")
+plt.plot(rmsd10, label="10")
+plt.plot(rmsd100, label="100")
+plt.plot(rmsd1000, label="1000")
+plt.plot(rmsd10000, label="10000")
+plt.savefig("results/rotation_mass")
