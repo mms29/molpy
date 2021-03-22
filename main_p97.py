@@ -37,9 +37,9 @@ params ={
     "local_dt" : 1e-15,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":3,
-    "n_warmup":2,
-    "n_step": 2,
+    "n_iter":20,
+    "n_warmup":10,
+    "n_step": 20,
     "criterion": False,
 }
 n_chain=4
