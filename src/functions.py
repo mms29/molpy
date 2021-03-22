@@ -99,8 +99,7 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
         else:
             ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
                     label=labels[i], markeredgecolor='black')
-    fig.legend()
-    # fig.tight_layout()
+    ax.legend()
     if save is not None:
         fig.savefig(save)
 

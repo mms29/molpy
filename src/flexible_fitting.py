@@ -7,7 +7,8 @@ import pickle
 import numpy as np
 
 import src.constants
-from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
+from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT, \
+                                KCAL_TO_JOULE, AVOGADRO_CONST, ATOMIC_MASS_UNIT,K_BOLTZMANN
 import src.density
 import src.forcefield
 import src.functions
@@ -39,7 +40,7 @@ class FlexibleFitting:
     def HMC(self):
         """
         Run HMC fitting with the specified number of chain in parallel
-        :return: fit
+        :return: FlexibleFitting
         """
         with Pool(self.n_chain) as p:
             # launch n_chain times HMC_chain()
@@ -58,7 +59,7 @@ class FlexibleFitting:
     def HMC_chain(self):
         """
         Run one HMC chain fitting
-        :return: fit
+        :return: FlexibleFitting
         """
 
         # set the random seed of numpy for parallel computation
@@ -92,11 +93,19 @@ class FlexibleFitting:
         return self
 
     def _set_init_fit_params(self, params):
+        """
+        Set initial parameters of the fitting
+        :param params: dict of parameters
+        """
         default_params = copy.deepcopy(src.constants.DEFAULT_FIT_PARAMS)
         default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
         default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.modes.shape[1])
         default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
         default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
+
+        default_params[FIT_VAR_LOCAL+"_sigma"] = (np.ones((3,self.init.n_atoms)) *
+                                                  np.sqrt((K_BOLTZMANN *default_params["temperature"])/
+                                                  (self.init.prm.mass*ATOMIC_MASS_UNIT))*1e10).T
         default_params.update(params)
         self.params = default_params
 
@@ -124,6 +133,7 @@ class FlexibleFitting:
         :param psim: the simulated Density
         """
         U = 0
+        t = time.time()
 
         # Biased Potential
         U_biased = src.functions.get_RMSD(psim=psim, pexp=self.target.data) * self.params["biasing_factor"]
@@ -145,12 +155,14 @@ class FlexibleFitting:
 
         # Total energy
         self._add("U", U)
+        if self.verbose>=3: print("Energy="+str(time.time()-t))
 
     def _set_gradient(self, psim):
         """
         Compute the gradient of the total energy from the simulated Density
         :param psim: simulated Density
         """
+        t = time.time()
         vals={}
         for i in self.vars:
             vals[i] = self._get(i+"_t")
@@ -160,11 +172,16 @@ class FlexibleFitting:
 
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
+            if i == FIT_VAR_LOCAL:
+                F = (F.T * (1 / (self.init.prm.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+                F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
+                F *= 1e20  # kg * m2 * s-2 -> kg * A2 * s-2
             if i+"_factor" in self.params:
                 F+=  - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)
+        if self.verbose >= 3: print("Gradient=" + str(time.time() - t))
 
     def _set_kinetic(self):
         """
@@ -172,8 +189,21 @@ class FlexibleFitting:
         """
         K=0
         for i in self.vars:
-            K += 1 / 2 * np.sum(self.params[i+"_mass"]*np.square(self._get(i+"_t")))
+            if i == FIT_VAR_LOCAL:
+                K+= 1 / 2 * np.sum((self.init.prm.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
+            else:
+                K =  1 / 2 * np.sum(self.params[i+"_sigma"]*np.square(self._get(i+"_v")))
+
+        # kg * A2 * s-2 -> kcal * mol-1
+        K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)
         self._add("K", K)
+
+    def _set_instant_temp(self):
+        """
+        Compute instant temperature
+        """
+        T = 2 * self._get("K")*(KCAL_TO_JOULE/AVOGADRO_CONST ) / (K_BOLTZMANN * 3 * self.init.n_atoms)
+        self._add("T", T)
 
     def _set_criterion(self):
         """
@@ -192,14 +222,20 @@ class FlexibleFitting:
         Compute the density (Image or Volume)
         :return: Density object (Image or Volume)
         """
+        t = time.time()
         if isinstance(self.target, src.density.Volume):
-            return src.density.Volume.from_coords(coord=self._get("coordt"), size=self.target.size,
+            density = src.density.Volume.from_coords(coord=self._get("coordt"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
         else:
-            return src.density.Image.from_coords(coord=self._get("coordt"), size=self.target.size,
+            density = src.density.Image.from_coords(coord=self._get("coordt"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
+        if self.verbose >= 3: print("Density=" + str(time.time() - t))
+        return density
+
+    def _get_hamiltonian(self):
+        return self._get("U") +  self._get("K")
 
     def _initialize(self):
         """
@@ -207,7 +243,7 @@ class FlexibleFitting:
         """
         for i in self.vars:
             self._set(i+"_t", self._get(i))
-            self._set(i+"_v", np.random.normal(0, self.params[i+"_mass"], self._get(i).shape))
+            self._set(i+"_v", np.random.normal(0, self.params[i+"_sigma"], self._get(i).shape))
 
     def _update_positions(self):
         """
@@ -253,7 +289,7 @@ class FlexibleFitting:
         :param H_init: Initial Hamiltonian
         """
         # accept_p = np.min([1, np.exp((H_init - H))])
-        accept_p = np.min([1, np.exp((H_init - H)/H_init)])
+        accept_p = np.min([1, H_init/H])
         if self.verbose > 1 : print("H<H_init="+str(H_init > H) +" ; H" + str(H)+" ; H_init" + str(H_init))
         if accept_p > np.random.rand() :
             if self.verbose > 1 : print("ACCEPTED " + str(accept_p))
@@ -272,7 +308,7 @@ class FlexibleFitting:
         """
         Print step information
         """
-        s=["L", "U_biased", "U_potential", "CC", "Time", "K"]
+        s=["L", "U_biased", "U_potential", "CC", "Time", "K", "T"]
         for i in self.vars :
             if i+"_factor" in self.params:
                 s.append("U_"+i)
@@ -298,7 +334,7 @@ class FlexibleFitting:
     # Initial Kinetic Energy
         self._set_kinetic()
     # Initial Hamiltonian
-        H_init = self._get("U") + self._get("K")
+        H_init = self._get_hamiltonian()
     # Init vars
         self._add("C",0)
         self._add("L", 0)
@@ -322,7 +358,7 @@ class FlexibleFitting:
         # Kinetic update
             self._set_kinetic()
         # Temperature update
-            T = 2 * self._get("K") / (src.constants.K_BOLTZMANN * 3* self.init.n_atoms)
+            self._set_instant_temp()
         # criterion update
             self._set_criterion()
             self.fit["L"][-1] +=1
@@ -331,7 +367,7 @@ class FlexibleFitting:
             if self.verbose > 1:
                 self._print_step()
     # Hamiltonian update
-        H = self._get("U") + self._get("K")
+        H = self._get_hamiltonian()
     # Metropolis acceptation
         self._acceptation(H, H_init)
 

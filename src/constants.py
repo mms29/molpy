@@ -1,5 +1,8 @@
 K_BOLTZMANN = 1.380649e-23
-CARBON_MASS = 1.99264671e-26
+CARBON_MASS = 12.0107
+AVOGADRO_CONST = 6.02214076 * 1e23
+KCAL_TO_JOULE = 4186
+ATOMIC_MASS_UNIT = 1.66054e-27
 
 K_BONDS = 305.000
 R0_BONDS= 3.796562314087224
@@ -14,7 +17,6 @@ DELTA_TORSIONS = -90.0 # -np.pi/2
 K_VDW = 1e-8
 D_VDW = 3
 
-ATOMIC_MASS_UNIT = 1.66054e-27
 
 DEFAULT_INPUT_DATA ={
     "k_bonds": K_BONDS,
@@ -45,16 +47,16 @@ DEFAULT_FIT_PARAMS ={
     "n_warmup": 10,
     "criterion" :False,
 
-    FIT_VAR_LOCAL+"_dt" : 0.001,
-    FIT_VAR_LOCAL+"_mass" : 1,
+    FIT_VAR_LOCAL+"_dt" : 1e-15,
+    "temperature" : 300,
     FIT_VAR_GLOBAL+"_dt" : 0.01,
-    FIT_VAR_GLOBAL+"_mass" : 1,
+    FIT_VAR_GLOBAL+"_sigma" : 1,
     FIT_VAR_ROTATION+"_dt": 0.00001,
-    FIT_VAR_ROTATION+"_mass": 1,
+    FIT_VAR_ROTATION+"_sigma": 1,
     FIT_VAR_SHIFT+"_dt": 0.00001,
-    FIT_VAR_SHIFT+"_mass": 1,
+    FIT_VAR_SHIFT+"_sigma": 1,
 }
 
-TOPOLOGY_FILE = "/home/guest/toppar/top_all36_prot.rtf"
-PARAMETER_FILE = "/home/guest/toppar/par_all36_prot.prm"
+TOPOLOGY_FILE = "data/toppar/top_all36_prot.rtf"
+PARAMETER_FILE = "data/toppar/par_all36_prot.prm"
 

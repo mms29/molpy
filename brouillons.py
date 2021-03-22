@@ -278,6 +278,8 @@ params ={
     "n_warmup":10,
     "n_step": 20,
     "criterion": False,
+
+    "local_mass" :  1
 }
 
 n_chain = 4
@@ -307,5 +309,92 @@ pca_data = [i.coords.flatten() for i in mols] + [i.res["mol"].coords.flatten() f
                                                 [i.res["mol"].coords.flatten() for i in fits_glocal]
 length= [N,N,N,N]
 labels=["Ground Truth", "Global", "Local", "Global + Local"]
-compute_pca(data=pca_data, length=length, labels= labels, n_components=3)
+compute_pca(data=pca_data, length=length, labels= labels, n_components=2)
 
+
+
+############################################################
+###  TEMP, kINETIC ETC
+############################################################
+import matplotlib.pyplot as plt
+import numpy as np
+
+from src.molecule import Molecule
+from src.density import Volume
+from src.constants import *
+import src.forcefield
+
+init = Molecule.from_file("data/AK/AK_prody/output.pdb")
+init.center_structure()
+fnModes = np.array(["data/AK/AK_prody/modes_psf/vec."+str(i+7) for i in range(6)])
+init.add_modes(fnModes)
+# init.select_atoms(pattern="CA")
+init.set_forcefield("data/AK/AK_prody/output.psf")
+voxel_size=2.0
+init_density = Volume.from_coords(coord=init.coords, voxel_size=voxel_size, size=64, threshold=5, sigma=2)
+
+
+T=300
+m = (init.prm.mass*ATOMIC_MASS_UNIT)   # kg
+sigma = (np.ones((3,init.n_atoms)) * np.sqrt((K_BOLTZMANN *T)/ (init.prm.mass*ATOMIC_MASS_UNIT))*1e10).T
+v = np.random.normal(0,sigma, init.coords.shape)          # A * s-1
+K = src.forcefield.get_kinetic(v, init.prm.mass)   # kg * A2 * s-2
+K_J = K*1e-20
+K_kcalmol =AVOGADRO_CONST* K_J /KCAL_TO_JOULE
+
+T_hat =  src.forcefield.get_instant_temp(K, init.n_atoms)   # K
+print(T_hat)
+
+U_kcalmol= init.get_energy() # kcal * mol-1
+U_jmol = (KCAL_TO_JOULE * U_kcalmol) # J * mol-1
+U_j = U_jmol/AVOGADRO_CONST # J
+
+F_kcalmolA = src.forcefield.get_autograd(params={"local":np.zeros(init.coords.shape)}, mol=init)["local"] # kcal * mol-1 * A-1
+F_JA = (KCAL_TO_JOULE * F_kcalmolA) / AVOGADRO_CONST                                             # kg * m2 * s-2 - A-1
+F = F_JA * (1e10)**2  #kg * A * s-2
+a = (F.T*(1/m)).T      #A * s-2
+
+H=U+K
+
+
+f1 = K_J/U_j
+f2 = K_kcalmol/U_kcalmol
+
+
+
+
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+
+from src.molecule import Molecule
+from src.density import Volume
+from src.constants import *
+from src.simulation import nma_deform
+import src.forcefield
+from src.viewers import chimera_molecule_viewer
+
+pdb = "data/AK/AK_prody/output.pdb"
+modes = "/home/guest/ScipionUserData/projects/nma_calculator/Runs/000839_FlexProtNMA/modes2.xmd"
+new_pdb = "mol.pdb"
+q= np.zeros(14)
+q[0] = 300
+q[2] = -100
+
+
+mol1 = Molecule.from_file(pdb)
+fnModes = np.array(["/home/guest/ScipionUserData/projects/nma_calculator/Runs/000839_FlexProtNMA/modes/vec."+str(i+7) for i in range(len(q))])
+mol1.add_modes(fnModes)
+mol1 = nma_deform(mol1, q)
+mol1.show()
+mol1.save_pdb(file= "data/AK/AK_prody/AK1.pdb")
+
+cmd = "/home/guest/xmipp-bundle/xmipp/build/bin/xmipp_pdb_nma_deform"
+cmd +=" --pdb "+ pdb
+cmd +=" --nma "+ modes
+cmd +=" -o "+ new_pdb
+cmd +=" --deformations "+ ' '.join(str(i) for i in q)
+print(cmd)
+
+mol2 = Molecule.from_file(new_pdb)
+chimera_molecule_viewer([mol1, mol2])

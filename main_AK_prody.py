@@ -21,7 +21,7 @@ init.center_structure()
 fnModes = np.array(["data/AK/AK_prody/modes_psf/vec."+str(i+7) for i in range(6)])
 init.add_modes(fnModes)
 # init.select_atoms(pattern="CA")
-init.set_forcefield("data/AK/AK_prody/output.psf", "../par_all36_prot.prm")
+init.set_forcefield("data/AK/AK_prody/output.psf")
 voxel_size=2.0
 init_density = Volume.from_coords(coord=init.coords, voxel_size=voxel_size, size=64, threshold=5, sigma=2)
 
