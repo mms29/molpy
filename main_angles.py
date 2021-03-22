@@ -47,8 +47,8 @@ params ={
     "biasing_factor" : 100,
     "n_step": 20,
     "criterion": True,
-    "n_iter":10,
-    "n_warmup":5,
+    "n_iter":20,
+    "n_warmup":10,
     "rotation_dt" : 0.0001,
     "rotation_mass": 10000,}
 n_chain = 4
@@ -105,4 +105,4 @@ plt.plot(rmsd10, label="10")
 plt.plot(rmsd100, label="100")
 plt.plot(rmsd1000, label="1000")
 plt.plot(rmsd10000, label="10000")
-plt.savefig("results/rotation_mass")
+plt.savefig("results/rotation_mass.png")
