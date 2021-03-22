@@ -1,6 +1,6 @@
 # force numpy to use 1 thread per operation (It speeds up the computation)
-# import mkl
-# mkl.set_num_threads(1)
+import mkl
+mkl.set_num_threads(1)
 
 import src.molecule
 from src.density import Volume
@@ -18,20 +18,20 @@ size=128
 voxel_size=1.458
 threshold=4
 gaussian_sigma=2
-# target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-# target_density.rescale(init_density, "opt")
-# target_density.compare_hist(init_density)
+target_density.rescale(init_density, "opt")
+target_density.compare_hist(init_density)
 
-from src.simulation import nma_deform
-target = nma_deform(init, [0,0,0,-1500])
-target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+# from src.simulation import nma_deform
+# target = nma_deform(init, [0,0,0,-1500])
+# target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
 
 params ={
-    "biasing_factor" : 1,
+    "biasing_factor" : 0.1,
     "potential_factor" : 1,
 
     "local_dt" : 1e-15,
@@ -43,7 +43,7 @@ params ={
     "criterion": False,
 }
 n_chain=4
-verbose=2
+verbose=1
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)

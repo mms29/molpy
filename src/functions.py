@@ -103,3 +103,22 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
     if save is not None:
         fig.savefig(save)
 
+
+def get_RMSD_coords(coords1,coords2):
+    return np.sqrt(np.mean(np.square(np.linalg.norm(coords1-coords2, axis=1))))
+
+
+def show_rmsd_fit(mol, fit, save=None):
+    if isinstance(fit.fit, list):
+        fits = fit.fit
+    else:
+        fits = [fit.fit]
+    fig, ax = plt.subplots(1,1)
+    for i in range(len(fits)):
+        rmsd = [get_RMSD_coords(n, mol.coords) for n in fits[i]["coord"]]
+        ax.plot(rmsd)
+    ax.set_ylabel("RMSD (A)")
+    ax.set_xlabel("HMC iteration")
+    ax.set_title("RMSD")
+    if save is not None:
+        fit.savefig(save)

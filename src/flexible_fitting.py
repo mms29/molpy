@@ -98,15 +98,21 @@ class FlexibleFitting:
         :param params: dict of parameters
         """
         default_params = copy.deepcopy(src.constants.DEFAULT_FIT_PARAMS)
-        default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
-        default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.modes.shape[1])
-        default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
-        default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
+        if FIT_VAR_LOCAL in self.vars:
+            default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
+        if FIT_VAR_GLOBAL in self.vars:
+            default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.modes.shape[1])
+        if FIT_VAR_ROTATION in self.vars:
+            default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
+        if FIT_VAR_SHIFT in self.vars:
+            default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
 
-        default_params[FIT_VAR_LOCAL+"_sigma"] = (np.ones((3,self.init.n_atoms)) *
-                                                  np.sqrt((K_BOLTZMANN *default_params["temperature"])/
-                                                  (self.init.prm.mass*ATOMIC_MASS_UNIT))*1e10).T
+
         default_params.update(params)
+        if FIT_VAR_LOCAL in self.vars:
+            default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
+                                                    np.sqrt((K_BOLTZMANN * default_params["temperature"]) /
+                                                            (self.init.prm.mass * ATOMIC_MASS_UNIT)) * 1e10).T
         self.params = default_params
 
     def _get(self, key):
