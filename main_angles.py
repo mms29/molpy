@@ -7,8 +7,8 @@ from src.constants import *
 from src.functions import show_rmsd_fit, get_RMSD_coords
 
 # force numpy to use 1 thread per operation (It speeds up the computation)
-import mkl
-mkl.set_num_threads(1)
+# import mkl
+# mkl.set_num_threads(1)
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
