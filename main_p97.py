@@ -22,7 +22,7 @@ threshold=4
 gaussian_sigma=2
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-target_density.rescale(init_density)
+target_density.rescale(init_density, "opt")
 target_density.compare_hist(init_density)
 
 # from src.simulation import nma_deform
