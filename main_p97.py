@@ -1,6 +1,8 @@
 # force numpy to use 1 thread per operation (It speeds up the computation)
-import mkl
-mkl.set_num_threads(1)
+# import mkl
+# mkl.set_num_threads(1)
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 import src.molecule
 from src.density import Volume
