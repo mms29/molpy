@@ -1,3 +1,9 @@
+# force numpy to use 1 thread per operation (It speeds up the computation)
+# import mkl
+# mkl.set_num_threads(1)
+import os
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 from src.molecule import Molecule
 from src.simulation import nma_deform
 from src.flexible_fitting import *
@@ -5,10 +11,6 @@ from src.viewers import molecule_viewer, chimera_molecule_viewer
 from src.density import Volume
 from src.constants import *
 from src.functions import show_rmsd_fit, get_RMSD_coords
-
-# force numpy to use 1 thread per operation (It speeds up the computation)
-# import mkl
-# mkl.set_num_threads(1)
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
