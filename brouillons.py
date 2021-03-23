@@ -415,14 +415,11 @@ from src.constants import *
 
 # import PDB
 init = Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
-# init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
-init.select_atoms()
-init.set_forcefield()
+init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
 init.center_structure()
 
 target =  Molecule.from_file("data/4AKE/4ake_fitted.pdb")
 target.center_structure()
-target.select_atoms()
 
 size=64
 sampling_rate=2.2
@@ -439,16 +436,16 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 100,
+    "biasing_factor" : 1,
     "n_step": 20,
 
-    "local_dt" : 4*1e-15,
+    "local_dt" : 2*1e-15,
     "temperature" : 1000,
 
     "global_dt" : 0.1,
     "rotation_dt" : 0.00001,
-    "n_iter":30,
-    "n_warmup":15,
+    "n_iter":50,
+    "n_warmup":25,
 }
 
 

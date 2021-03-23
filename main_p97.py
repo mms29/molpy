@@ -49,7 +49,7 @@ fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)
 fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
 
-fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=24)
+fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=4)
 
 fits[0].show(save="results/p97_all_atoms_fitx.png")
 fits[1].show(save="results/p97_all_atoms_fitq.png")

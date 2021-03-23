@@ -62,14 +62,19 @@ models100= []
 models10= []
 models1= []
 for i in target_densities:
+    params = copy.deepcopy(params)
     params["rotation_mass"] = 1
     models1.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params = copy.deepcopy(params)
     params["rotation_mass"] = 10
     models10.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params = copy.deepcopy(params)
     params["rotation_mass"] = 100
     models100.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params = copy.deepcopy(params)
     params["rotation_mass"] = 1000
     models1000.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
+    params = copy.deepcopy(params)
     params["rotation_mass"] = 10000
     models10000.append(FlexibleFitting(init=init, target=i, vars=["rotation"], params=params, n_chain=n_chain, verbose=verbose))
 
