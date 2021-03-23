@@ -398,3 +398,68 @@ print(cmd)
 
 mol2 = Molecule.from_file(new_pdb)
 chimera_molecule_viewer([mol1, mol2])
+
+
+
+
+from src.molecule import Molecule
+from src.simulation import nma_deform
+from src.flexible_fitting import *
+from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
+from src.density import Volume
+from src.constants import *
+
+########################################################################################################
+#               IMPORT FILES
+########################################################################################################
+
+# import PDB
+init = Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
+# init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
+init.select_atoms()
+init.set_forcefield()
+init.center_structure()
+
+target =  Molecule.from_file("data/4AKE/4ake_fitted.pdb")
+target.center_structure()
+target.select_atoms()
+
+size=64
+sampling_rate=2.2
+threshold= 4
+gaussian_sigma=2
+target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
+init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
+target_density.show()
+
+# chimera_molecule_viewer([target, init])
+# chimera_fit_viewer(init, target_density)
+
+########################################################################################################
+#               HMC
+########################################################################################################
+params ={
+    "biasing_factor" : 100,
+    "n_step": 20,
+
+    "local_dt" : 4*1e-15,
+    "temperature" : 1000,
+
+    "global_dt" : 0.1,
+    "rotation_dt" : 0.00001,
+    "n_iter":30,
+    "n_warmup":15,
+}
+
+
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2)
+
+fit.HMC()
+fit.show()
+fit.show_3D()
+chimera_molecule_viewer([fit.res["mol"], target])
+
+data= []
+for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
+    data += j
+src.functions.compute_pca(data=data, length=[len(data)], n_components=2)

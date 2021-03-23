@@ -39,23 +39,27 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 100,
+    "biasing_factor" : 10,
     "n_step": 10,
 
-    "local_dt" : 6*1e-15,
-    "temperature" : 3000,
+    "local_dt" : 1*1e-15,
+    "temperature" : 1000,
 
     "global_dt" : 0.1,
     "rotation_dt" : 0.00001,
-    "n_iter":20,
-    "n_warmup":10,
+    "n_iter":40,
+    "n_warmup":20,
 }
 
 
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=1, verbose=2)
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=8, verbose=2)
 
-fit.HMC_chain()
+fit.HMC()
 fit.show()
-fit.show_3D()
+# fit.show_3D()
+# chimera_molecule_viewer([fit.res["mol"], target])
 
-chimera_molecule_viewer([fit.res["mol"], target])
+data= []
+for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
+    data += j
+src.functions.compute_pca(data=data, length=[len(data)], n_components=2)

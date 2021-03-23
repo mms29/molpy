@@ -83,6 +83,22 @@ class Molecule:
         """
         self.modes = self.modes[:, selected_modes]
 
+    def select_chain(self, chain_id):
+        """
+        Select chains from the molecule
+        :param chain_id: list of chain indexes to select
+        """
+        chains=[]
+        length = []
+        for i in chain_id:
+            chain = self.get_chain(i)
+            chains.append(chain)
+            length.append(chain.shape[0])
+        self.coords= np.concatenate(chains)
+        self.n_atoms = self.coords.shape[0]
+        self.chain_id = [0] + list(np.cumsum(length))
+        self.n_chain = len(self.chain_id )-1
+
     def get_chain(self, id):
         """
         Return coordinates of a specific chain
@@ -109,7 +125,7 @@ class Molecule:
         """
         Center the structure coordinates around 0
         """
-        self.coords -= np.mean(self.coords)
+        self.coords -= np.mean(self.coords, axis=0)
 
     def show(self):
         """
