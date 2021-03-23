@@ -76,7 +76,7 @@ for i in target_densities:
 # show_rmsd_fit(mol=targets[0], fit=fit)
 models = models1 +  models10 +  models100 +  models1000 +  models10000
 
-fits = multiple_fitting(models, n_chain=n_chain, n_proc=32)
+fits = multiple_fitting(models, n_chain=n_chain, n_proc=96)
 
 rmsd1 =     [get_RMSD_coords(targets[i].coords, fits[0*N:1*N][i].res["mol"].coords) for i in range(N)]
 rmsd10 =    [get_RMSD_coords(targets[i].coords, fits[1*N:2*N][i].res["mol"].coords) for i in range(N)]
