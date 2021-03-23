@@ -414,13 +414,13 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init = Molecule.from_file("data/4AKE/4ake_fitted.pdb")
+init = Molecule.from_file("data/ATPase/1iwo.pdb")
 init.center_structure()
-target =  Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
+target =  Molecule.from_file("data/ATPase/1su4_rotated3.pdb")
 target.center_structure()
 
-# fnModes = np.array(["data/4AKE/modes/vec."+str(i+7) for i in range(6)])
-# init.add_modes(fnModes)
+fnModes = np.array(["data/ATPase/modes/vec."+str(i+7) for i in range(6)])
+init.add_modes(fnModes)
 
 
 # init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
@@ -428,7 +428,7 @@ init.select_atoms()
 init.set_forcefield()
 target.select_atoms()
 
-size=64
+size=128
 sampling_rate=1.5
 threshold= 4
 gaussian_sigma=2
@@ -443,10 +443,10 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 300,
+    "biasing_factor" : 100,
     "n_step": 20,
 
-    "local_dt" : 2*1e-15,
+    "local_dt" : 1e-15,
     "temperature" : 1000,
 
     "global_dt" : 0.1,
