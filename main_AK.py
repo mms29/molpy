@@ -42,7 +42,7 @@ params ={
     "biasing_factor" : 100,
     "n_step": 10,
 
-    "local_dt" : 1e-15,
+    "local_dt" : 6*1e-15,
     "temperature" : 3000,
 
     "global_dt" : 0.1,

@@ -147,7 +147,7 @@ class FlexibleFitting:
         U+= U_biased
 
         # Energy Potential
-        U_potential = src.forcefield.get_energy(coord=self._get("coordt"), molstr = self.init.psf,
+        U_potential = src.forcefield.get_energy(coord=self._get("coord_t"), molstr = self.init.psf,
                                  molprm= self.init.prm, verbose=False)* self.params["potential_factor"]
         self._add("U_potential", U_potential)
         U += U_potential
@@ -230,11 +230,11 @@ class FlexibleFitting:
         """
         t = time.time()
         if isinstance(self.target, src.density.Volume):
-            density = src.density.Volume.from_coords(coord=self._get("coordt"), size=self.target.size,
+            density = src.density.Volume.from_coords(coord=self._get("coord_t"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
         else:
-            density = src.density.Image.from_coords(coord=self._get("coordt"), size=self.target.size,
+            density = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
                                       sigma=self.target.sigma, threshold=self.target.threshold).data
         if self.verbose >= 3: print("Density=" + str(time.time() - t))
@@ -277,16 +277,16 @@ class FlexibleFitting:
         """
         Compute the forward model
         """
-        coordt = copy.deepcopy(self.init.coords)
+        coord = copy.deepcopy(self.init.coords)
         if FIT_VAR_LOCAL in self.vars:
-            coordt += self._get(FIT_VAR_LOCAL+"_t")
+            coord += self._get(FIT_VAR_LOCAL+"_t")
         if FIT_VAR_GLOBAL in self.vars:
-            coordt += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.modes)
+            coord += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.modes)
         if FIT_VAR_ROTATION in self.vars:
-            coordt = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coordt.T).T
+            coord = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coord.T).T
         if FIT_VAR_SHIFT  in self.vars:
-            coordt += self._get(FIT_VAR_SHIFT+"_t")
-        self._set("coordt", coordt)
+            coord += self._get(FIT_VAR_SHIFT+"_t")
+        self._set("coord_t", coord)
 
     def _acceptation(self,H, H_init):
         """
@@ -294,21 +294,25 @@ class FlexibleFitting:
         :param H: Current Hamiltonian
         :param H_init: Initial Hamiltonian
         """
-        # accept_p = np.min([1, np.exp((H_init - H))])
+        # Set acceptance value
         accept_p = np.min([1, H_init/H])
-        if self.verbose > 1 : print("H<H_init="+str(H_init > H) +" ; H" + str(H)+" ; H_init" + str(H_init))
-        if accept_p > np.random.rand() :
+        self._add("accept", accept_p > np.random.rand())
+
+        # Update variables
+        if self._get("accept") :
+            suffix = "_t"
             if self.verbose > 1 : print("ACCEPTED " + str(accept_p))
-            for i in self.vars:
-                self._add(i, self._get(i+"_t"))
-            self._add("coord", self._get("coordt"))
         else:
+            suffix = ""
             if self.verbose > 1 : print("REJECTED " + str(accept_p))
-            for i in self.vars:
-                self._add(i, self._get(i))
-            self._add("coord", self._get("coord"))
         for i in self.vars:
-            self._remove(i+"_F")
+            self._add(i, self._get(i+suffix))
+        self._add("coord", self._get("coord"+suffix))
+
+        # clean forces
+        for i in self.vars:
+            self._remove(i + "_F")
+
 
     def _print_step(self):
         """
