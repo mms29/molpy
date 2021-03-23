@@ -36,8 +36,8 @@ params ={
     "biasing_factor" : 1,
     "potential_factor" : 1,
 
-    "local_dt" : 4*1e-15,
-    "global_dt" : 0.1,
+    "local_dt" : 2*1e-15,
+    "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
     "n_iter":20,
     "n_warmup":10,

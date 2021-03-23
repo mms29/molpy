@@ -414,15 +414,22 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init = Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
-init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
+init = Molecule.from_file("data/4AKE/4ake_fitted.pdb")
 init.center_structure()
-
-target =  Molecule.from_file("data/4AKE/4ake_fitted.pdb")
+target =  Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
 target.center_structure()
 
+# fnModes = np.array(["data/4AKE/modes/vec."+str(i+7) for i in range(6)])
+# init.add_modes(fnModes)
+
+
+# init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
+init.select_atoms()
+init.set_forcefield()
+target.select_atoms()
+
 size=64
-sampling_rate=2.2
+sampling_rate=1.5
 threshold= 4
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
@@ -436,7 +443,7 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 1,
+    "biasing_factor" : 300,
     "n_step": 20,
 
     "local_dt" : 2*1e-15,
@@ -444,8 +451,9 @@ params ={
 
     "global_dt" : 0.1,
     "rotation_dt" : 0.00001,
-    "n_iter":50,
-    "n_warmup":25,
+    "shift_dt" : 0.00001,
+    "n_iter":20,
+    "n_warmup":10,
 }
 
 
@@ -457,6 +465,8 @@ fit.show_3D()
 chimera_molecule_viewer([fit.res["mol"], target])
 
 data= []
-for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
+length = []
+for j in [[i.flatten() for i in n["coord_t"]] for n in fit.fit]:
     data += j
-src.functions.compute_pca(data=data, length=[len(data)], n_components=2)
+    length += [len(j)]
+src.functions.compute_pca(data=data, length=length, n_components=2)

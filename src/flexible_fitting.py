@@ -286,7 +286,7 @@ class FlexibleFitting:
             coord = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coord.T).T
         if FIT_VAR_SHIFT  in self.vars:
             coord += self._get(FIT_VAR_SHIFT+"_t")
-        self._set("coord_t", coord)
+        self._add("coord_t", coord)
 
     def _acceptation(self,H, H_init):
         """
@@ -295,16 +295,15 @@ class FlexibleFitting:
         :param H_init: Initial Hamiltonian
         """
         # Set acceptance value
-        accept_p = np.min([1, H_init/H])
-        self._add("accept", accept_p > np.random.rand())
+        self._add("accept",  np.min([1, H_init/H]) )
 
         # Update variables
-        if self._get("accept") :
+        if self._get("accept") > np.random.rand() :
             suffix = "_t"
-            if self.verbose > 1 : print("ACCEPTED " + str(accept_p))
+            if self.verbose > 1 : print("ACCEPTED " + str(self._get("accept")))
         else:
             suffix = ""
-            if self.verbose > 1 : print("REJECTED " + str(accept_p))
+            if self.verbose > 1 : print("REJECTED " + str(self._get("accept")))
         for i in self.vars:
             self._add(i, self._get(i+suffix))
         self._add("coord", self._get("coord"+suffix))
@@ -440,8 +439,8 @@ def multiple_fitting(models, n_chain, n_proc, save_dir=None):
                 fits += p.map(FlexibleFitting.HMC, models[i])
                 p.close()
                 p.join()
-        except RuntimeError:
-            print("Failed")
+        except RuntimeError as rte:
+            print("Failed : "+str(rte.args))
         print("\t\t done : "+str(time.time()-t))
         if save_dir is not None:
             for n in i:
