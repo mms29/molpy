@@ -22,7 +22,7 @@ threshold=4
 gaussian_sigma=2
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-target_density.rescale(init_density, "opt")
+target_density.rescale(init_density)
 target_density.compare_hist(init_density)
 
 # from src.simulation import nma_deform
@@ -53,9 +53,9 @@ fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global
 
 fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=24)
 
-fits[0].show(save="results/p97_all_atoms_fitx.png")
-fits[1].show(save="results/p97_all_atoms_fitq.png")
-fits[2].show(save="results/p97_all_atoms_fitxq.png")
+fits[0].show(save="results/p97_all_atoms_fitx2.png")
+fits[1].show(save="results/p97_all_atoms_fitq2.png")
+fits[2].show(save="results/p97_all_atoms_fitxq2.png")
 
 import matplotlib.pyplot as plt
 from src.functions import cross_correlation
@@ -72,7 +72,7 @@ ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-fig.savefig("results/p97_all_atoms_fits.png")
+fig.savefig("results/p97_all_atoms_fits2.png")
 
 
 
