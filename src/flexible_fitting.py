@@ -44,9 +44,13 @@ class FlexibleFitting:
         """
         with Pool(self.n_chain) as p:
             # launch n_chain times HMC_chain()
-            fittings = p.map(FlexibleFitting.HMC_chain, [self for i in range(self.n_chain)])
-            p.close()
-            p.join()
+            try:
+                fittings = p.map(FlexibleFitting.HMC_chain, [self for i in range(self.n_chain)])
+                p.close()
+                p.join()
+            except RuntimeError as rte:
+                print("Failed to run HMC : "+ str(rte.args))
+                raise RuntimeError(rte.args)
 
         # Regroup the chains results
         self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
@@ -72,9 +76,14 @@ class FlexibleFitting:
             self._set(i ,[self.params[i+"_init"]])
 
         # HMC Loop
-        for i in range(self.params["n_iter"]):
-            if self.verbose > 0 : print("HMC ITER = " + str(i))
-            self.HMC_step()
+        try :
+            for i in range(self.params["n_iter"]):
+                if self.verbose > 0 : print("HMC ITER = " + str(i))
+                self.HMC_step()
+        except RuntimeError as rte:
+            print("Failed to run HMC chain : " + str(rte.args))
+            raise RuntimeError(rte.args)
+
 
         # Generate results
         self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
@@ -439,7 +448,8 @@ def multiple_fitting(models, n_chain, n_proc, save_dir=None):
                 p.close()
                 p.join()
         except RuntimeError as rte:
-            print(str(rte.args))
+            print("Failed to run multiple fitting : " + str(rte.args))
+
         print("\t\t done : "+str(time.time()-t))
         if save_dir is not None:
             for n in i:

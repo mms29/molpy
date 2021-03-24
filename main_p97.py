@@ -38,7 +38,7 @@ params ={
     "biasing_factor" : 1,
     "potential_factor" : 1,
 
-    "local_dt" : 2e-15,
+    "local_dt" : 1e-15,
     "temperature" : 1000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
