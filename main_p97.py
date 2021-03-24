@@ -1,6 +1,6 @@
 # force numpy to use 1 thread per operation (It speeds up the computation)
-# import mkl
-# mkl.set_num_threads(1)
+import mkl
+mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
@@ -10,19 +10,26 @@ import numpy as np
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
 
-init =src.molecule.Molecule.from_file("data/P97/5ftm_psf.pdb")
+init =src.molecule.Molecule.from_file("data/P97/5ftm.pdb")
 init.center_structure()
-fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(4)])
+fnModes = np.array(["data/P97/modes_atoms/vec."+str(i+7) for i in range(4)])
 init.add_modes(fnModes)
-init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
+
+init.select_atoms()
+init.set_forcefield()
+init.get_energy()
+
+# init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 
 size=128
 voxel_size=1.458
 threshold=4
-gaussian_sigma=2
+gaussian_sigma=1.8
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-target_density.rescale(init_density, "opt")
+
+target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
+# target_density.rescale(init_density, "opt")
 target_density.compare_hist(init_density)
 
 # from src.simulation import nma_deform
@@ -33,21 +40,26 @@ target_density.compare_hist(init_density)
 
 
 params ={
-    "biasing_factor" : 1,
+    "biasing_factor" : 200,
     "potential_factor" : 1,
 
     "local_dt" : 1e-15,
+    "temperature" : 3000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":20,
-    "n_warmup":10,
-    "n_step": 20,
+    "n_iter":10,
+    "n_warmup":5,
+    "n_step": 5,
     "criterion": False,
 }
 n_chain=4
-verbose=1
+verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
+fitx.HMC()
+fitx.show()
+fitx.show_3D()
+
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)
 fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
 

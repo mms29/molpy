@@ -414,14 +414,10 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init = Molecule.from_file("data/ATPase/1iwo.pdb")
+init = Molecule.from_file("data/ATPase/prody/1iwo_fitted.pdb")
 init.center_structure()
-target =  Molecule.from_file("data/ATPase/1su4_rotated3.pdb")
+target =  Molecule.from_file("data/ATPase/prody/1su4.pdb")
 target.center_structure()
-
-fnModes = np.array(["data/ATPase/modes/vec."+str(i+7) for i in range(6)])
-init.add_modes(fnModes)
-
 
 # init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
 init.select_atoms()
@@ -436,7 +432,7 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=s
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
 target_density.show()
 
-# chimera_molecule_viewer([target, init])
+chimera_molecule_viewer([target, init])
 # chimera_fit_viewer(init, target_density)
 
 ########################################################################################################

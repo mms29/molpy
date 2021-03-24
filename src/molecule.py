@@ -37,6 +37,9 @@ class Molecule:
             self.chain_id=chain_id
             self.n_chain = len(chain_id) -1
 
+        self.prm = None
+        self.psf = None
+
     @classmethod
     def from_file(cls, file):
         """
@@ -163,7 +166,7 @@ class Molecule:
         Save to PDB Format
         :param file: pdb file path
         """
-        src.io.save_pdb(self, file)
+        src.io.save_pdb(coords = self.coords, file=file, genfile=self.genfile, coarse_grained = self.coarse_grained)
 
 class MoleculeStructure:
     """

@@ -37,11 +37,11 @@ def chimera_molecule_viewer(mol):
     if isinstance(mol, list):
         cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \""
         for i in range(len(mol)):
-            src.io.save_pdb(mol[i], "mol"+str(i)+".pdb")
+            mol[i].save_pdb( "mol"+str(i)+".pdb")
             cmd+= "open mol"+str(i)+".pdb ; "
         cmd+="hide atoms ; show cartoons\""
     else:
-        src.io.save_pdb(mol, "mol.pdb")
+        mol.save_pdb("mol.pdb")
         cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; hide atoms ; show cartoons\""
     os.system(cmd)
 
@@ -126,7 +126,7 @@ def chimera_fit_viewer(mol, target):
     :param mol: initial Molecule
     :param target: target Density
     """
-    src.io.save_pdb(mol, "mol.pdb")
-    src.io.save_mrc(target, "vol.mrc")
+    mol.save_pdb("mol.pdb")
+    target.save_mrc("vol.mrc")
     cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; open vol.mrc ; volume #2 level 0.7 ; volume #2 transparency 0.7 ; hide atoms ; show cartoons\""
     os.system(cmd)

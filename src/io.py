@@ -44,13 +44,15 @@ def read_pdb(file):
 
     return np.array(coords), np.array(atom_type), chain_id, file
 
-def save_pdb(mol, file):
+def save_pdb(coords, file, genfile, coarse_grained = False):
     """
     Save Molecule to PDB file
-    :param mol: Molecule to save
+    :param coords: Coordinates to save
     :param file: PDB file
+    :param genfile: original pdb file
+    :param coarse_grained: boolean
     """
-    genfile = mol.genfile
+    genfile = genfile
     print("Saving pdb file ...")
     with open(file, "w") as file:
         with open(genfile, "r") as genfile:
@@ -60,11 +62,11 @@ def save_pdb(mol, file):
 
                 if len(split_line) > 0:
                     if split_line[0] == 'ATOM':
-                        if n< mol.n_atoms:
+                        if n< coords.shape[0]:
                             l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
                                  line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
-                            if (mol.coarse_grained and split_line[2] == 'CA') or (not mol.coarse_grained):
-                                coord = mol.coords[n]
+                            if (coarse_grained and split_line[2] == 'CA') or (not coarse_grained):
+                                coord = coords[n]
                                 l[0] = l[0].ljust(6)  # atom#6s
                                 l[1] = l[1].rjust(5)  # aomnum#5d
                                 l[2] = l[2].center(4)  # atomname$#4s
@@ -101,18 +103,19 @@ def read_mrc(file):
         voxel_size = np.float(mrc.voxel_size['x'])
         return data, voxel_size
 
-def save_mrc(vol, file):
+def save_mrc(data, file, voxel_size=1):
     """
-    Save the Volume to an mrc file. The origin of the grid will be (0,0,0)
-    :param vol: Volume to save
+    Save volume data to an mrc file. The origin of the grid will be (0,0,0)
+    :param data: volume data to save (array N*N*N)
     :param file: the mrc file name for the output
+    :param voxel_size: voxel size
     """
     print("Saving mrc file ...")
-    data = vol.data.astype('float32')
+    data = data.astype('float32')
     with mrcfile.new(file, overwrite=True) as mrc:
         mrc.set_data(data.T)
-        mrc.voxel_size = vol.voxel_size
-        origin = -vol.voxel_size*vol.size/2
+        mrc.voxel_size = voxel_size
+        origin = -voxel_size*data.shape[0]/2
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin
@@ -147,15 +150,22 @@ def read_xmd(file):
                         angles.append(np.array(split_line[20:23]).astype(float))
     return np.array(modes), np.array(shifts), np.array(angles)
 
-def create_psf( file):
+def create_psf( pdb_file,prefix=None, topology_file=None):
     """
     Generate PSF file using VMD from a PDB file
-    :param file: PDB file to construct PSF file from (the output PSF file will have the same name with only extension changed
+    :param pdb_file: PDB file to construct PSF file from (the output PSF file will have the same name with only extension changed
+    :param prefix: output prefix
+    :param topology_file: CHARMM TOpology file .rtf
     """
-    pre, ext = os.path.splitext(file)
+    pre, ext = os.path.splitext(pdb_file)
+    if prefix is not None:
+        pre = prefix
+    if topology_file is None:
+        topology_file = TOPOLOGY_FILE
 
-    with open("psfgen.tcl", "w") as psfgen :
-        psfgen.write("mol load pdb " +file+"\n")
+
+    with open(pre+"_psfgen.tcl", "w") as psfgen :
+        psfgen.write("mol load pdb " +pdb_file+"\n")
         psfgen.write("set protein [atomselect top protein]\n")
         psfgen.write("set chains [lsort -unique [$protein get pfrag]]\n")
 
@@ -165,7 +175,7 @@ def create_psf( file):
         psfgen.write("}\n")
 
         psfgen.write("package require psfgen\n")
-        psfgen.write("topology "+TOPOLOGY_FILE+"\n")
+        psfgen.write("topology "+topology_file+"\n")
         psfgen.write("pdbalias residue HIS HSE\n")
         psfgen.write("pdbalias atom ILE CD1 CD\n")
 
@@ -180,7 +190,7 @@ def create_psf( file):
         psfgen.write("writepsf "+pre+".psf\n")
         psfgen.write("exit\n")
 
-    os.system("vmd -dispdev text -e psfgen.tcl")
+    os.system("vmd -dispdev text -e "+pre+"_psfgen.tcl")
 
 def read_psf(file):
     """

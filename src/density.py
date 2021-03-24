@@ -166,6 +166,9 @@ class Volume(Density):
     def show(self):
         src.viewers.volume_viewer(self)
 
+    def save_mrc(self, file):
+        src.io.save_mrc(data=self.data, voxel_size=self.voxel_size, file=file)
+
 class Image(Density):
     """
     Cryo EM density image
