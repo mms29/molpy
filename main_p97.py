@@ -11,7 +11,8 @@ from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
 
 init =src.molecule.Molecule.from_file("data/P97/5ftm.pdb")
-init.center_structure()
+# init.center_structure()
+init.coords -= np.mean(init.coords)
 fnModes = np.array(["data/P97/modes_atoms/vec."+str(i+7) for i in range(4)])
 init.add_modes(fnModes)
 
