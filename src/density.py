@@ -119,7 +119,6 @@ class Volume(Density):
 
     def get_gradient_RMSD(self, mol, psim, params):
         coord = copy.copy(mol.coords)
-        vox, n_vox = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
         pdiff = psim - self.data
 
         res = {}
@@ -137,6 +136,8 @@ class Volume(Density):
         if FIT_VAR_SHIFT in params:
             res[FIT_VAR_SHIFT] = np.zeros(3)
             coord += params[FIT_VAR_SHIFT]
+
+        vox, n_vox = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
 
         for i in range(mol.n_atoms):
             mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
@@ -191,8 +192,6 @@ class Image(Density):
 
     def get_gradient_RMSD(self, mol, psim, params):
         coord = copy.copy(mol.coords)
-        vox, n_pix = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
-        pix = vox[:, :2]
         pdiff = psim - self.data
 
         res = {}
@@ -210,6 +209,9 @@ class Image(Density):
         if FIT_VAR_SHIFT in params:
             res[FIT_VAR_SHIFT] = np.zeros(3)
             coord += params[FIT_VAR_SHIFT]
+
+        vox, n_pix = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
+        pix = vox[:, :2]
 
         for i in range(mol.n_atoms):
             mu_grid = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,

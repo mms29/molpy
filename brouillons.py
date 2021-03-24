@@ -466,3 +466,60 @@ for j in [[i.flatten() for i in n["coord_t"]] for n in fit.fit]:
     data += j
     length += [len(j)]
 src.functions.compute_pca(data=data, length=length, n_components=2)
+
+
+
+
+
+
+
+import numpy as np
+
+from src.molecule import Molecule
+from src.simulation import nma_deform
+from src.flexible_fitting import *
+from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
+from src.density import Volume
+from src.constants import *
+
+########################################################################################################
+#               IMPORT FILES
+########################################################################################################
+
+# import PDB
+init = Molecule.from_file("data/ATPase/prody/1iwo_fitted.pdb")
+init.center_structure()
+target =  Molecule.from_file("data/ATPase/prody/1su4.pdb")
+target.center_structure()
+
+size=128
+sampling_rate=1.5
+threshold= 4
+gaussian_sigma=2
+target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
+init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
+
+def get_grad_RMSD3(coord, psim, pexp, size, sampling_rate, sigma, threshold):
+    vox, n_vox = src.functions.select_voxels(coord, size, sampling_rate, threshold)
+    n_atoms = coord.shape[0]
+    pdiff = psim - pexp
+
+
+    dx = np.zeros(coord.shape)
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * sampling_rate
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        tmp = 2* pdiff[vox[i,0]:vox[i,0]+n_vox,
+            vox[i,1]:vox[i,1]+n_vox,
+            vox[i,2]:vox[i,2]+n_vox]*np.exp(-np.square(np.linalg.norm(x-mu, axis=0))/(2*(sigma ** 2)))
+        dpsim =-(1/(sigma**2)) * (x-mu) * np.array([tmp,tmp,tmp])
+        dx[i] = np.sum(dpsim, axis=(1,2,3))
+
+    return dx
+
+a = target_density.get_gradient_RMSD(mol=init, psim=init_density.data, params={"local":np.ones((init.n_atoms, 3))})["local"]
+b = get_grad_RMSD3(coord= init.coords+np.ones((init.n_atoms, 3)), psim=init_density.data, pexp=target_density.data, size=target_density.size, sampling_rate=target_density.voxel_size,
+                   sigma=target_density.sigma, threshold=target_density.threshold)
+

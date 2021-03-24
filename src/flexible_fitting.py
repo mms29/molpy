@@ -175,6 +175,9 @@ class FlexibleFitting:
         dU_biased = self.target.get_gradient_RMSD(self.init, psim, vals)
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
 
+        print("Fb : "+str(dU_biased["local"].std()))
+        print("Fp : "+str(dU_potential["local"].std()))
+
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
             # if i == FIT_VAR_LOCAL:
