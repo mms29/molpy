@@ -50,9 +50,9 @@ params ={
 n_chain=4
 verbose=2
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
+fitx  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
 fitx.HMC()
-fitx.show(save="results/p97_allatoms_synth_fitx.png")
+fitx.show(save="results/p97_allatoms_synth_fitxq.png")
 
 # fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)
 # fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
