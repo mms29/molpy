@@ -177,10 +177,10 @@ class FlexibleFitting:
 
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
-            # if i == FIT_VAR_LOCAL:
-            #     F = (F.T * (1 / (self.init.prm.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
-            #     F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
-            #     F *= 1e20  # kg * m2 * s-2 -> kg * A2 * s-2
+            if i == FIT_VAR_LOCAL:
+                F = (F.T * (1 / (self.init.prm.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+                F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
+                F *= 1e20  # kg * m2 * s-2 -> kg * A2 * s-2
             if i+"_factor" in self.params:
                 F+=  - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
@@ -200,7 +200,7 @@ class FlexibleFitting:
                 K =  1 / 2 * np.sum(self.params[i+"_sigma"]*np.square(self._get(i+"_v")))
 
         # kg * A2 * s-2 -> kcal * mol-1
-        # K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)
+        K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)
         self._add("K", K)
 
     def _set_instant_temp(self):
@@ -439,7 +439,7 @@ def multiple_fitting(models, n_chain, n_proc, save_dir=None):
                 p.close()
                 p.join()
         except RuntimeError as rte:
-            print("Failed : "+str(rte.args))
+            print(str(rte.args))
         print("\t\t done : "+str(time.time()-t))
         if save_dir is not None:
             for n in i:

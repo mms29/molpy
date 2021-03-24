@@ -10,17 +10,11 @@ import numpy as np
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
 
-init =src.molecule.Molecule.from_file("data/P97/5ftm.pdb")
-# init.center_structure()
-init.coords -= np.mean(init.coords)
-fnModes = np.array(["data/P97/modes_atoms/vec."+str(i+7) for i in range(4)])
+init =src.molecule.Molecule.from_file("data/P97/5ftm_psf.pdb")
+init.center_structure()
+fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(4)])
 init.add_modes(fnModes)
-
-init.select_atoms()
-init.set_forcefield()
-init.get_energy()
-
-# init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
+init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 
 size=128
 voxel_size=1.458
@@ -41,35 +35,34 @@ target_density.compare_hist(init_density)
 
 
 params ={
-    "biasing_factor" : 200,
+    "biasing_factor" : 1,
     "potential_factor" : 1,
 
-    "local_dt" : 0.01,
-    "temperature" : 3000,
-    "local_sigma" : 0,
+    "local_dt" : 2e-15,
+    "temperature" : 1000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":10,
-    "n_warmup":5,
-    "n_step": 10,
+    "n_iter":50,
+    "n_warmup":40,
+    "n_step": 20,
     "criterion": False,
 }
-n_chain=1
+n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
-fitx.HMC_chain()
-fitx.show()
-fitx.show_3D()
-
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)
 fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
 
 fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=24)
 
-fits[0].show(save="results/p97_all_atoms_fitx2.png")
-fits[1].show(save="results/p97_all_atoms_fitq2.png")
-fits[2].show(save="results/p97_all_atoms_fitxq2.png")
+fits[0].show(save="results/p97_allatoms_exp_fitx.png")
+fits[1].show(save="results/p97_allatoms_exp_fitq.png")
+fits[2].show(save="results/p97_allatoms_exp_fitxq.png")
+
+fits[0].res["mol"].save_pdb("results/p97_allatoms_exp_fitx.pdb")
+fits[1].res["mol"].save_pdb("results/p97_allatoms_exp_fitq.pdb")
+fits[2].res["mol"].save_pdb("results/p97_allatoms_exp_fitxq.pdb")
 
 import matplotlib.pyplot as plt
 from src.functions import cross_correlation
@@ -86,7 +79,7 @@ ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-fig.savefig("results/p97_all_atoms_fits2.png")
+fig.savefig("results/p97_allatoms_exp_fits.png")
 
 
 
