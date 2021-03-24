@@ -24,7 +24,7 @@ init.get_energy()
 size=128
 voxel_size=1.458
 threshold=4
-gaussian_sigma=1.8
+gaussian_sigma=2
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 
@@ -43,20 +43,21 @@ params ={
     "biasing_factor" : 200,
     "potential_factor" : 1,
 
-    "local_dt" : 1e-15,
+    "local_dt" : 0.01,
     "temperature" : 3000,
+    "local_sigma" : 0,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
     "n_iter":10,
     "n_warmup":5,
-    "n_step": 5,
+    "n_step": 10,
     "criterion": False,
 }
-n_chain=4
+n_chain=1
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
-fitx.HMC()
+fitx.HMC_chain()
 fitx.show()
 fitx.show_3D()
 
