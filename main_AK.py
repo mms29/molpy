@@ -39,20 +39,20 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 10,
+    "biasing_factor" : 500,
     "n_step": 10,
 
-    "local_dt" : 1*1e-15,
+    "local_dt" : 2*1e-15,
     "temperature" : 1000,
 
     "global_dt" : 0.1,
     "rotation_dt" : 0.00001,
-    "n_iter":40,
-    "n_warmup":20,
+    "n_iter":10,
+    "n_warmup":5,
 }
 
 
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=8, verbose=2)
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=8, verbose=1)
 
 fit.HMC()
 fit.show()

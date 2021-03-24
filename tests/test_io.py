@@ -51,5 +51,11 @@ class TestIO(unittest.TestCase):
         dic= read_psf("tests_data/output/psf.psf")
         self.assertTrue("bonds" in dic)
 
-    # def test_read_psf
+    def test_read_psf(self):
+        pass
+        #TODO
+
+    def test_read_prm(self):
+        pass
+        #TODO
 

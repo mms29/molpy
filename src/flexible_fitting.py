@@ -150,7 +150,7 @@ class FlexibleFitting:
         t = time.time()
 
         # Biased Potential
-        U_biased = src.functions.get_RMSD(psim=psim, pexp=self.target.data) * self.params["biasing_factor"]
+        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data) * self.params["biasing_factor"]
         self._add("U_biased", U_biased)
         U+= U_biased
 
@@ -181,7 +181,7 @@ class FlexibleFitting:
         for i in self.vars:
             vals[i] = self._get(i+"_t")
 
-        dU_biased = self.target.get_gradient_RMSD(self.init, psim, vals)
+        dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=psim, pexp =self.target, params=vals)
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
 
         for i in self.vars:
@@ -240,11 +240,11 @@ class FlexibleFitting:
         if isinstance(self.target, src.density.Volume):
             density = src.density.Volume.from_coords(coord=self._get("coord_t"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
-                                      sigma=self.target.sigma, threshold=self.target.threshold).data
+                                      sigma=self.target.sigma, threshold=self.target.threshold)
         else:
             density = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
                                       voxel_size=self.target.voxel_size,
-                                      sigma=self.target.sigma, threshold=self.target.threshold).data
+                                      sigma=self.target.sigma, threshold=self.target.threshold)
         if self.verbose >= 3: print("Density=" + str(time.time() - t))
         return density
 
@@ -365,7 +365,7 @@ class FlexibleFitting:
         # Density update
             psim = self._set_density()
         # CC update
-            self._add("CC", src.functions.cross_correlation(psim, self.target.data))
+            self._add("CC", src.functions.cross_correlation(psim.data, self.target.data))
         # Potential energy update
             self._set_energy(psim)
         # Gradient Update

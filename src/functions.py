@@ -16,8 +16,8 @@ def select_voxels(coord, size, sampling_rate, threshold):
     for i in range(n_atoms):
         l[i] = (coord[i]/sampling_rate -threshold + size/2).astype(int)
 
-    if (np.max(l) >= size or np.min(l)<0):
-        raise RuntimeError("threshold too large")
+    if (np.max(l) >= size or np.min(l)<0) or (np.max(l+n_vox) >= size or np.min(l+n_vox)<0):
+        raise RuntimeError("ERROR : Atomic coordinates got outside the box")
     return l.astype(int), n_vox
 
 def to_vector(arr):

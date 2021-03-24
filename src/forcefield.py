@@ -1,6 +1,7 @@
 import autograd.numpy as npg
 from autograd import elementwise_grad
 import numpy as np
+import copy
 
 from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
 import src.functions
@@ -100,3 +101,108 @@ def get_energy_dihedrals(coord, dihedrals, prm):
     torsions = npg.arctan2(npg.linalg.norm(u2, axis=1) * npg.sum(u1 * npg.cross(u2, u3), axis=1),
                            npg.sum(npg.cross(u1, u2) * npg.cross(u2, u3), axis=1))
     return npg.sum(prm.Kchi * (1 + npg.cos(prm.n * (torsions) - (prm.delta*npg.pi/180))))
+
+
+def get_gradient_RMSD(mol, psim, pexp, params):
+    """
+    Compute the gradient of the RMSD between the density and a simultaed denisty
+    :param mol: Mol used for simulting densitty
+    :param psim: Simulated Density
+    :param pexp: Experimental Density
+    :param params: dictionnary of parameters to get the gradient (key= param name, value = param current value)
+    :return: gradient of RMSD for each parameters
+    """
+    coord = copy.copy(mol.coords)
+    pdiff = psim.data - pexp.data
+
+    res = {}
+    if FIT_VAR_LOCAL in params:
+        res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
+        coord += params[FIT_VAR_LOCAL]
+    if FIT_VAR_GLOBAL in params:
+        res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
+        coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+    if FIT_VAR_ROTATION in params:
+        res[FIT_VAR_ROTATION] = np.zeros(3)
+        R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
+        coord0 = coord
+        coord = np.dot(R, coord.T).T
+    if FIT_VAR_SHIFT in params:
+        res[FIT_VAR_SHIFT] = np.zeros(3)
+        coord += params[FIT_VAR_SHIFT]
+
+    vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.threshold)
+
+    for i in range(mol.n_atoms):
+        mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
+        coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        tmp = 2 * pdiff[vox[i, 0]:vox[i, 0] + n_vox,
+                  vox[i, 1]:vox[i, 1] + n_vox,
+                  vox[i, 2]:vox[i, 2] + n_vox] * np.exp(
+            -np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
+        dpsim = np.sum(-(1 / (pexp.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp, tmp]), axis=(1, 2, 3))
+
+
+        if FIT_VAR_ROTATION in params:
+            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
+            res[FIT_VAR_ROTATION] += np.dot(dR, dpsim)
+            dpsim *= (R[0] + R[1]+ R[2])
+        if FIT_VAR_LOCAL in params:
+            res[FIT_VAR_LOCAL][i] = dpsim
+        if FIT_VAR_GLOBAL in params:
+            res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i], dpsim)
+        if FIT_VAR_SHIFT in params:
+            res[FIT_VAR_SHIFT] += dpsim
+
+    return res
+
+    #
+    # def get_gradient_RMSD(self, mol, psim, params):
+    #     coord = copy.copy(mol.coords)
+    #     pdiff = psim - self.data
+    #
+    #     res = {}
+    #     if FIT_VAR_LOCAL in params:
+    #         res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
+    #         coord += params[FIT_VAR_LOCAL]
+    #     if FIT_VAR_GLOBAL in params:
+    #         res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
+    #         coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+    #     if FIT_VAR_ROTATION in params:
+    #         res[FIT_VAR_ROTATION] = np.zeros(3)
+    #         R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
+    #         coord0 = coord
+    #         coord = np.dot(R, coord.T).T
+    #     if FIT_VAR_SHIFT in params:
+    #         res[FIT_VAR_SHIFT] = np.zeros(3)
+    #         coord += params[FIT_VAR_SHIFT]
+    #
+    #     vox, n_pix = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
+    #     pix = vox[:, :2]
+    #
+    #     for i in range(mol.n_atoms):
+    #         mu_grid = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
+    #               pix[i, 1]:pix[i, 1] + n_pix] - self.size / 2) * self.voxel_size
+    #         coord_grid = np.repeat(coord[i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
+    #         tmp = 2 * pdiff[pix[i, 0]:pix[i, 0] + n_pix,
+    #                   pix[i, 1]:pix[i, 1] + n_pix] * np.exp(
+    #             -np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (self.sigma ** 2)))
+    #         dpsim = np.sum(-(1 / (self.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp]), axis=(1, 2))
+    #
+    #
+    #         if FIT_VAR_ROTATION in params:
+    #             dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
+    #             res[FIT_VAR_ROTATION] += np.dot(dR[:,:2], dpsim)
+    #             dpsim *= (R[0] + R[1]+ R[2])[:2]
+    #         if FIT_VAR_LOCAL in params:
+    #             res[FIT_VAR_LOCAL][i] = dpsim
+    #         if FIT_VAR_GLOBAL in params:
+    #             res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i, :, :2], dpsim)
+    #         if FIT_VAR_SHIFT in params:
+    #             res[FIT_VAR_SHIFT][:2] += dpsim
+    #
+    #     return res
+
+
