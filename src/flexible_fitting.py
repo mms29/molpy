@@ -46,20 +46,16 @@ class FlexibleFitting:
         """
         with Pool(self.n_chain) as p:
             # launch n_chain times HMC_chain()
-            try:
-                fittings = p.starmap(FlexibleFitting.HMC_chain, [(self,i) for i in range(self.n_chain)])
-                p.close()
-                p.join()
-            except RuntimeError as rte:
-                print("Failed to run HMC : "+ str(rte.args[0]))
-                raise RuntimeError(rte.args[0])
+            fits = p.starmap(FlexibleFitting.HMC_chain, [(self,i) for i in range(self.n_chain)])
+            p.close()
+            p.join()
 
         # Regroup the chains results
         self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
-        self.res["mol"].coords = np.mean([fittings[i].res["mol"].coords for i in range(self.n_chain)], axis=0)
+        self.res["mol"].coords = np.mean([i.res["mol"].coords for i in fits], axis=0)
         for v in self.vars:
-            self.res[v] = np.mean([fittings[i].res[v] for i in range(self.n_chain)], axis=0)
-        self.fit = [fittings[i].fit for i in range(self.n_chain)]
+            self.res[v] = np.mean([i.res[v] for i in fits], axis=0)
+        self.fit = [i.fit for i in fits]
         if self.prefix is not None:
             self.res["mol"].save_pdb(file=self.prefix+"_output.pdb")
 
@@ -88,33 +84,36 @@ class FlexibleFitting:
             for i in range(self.params["n_iter"]):
                 if self.verbose > 0 : print("HMC iter : " + str(i)+ " | Chain id : "+str(chain_id))
                 self.HMC_step()
+
         except RuntimeError as rte:
             print("Failed to run HMC chain : " + str(rte.args[0]))
-            raise RuntimeError(rte.args[0])
+            self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
+            for i in self.vars:
+                self.res[i] = self._get(i)
 
-        # Generate results
-        self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
-        self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
-        for i in self.vars:
-            self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
+        else:
+            # Generate results
+            self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
+            for i in self.vars:
+                self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
 
-        # End
-        if self.verbose >0 or self.verbose==-1:
-            print("############### HMC FINISHED ##########################")
-            print("### Total execution time : "+str(time.time()-t)+" s")
-            print("### Initial CC value : "+str(self.fit["CC"][0]))
-            print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
-            print("#######################################################")
+            # End
+            if self.verbose >0 :
+                print("############### HMC FINISHED ##########################")
+                print("### Total execution time : "+str(time.time()-t)+" s")
+                print("### Initial CC value : "+str(self.fit["CC"][0]))
+                print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
+                print("#######################################################")
 
-        # Cleaning
-        del self.fit["coord_t"]
-        del self.fit["psim"]
-        del self.fit["expnt"]
-        for i in self.vars:
-            del self.fit[i]
-            del self.fit[i+"_v"]
-            del self.fit[i+"_t"]
-            del self.fit[i+"_Ft"]
+            # Cleaning
+            del self.fit["coord_t"]
+            del self.fit["psim"]
+            del self.fit["expnt"]
+            for i in self.vars:
+                del self.fit[i]
+                del self.fit[i+"_v"]
+                del self.fit[i+"_t"]
+                del self.fit[i+"_Ft"]
 
         return self
 
@@ -452,7 +451,7 @@ class FlexibleFitting:
 
 
 
-def multiple_fitting(models, n_chain, n_proc, save_dir=None):
+def multiple_fitting(models, n_chain, n_proc):
     class NoDaemonProcess(multiprocessing.Process):
         @property
         def daemon(self):
@@ -492,9 +491,6 @@ def multiple_fitting(models, n_chain, n_proc, save_dir=None):
             print("Failed to run multiple fitting : " + str(rte.args))
 
         print("\t\t done : "+str(time.time()-t))
-        if save_dir is not None:
-            for n in i:
-                fits[n].show(save=save_dir+"fit_#"+str(n))
     return fits
 
 
