@@ -35,7 +35,7 @@ target_density.compare_hist(init_density)
 
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 0.01,
     "potential_factor" : 1,
 
     "local_dt" : 1e-15,
