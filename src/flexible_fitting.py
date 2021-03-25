@@ -106,6 +106,16 @@ class FlexibleFitting:
             print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
             print("#######################################################")
 
+        # Cleaning
+        del self.fit["coord_t"]
+        del self.fit["psim"]
+        del self.fit["expnt"]
+        for i in self.vars:
+            del self.fit[i]
+            del self.fit[i+"_v"]
+            del self.fit[i+"_t"]
+            del self.fit[i+"_Ft"]
+
         return self
 
     def _set_init_fit_params(self, params):
@@ -404,6 +414,7 @@ class FlexibleFitting:
         if self.prefix is not None:
             src.io.save_pdb(coords = self._get("coord"), file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
                             genfile=self.init.genfile, coarse_grained=self.init.coarse_grained)
+            self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
 
     def show(self,save=None):
         """

@@ -52,7 +52,7 @@ params ={
     "n_iter":10,
     "n_warmup":5,
 }
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2)
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2)# prefix ="results/testAK")
 fit.HMC()
 fit.show()
 # fit.show_3D()

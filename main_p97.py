@@ -27,15 +27,15 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 # target_density.rescale(init_density, "opt")
 target_density.compare_hist(init_density)
 
-# from src.simulation import nma_deform
-# target = nma_deform(init, [0,0,0,-1500])
-# target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+from src.simulation import nma_deform
+target = nma_deform(init, [0,0,0,-1500])
+target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
 
 params ={
-    "initial_biasing_factor" : 10,
+    "initial_biasing_factor" : 100,
     "potential_factor" : 1,
 
     "local_dt" : 1e-15,
@@ -49,7 +49,7 @@ params ={
 }
 n_chain=4
 verbose=1
-prefix = "results/p97_allatoms_exp10"
+prefix = "results/p97_allatoms_synth"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
@@ -58,7 +58,7 @@ fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
 fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_xq)
 
-fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=12)
+fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
 
 fits[0].show(save=prefix_x + "_stats.png")
 fits[1].show(save=prefix_q + "_stats.png")
