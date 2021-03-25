@@ -71,6 +71,7 @@ def get_euler_grad(angles, coord):
 
 
 def compute_pca(data, length, labels=None, save=None, n_components=2):
+    print("Computing PCA ...")
 
     # Compute PCA
     arr = np.array(data)
@@ -79,7 +80,6 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
 
     # Prepare plotting data
     idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
-    print(idx)
     if labels is None:
         labels = ["#"+str(i) for i in range(len(length))]
 
@@ -102,6 +102,7 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
     ax.legend()
     if save is not None:
         fig.savefig(save)
+    print("Done")
 
 
 def get_RMSD_coords(coords1,coords2):
@@ -122,3 +123,20 @@ def show_rmsd_fit(mol, fit, save=None):
     ax.set_title("RMSD")
     if save is not None:
         fit.savefig(save)
+
+
+def pdb2vol(coord, size, sigma, voxel_size, threshold):
+    vox, n_vox = select_voxels(coord, size, voxel_size, threshold)
+    n_atoms = coord.shape[0]
+    vol = np.zeros((size, size, size))
+    expnt = np.zeros((n_atoms, n_vox, n_vox, n_vox))
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * voxel_size
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        expnt[i] = np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
+        vol[vox[i, 0]:vox[i, 0] + n_vox,
+        vox[i, 1]:vox[i, 1] + n_vox,
+        vox[i, 2]:vox[i, 2] + n_vox] += expnt[i]
+    return vol, expnt

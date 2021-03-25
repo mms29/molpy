@@ -103,7 +103,7 @@ def get_energy_dihedrals(coord, dihedrals, prm):
     return npg.sum(prm.Kchi * (1 + npg.cos(prm.n * (torsions) - (prm.delta*npg.pi/180))))
 
 
-def get_gradient_RMSD(mol, psim, pexp, params):
+def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     """
     Compute the gradient of the RMSD between the density and a simultaed denisty
     :param mol: Mol used for simulting densitty
@@ -138,10 +138,13 @@ def get_gradient_RMSD(mol, psim, pexp, params):
               vox[i, 1]:vox[i, 1] + n_vox,
               vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
         coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        if expnt is not None:
+            e = expnt[i]
+        else:
+            e=np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
         tmp = 2 * pdiff[vox[i, 0]:vox[i, 0] + n_vox,
                   vox[i, 1]:vox[i, 1] + n_vox,
-                  vox[i, 2]:vox[i, 2] + n_vox] * np.exp(
-            -np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
+                  vox[i, 2]:vox[i, 2] + n_vox]*e
         dpsim = np.sum(-(1 / (pexp.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp, tmp]), axis=(1, 2, 3))
 
 

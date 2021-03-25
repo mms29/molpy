@@ -35,7 +35,7 @@ target_density.compare_hist(init_density)
 
 
 params ={
-    "biasing_factor" : 0.01,
+    "initial_biasing_factor" : 1000,
     "potential_factor" : 1,
 
     "local_dt" : 1e-15,
@@ -48,21 +48,21 @@ params ={
     "criterion": False,
 }
 n_chain=4
-verbose=2
+verbose=1
+prefix = "results/p97_allatoms_exp"
+prefix_x =  prefix+"_fitx"
+prefix_q =  prefix+"_fitq"
+prefix_xq = prefix+"_fitxq"
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose)
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose)
-fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose)
+fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
+fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_xq)
 
-fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=24)
+fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=12)
 
-fits[0].show(save="results/p97_allatoms_exp2_fitx.png")
-fits[1].show(save="results/p97_allatoms_exp2_fitq.png")
-fits[2].show(save="results/p97_allatoms_exp2_fitxq.png")
-
-fits[0].res["mol"].save_pdb("results/p97_allatoms_exp2_fitx.pdb")
-fits[1].res["mol"].save_pdb("results/p97_allatoms_exp2_fitq.pdb")
-fits[2].res["mol"].save_pdb("results/p97_allatoms_exp2_fitxq.pdb")
+fits[0].show(save=prefix_x + "_stats.png")
+fits[1].show(save=prefix_q + "_stats.png")
+fits[2].show(save=prefix_xq + "_stats.png")
 
 import matplotlib.pyplot as plt
 from src.functions import cross_correlation
@@ -79,7 +79,7 @@ ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-fig.savefig("results/p97_allatoms_exp2_fits.png")
+fig.savefig(prefix+ "_fits.png")
 
 
 

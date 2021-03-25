@@ -401,7 +401,8 @@ chimera_molecule_viewer([mol1, mol2])
 
 
 
-
+import mkl
+mkl.set_num_threads(1)
 from src.molecule import Molecule
 from src.simulation import nma_deform
 from src.flexible_fitting import *
@@ -414,17 +415,21 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init = Molecule.from_file("data/ATPase/prody/1iwo_fitted.pdb")
+init = Molecule.from_file("data/1AKE/1ake_chainA_psf.pdb")
 init.center_structure()
-target =  Molecule.from_file("data/ATPase/prody/1su4.pdb")
+fnModes = np.array(["data/1AKE/modes/vec."+str(i+7) for i in range(10)])
+init.add_modes(fnModes)
+
+target =  Molecule.from_file("data/4AKE/4ake_fitted.pdb")
 target.center_structure()
 
-# init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
-init.select_atoms()
-init.set_forcefield()
-target.select_atoms()
+init.set_forcefield(psf_file="data/1AKE/1ake_chainA.psf")
+# init.select_atoms()
+# init.set_forcefield()
+# target.select_atoms()
 
-size=128
+
+size=64
 sampling_rate=1.5
 threshold= 4
 gaussian_sigma=2
@@ -439,21 +444,21 @@ chimera_molecule_viewer([target, init])
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 100,
+    "initial_biasing_factor" : 100,
     "n_step": 20,
 
     "local_dt" : 1e-15,
-    "temperature" : 1000,
+    "temperature" : 300,
 
     "global_dt" : 0.1,
     "rotation_dt" : 0.00001,
     "shift_dt" : 0.00001,
-    "n_iter":20,
-    "n_warmup":10,
+    "n_iter":40,
+    "n_warmup":30,
 }
 
 
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2)
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2)
 
 fit.HMC()
 fit.show()
@@ -523,3 +528,50 @@ a = target_density.get_gradient_RMSD(mol=init, psim=init_density.data, params={"
 b = get_grad_RMSD3(coord= init.coords+np.ones((init.n_atoms, 3)), psim=init_density.data, pexp=target_density.data, size=target_density.size, sampling_rate=target_density.voxel_size,
                    sigma=target_density.sigma, threshold=target_density.threshold)
 
+
+
+
+import numpy as np
+
+from src.molecule import Molecule
+from src.simulation import nma_deform
+from src.flexible_fitting import *
+from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
+from src.density import Volume
+from src.constants import *
+# import PDB
+init = Molecule.from_file("data/AK/AK.pdb")
+init.center_structure()
+size=128
+voxel_size = 1.5
+threshold= 4
+sigma=2
+
+def pdb2vol(coord, size, sigma, voxel_size, threshold):
+    vox, n_vox = src.functions.select_voxels(coord, size, voxel_size, threshold)
+    n_atoms = coord.shape[0]
+    vol = np.zeros((size, size, size))
+    expnt = np.zeros((n_atoms, n_vox, n_vox, n_vox))
+    for i in range(n_atoms):
+        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
+              vox[i, 1]:vox[i, 1] + n_vox,
+              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * voxel_size
+        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        expnt[i] = np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
+        vol[vox[i, 0]:vox[i, 0] + n_vox,
+        vox[i, 1]:vox[i, 1] + n_vox,
+        vox[i, 2]:vox[i, 2] + n_vox] += expnt[i]
+    return vol, expnt
+
+t = time.time()
+vol1 = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, threshold=threshold,sigma=sigma)
+F1 = src.forcefield.get_gradient_RMSD(mol=init, psim=vol1, pexp=vol1, params={"local":np.zeros(init.coords.shape)})
+print(time.time()-t)
+
+t = time.time()
+vol2, expnt = pdb2vol(coord=init.coords, size=size, voxel_size=voxel_size, threshold=threshold,sigma=sigma)
+F2 = src.forcefield.get_gradient_RMSD_fast(mol=init, psim=vol1, pexp=vol1, params={"local":np.zeros(init.coords.shape)}, expnt=expnt)
+print(time.time()-t)
+
+print(np.linalg.norm(vol1.data-vol2))
+print(np.linalg.norm(F1["local"]-F2["local"]))

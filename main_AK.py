@@ -1,3 +1,5 @@
+import mkl
+mkl.set_num_threads(1)
 from src.molecule import Molecule
 from src.simulation import nma_deform
 from src.flexible_fitting import *
@@ -26,8 +28,8 @@ target = nma_deform(init, q)
 molecule_viewer([target, init])
 
 size=64
-sampling_rate=1.5
-threshold= 8
+sampling_rate=2.2
+threshold= 4
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
@@ -39,7 +41,7 @@ target_density.show()
 #               HMC
 ########################################################################################################
 params ={
-    "biasing_factor" : 500,
+    "initial_biasing_factor" : 100,
     "n_step": 10,
 
     "local_dt" : 2*1e-15,
@@ -50,10 +52,7 @@ params ={
     "n_iter":10,
     "n_warmup":5,
 }
-
-
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=8, verbose=1)
-
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2)
 fit.HMC()
 fit.show()
 # fit.show_3D()

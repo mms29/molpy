@@ -20,7 +20,7 @@ class FlexibleFitting:
     Perform flexible fitting between initial atomic structure and target Density using HMC
     """
 
-    def __init__(self, init, target, vars, n_chain, params, verbose=0):
+    def __init__(self, init, target, vars, n_chain, params, verbose=0, prefix=None):
         """
         Constructor
         :param init: inititial atomic structure Molecule
@@ -29,6 +29,7 @@ class FlexibleFitting:
         :param n_chain: number of chain
         :param params: fit parameters
         :param verbose: verbose level
+        :param prefix: prefix path of outputs
         """
         self.init = init
         self.target = target
@@ -36,6 +37,7 @@ class FlexibleFitting:
         self.verbose = verbose
         self.vars = vars
         self._set_init_fit_params(params)
+        self.prefix = prefix
 
     def HMC(self):
         """
@@ -45,12 +47,12 @@ class FlexibleFitting:
         with Pool(self.n_chain) as p:
             # launch n_chain times HMC_chain()
             try:
-                fittings = p.map(FlexibleFitting.HMC_chain, [self for i in range(self.n_chain)])
+                fittings = p.starmap(FlexibleFitting.HMC_chain, [(self,i) for i in range(self.n_chain)])
                 p.close()
                 p.join()
             except RuntimeError as rte:
-                print("Failed to run HMC : "+ str(rte.args))
-                raise RuntimeError(rte.args)
+                print("Failed to run HMC : "+ str(rte.args[0]))
+                raise RuntimeError(rte.args[0])
 
         # Regroup the chains results
         self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
@@ -58,17 +60,23 @@ class FlexibleFitting:
         for v in self.vars:
             self.res[v] = np.mean([fittings[i].res[v] for i in range(self.n_chain)], axis=0)
         self.fit = [fittings[i].fit for i in range(self.n_chain)]
+        if self.prefix is not None:
+            self.res["mol"].save_pdb(file=self.prefix+"_output.pdb")
+
         return self
 
-    def HMC_chain(self):
+    def HMC_chain(self, chain_id=0):
         """
         Run one HMC chain fitting
+        :param chain_id: chain index
         :return: FlexibleFitting
         """
 
         # set the random seed of numpy for parallel computation
         np.random.seed()
+
         t = time.time()
+        self.chain_id = chain_id
 
         # initialize fit variables
         self.fit= {"coord":[copy.deepcopy(self.init.coords)]}
@@ -78,12 +86,11 @@ class FlexibleFitting:
         # HMC Loop
         try :
             for i in range(self.params["n_iter"]):
-                if self.verbose > 0 : print("HMC ITER = " + str(i))
+                if self.verbose > 0 : print("HMC iter : " + str(i)+ " | Chain id : "+str(chain_id))
                 self.HMC_step()
         except RuntimeError as rte:
-            print("Failed to run HMC chain : " + str(rte.args))
-            raise RuntimeError(rte.args)
-
+            print("Failed to run HMC chain : " + str(rte.args[0]))
+            raise RuntimeError(rte.args[0])
 
         # Generate results
         self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
@@ -116,6 +123,9 @@ class FlexibleFitting:
         if FIT_VAR_SHIFT in self.vars:
             default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
 
+        if "initial_biasing_factor" in params :
+            params["biasing_factor"] = self._set_factor(params["initial_biasing_factor"])
+
         default_params.update(params)
         if (FIT_VAR_LOCAL in self.vars) and (not FIT_VAR_LOCAL + "_sigma" in params):
             default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
@@ -141,16 +151,15 @@ class FlexibleFitting:
     def _remove(self, key):
         del self.fit[key]
 
-    def _set_energy(self, psim):
+    def _set_energy(self):
         """
         Compute the total energy from the simulated Density
-        :param psim: the simulated Density
         """
         U = 0
         t = time.time()
 
         # Biased Potential
-        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data) * self.params["biasing_factor"]
+        U_biased = src.functions.get_RMSD(psim=self._get("psim").data, pexp=self.target.data) * self.params["biasing_factor"]
         self._add("U_biased", U_biased)
         U+= U_biased
 
@@ -171,17 +180,17 @@ class FlexibleFitting:
         self._add("U", U)
         if self.verbose>=3: print("Energy="+str(time.time()-t))
 
-    def _set_gradient(self, psim):
+    def _set_gradient(self):
         """
         Compute the gradient of the total energy from the simulated Density
-        :param psim: simulated Density
         """
         t = time.time()
         vals={}
         for i in self.vars:
             vals[i] = self._get(i+"_t")
 
-        dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=psim, pexp =self.target, params=vals)
+        dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
+                                                     expnt = self._get("expnt"))
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
 
         for i in self.vars:
@@ -204,12 +213,12 @@ class FlexibleFitting:
         K=0
         for i in self.vars:
             if i == FIT_VAR_LOCAL:
-                K+= 1 / 2 * np.sum((self.init.prm.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
-            else:
-                K =  1 / 2 * np.sum(self.params[i+"_sigma"]*np.square(self._get(i+"_v")))
+                K +=  1 / 2 * np.sum((self.init.prm.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
 
-        # kg * A2 * s-2 -> kcal * mol-1
-        K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)
+            else:
+                K +=  1 / 2 * np.sum(np.square(self._get(i+"_v"))/self.params[i+"_sigma"])
+
+        K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)# kg * A2 * s-2 -> kcal * mol-1s
         self._add("K", K)
 
     def _set_instant_temp(self):
@@ -237,16 +246,18 @@ class FlexibleFitting:
         :return: Density object (Image or Volume)
         """
         t = time.time()
-        if isinstance(self.target, src.density.Volume):
-            density = src.density.Volume.from_coords(coord=self._get("coord_t"), size=self.target.size,
-                                      voxel_size=self.target.voxel_size,
-                                      sigma=self.target.sigma, threshold=self.target.threshold)
-        else:
-            density = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
-                                      voxel_size=self.target.voxel_size,
-                                      sigma=self.target.sigma, threshold=self.target.threshold)
+        # if isinstance(self.target, src.density.Volume):
+        #     else:
+        #     psim = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
+        #                                          voxel_size=self.target.voxel_size,
+        #                                          sigma=self.target.sigma, threshold=self.target.threshold)
+        psim, expnt = src.functions.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
+                                  voxel_size=self.target.voxel_size,
+                                  sigma=self.target.sigma, threshold=self.target.threshold)
+
         if self.verbose >= 3: print("Density=" + str(time.time() - t))
-        return density
+        self._set("psim",psim)
+        self._set("expnt",expnt)
 
     def _get_hamiltonian(self):
         return self._get("U") +  self._get("K")
@@ -343,11 +354,11 @@ class FlexibleFitting:
     # Compute Forward model
         self._forward_model()
     # initial density
-        psim = self._set_density()
+        self._set_density()
     # Initial Potential Energy
-        self._set_energy(psim)
+        self._set_energy()
     # Initial gradient
-        self._set_gradient(psim)
+        self._set_gradient()
     # Initial Kinetic Energy
         self._set_kinetic()
     # Initial Hamiltonian
@@ -363,13 +374,13 @@ class FlexibleFitting:
         # Compute Forward model
             self._forward_model()
         # Density update
-            psim = self._set_density()
+            self._set_density()
         # CC update
-            self._add("CC", src.functions.cross_correlation(psim.data, self.target.data))
+            self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
         # Potential energy update
-            self._set_energy(psim)
+            self._set_energy()
         # Gradient Update
-            self._set_gradient(psim)
+            self._set_gradient()
         # velocities update
             self._update_velocities()
         # Kinetic update
@@ -389,6 +400,10 @@ class FlexibleFitting:
         H = self._get_hamiltonian()
     # Metropolis acceptation
         self._acceptation(H, H_init)
+    # save pdb step
+        if self.prefix is not None:
+            src.io.save_pdb(coords = self._get("coord"), file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
+                            genfile=self.init.genfile, coarse_grained=self.init.coarse_grained)
 
     def show(self,save=None):
         """
@@ -411,6 +426,19 @@ class FlexibleFitting:
         with open(file, 'rb') as f:
             fit = pickle.load(file=f)
             return fit
+
+    def _set_factor(self, init_factor=100):
+        psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
+                                                 voxel_size=self.target.voxel_size,
+                                                 sigma=self.target.sigma, threshold=self.target.threshold)
+        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
+
+        U_potential = src.forcefield.get_energy(coord=self.init.coords, molstr = self.init.psf,
+                                 molprm= self.init.prm, verbose=False)
+        factor = init_factor/(U_biased/U_potential)
+        if self.verbose > 0 : print("optimal initial factor : "+str(factor))
+        return factor
+
 
 
 def multiple_fitting(models, n_chain, n_proc, save_dir=None):
