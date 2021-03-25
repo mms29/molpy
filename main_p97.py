@@ -49,7 +49,7 @@ params ={
 }
 n_chain=4
 verbose=1
-prefix = "results/p97_allatoms_exp"
+prefix = "results/p97_allatoms_exp1000"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
