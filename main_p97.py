@@ -56,13 +56,13 @@ fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global
 
 fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=24)
 
-fits[0].show(save="results/p97_allatoms_exp_fitx.png")
-fits[1].show(save="results/p97_allatoms_exp_fitq.png")
-fits[2].show(save="results/p97_allatoms_exp_fitxq.png")
+fits[0].show(save="results/p97_allatoms_exp2_fitx.png")
+fits[1].show(save="results/p97_allatoms_exp2_fitq.png")
+fits[2].show(save="results/p97_allatoms_exp2_fitxq.png")
 
-fits[0].res["mol"].save_pdb("results/p97_allatoms_exp_fitx.pdb")
-fits[1].res["mol"].save_pdb("results/p97_allatoms_exp_fitq.pdb")
-fits[2].res["mol"].save_pdb("results/p97_allatoms_exp_fitxq.pdb")
+fits[0].res["mol"].save_pdb("results/p97_allatoms_exp2_fitx.pdb")
+fits[1].res["mol"].save_pdb("results/p97_allatoms_exp2_fitq.pdb")
+fits[2].res["mol"].save_pdb("results/p97_allatoms_exp2_fitxq.pdb")
 
 import matplotlib.pyplot as plt
 from src.functions import cross_correlation
@@ -79,7 +79,7 @@ ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-fig.savefig("results/p97_allatoms_exp_fits.png")
+fig.savefig("results/p97_allatoms_exp2_fits.png")
 
 
 
