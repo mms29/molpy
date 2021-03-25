@@ -383,6 +383,8 @@ class FlexibleFitting:
             self._add("Time", time.time() -tt)
             if self.verbose > 1:
                 self._print_step()
+        if self.verbose == 1:
+            self._print_step()
     # Hamiltonian update
         H = self._get_hamiltonian()
     # Metropolis acceptation
