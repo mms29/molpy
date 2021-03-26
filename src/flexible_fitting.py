@@ -106,6 +106,7 @@ class FlexibleFitting:
                 print("#######################################################")
 
             # Cleaning
+            del self.fit["coord"]
             del self.fit["coord_t"]
             del self.fit["psim"]
             del self.fit["expnt"]

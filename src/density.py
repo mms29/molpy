@@ -113,6 +113,13 @@ class Volume(Density):
     def save_mrc(self, file):
         src.io.save_mrc(data=self.data, voxel_size=self.voxel_size, file=file)
 
+    def resize(self, size):
+        vol = np.zeros((size, size, size))
+        low = size//2 - self.size//2
+        high = size - low
+        vol[low:high, low:high, low:high] = self.data
+        self.data= vol
+        self.size=size
 class Image(Density):
     """
     Cryo EM density image
