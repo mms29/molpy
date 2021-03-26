@@ -36,7 +36,7 @@ target_density.resize(200)
 
 
 params ={
-    "initial_biasing_factor" : 100,
+    "initial_biasing_factor" : 1000,
     "potential_factor" : 1,
 
     "local_dt" : 2e-15,
@@ -50,7 +50,7 @@ params ={
 }
 n_chain=4
 verbose=1
-prefix = "results/p97_allatoms_exp100"
+prefix = "results/p97_allatoms_exp1000"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
