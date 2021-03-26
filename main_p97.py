@@ -28,9 +28,9 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 # target_density.compare_hist(init_density)
 target_density.resize(200)
 
-from src.simulation import nma_deform
-target = nma_deform(init, [0,0,0,-1500])
-target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+# from src.simulation import nma_deform
+# target = nma_deform(init, [0,0,0,-1500])
+# target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
