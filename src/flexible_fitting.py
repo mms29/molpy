@@ -58,6 +58,7 @@ class FlexibleFitting:
         self.fit = [i.fit for i in fits]
         if self.prefix is not None:
             self.res["mol"].save_pdb(file=self.prefix+"_output.pdb")
+            self.save(file=self.prefix+"_output.pkl")
 
         return self
 
@@ -93,6 +94,7 @@ class FlexibleFitting:
 
         else:
             # Generate results
+            self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
             self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
             for i in self.vars:
                 self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
@@ -413,7 +415,7 @@ class FlexibleFitting:
     # save pdb step
         if self.prefix is not None:
             src.io.save_pdb(coords = self._get("coord"), file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
-                            genfile=self.init.genfile, coarse_grained=self.init.coarse_grained)
+                            genfile=self.init.genfile, model=self.init.model)
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
 
     def show(self,save=None):

@@ -14,7 +14,7 @@ class Molecule:
     Atomic structure of a molecule
     """
 
-    def __init__(self, coords, modes=None, atom_type=None, chain_id=None, genfile=None, coarse_grained=False):
+    def __init__(self, coords, modes=None, atom_type=None, chain_id=None, genfile=None, model="allatoms"):
         """
         Contructor
         :param coords: numpy array N*3 of Cartesian coordinates of N atoms
@@ -22,14 +22,14 @@ class Molecule:
         :param atom_type: list of name of atoms
         :param chain_id: list of number of atoms where the chains of the proteins begins
         :param genfile: PDB file used to generate the class
-        :param coarse_grained: boolean of type of Molecula if coarse grained
+        :param model: allatoms | carbonalpha | backbone
         """
         self.n_atoms= coords.shape[0]
         self.coords = coords
         self.modes=modes
         self.atom_type = atom_type
         self.genfile=genfile
-        self.coarse_grained=coarse_grained
+        self.model=model
         if chain_id is None:
             self.chain_id = [0,self.n_atoms]
             self.n_chain=1
@@ -110,23 +110,20 @@ class Molecule:
         """
         return self.coords[self.chain_id[id]:self.chain_id[id+1]]
 
-    def select_atoms(self, pattern="CA"):
+    def change_model(self, model):
         """
-        Select atoms following a specific pattern, transform the molecule to a coarse-grained model
-        :param pattern: CA to select Carbon Alpha atoms
+        Change atomic model allatoms | carbonalpha | backbone
+        :param model: allatoms | carbonalpha | backbone
         """
-        self.coarse_grained = True
-        atom_idx = np.where(self.atom_type == pattern)[0]
-        self.coords = self.coords[atom_idx]
-        self.n_atoms = self.coords.shape[0]
-        self.chain_id= [np.argmin(np.abs(atom_idx - self.chain_id[i])) for i in range(self.n_chain)] + [self.n_atoms]
-        if self.modes is not None:
-            self.modes = self.modes[atom_idx]
+        if model == "carbonalpha":
+            src.functions.allatoms2carbonalpha(self)
+        if model == "backbone":
+            src.functions.allatoms2backbone(self)
 
 
     def center_structure(self):
         """
-        Center the structure coordinates around 0
+        Center the structure coordinates around 0,0,0
         """
         self.coords -= np.mean(self.coords, axis=0)
 
@@ -166,7 +163,7 @@ class Molecule:
         Save to PDB Format
         :param file: pdb file path
         """
-        src.io.save_pdb(coords = self.coords, file=file, genfile=self.genfile, coarse_grained = self.coarse_grained)
+        src.io.save_pdb(coords = self.coords, file=file, genfile=self.genfile, model = self.model)
 
 class MoleculeStructure:
     """

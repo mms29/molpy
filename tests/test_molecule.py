@@ -11,14 +11,12 @@ class TestMoleculeLoad(unittest.TestCase):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
         self.assertEqual(ak.n_atoms, 1656)
         self.assertEqual(ak.n_chain, 1)
-        self.assertEqual(ak.coarse_grained, False)
         self.assertEqual(len(ak.coords.shape), 2)
 
     def test_load_P97(self):
         p97 = Molecule.from_file("tests_data/input/P97/5ftm.pdb")
         self.assertEqual(p97.n_atoms, 34200)
         self.assertEqual(p97.n_chain, 6)
-        self.assertEqual(p97.coarse_grained, False)
         self.assertEqual(len(p97.coords.shape), 2)
 
     def test_copy(self):
@@ -44,7 +42,7 @@ class TestMoleculeSelection(unittest.TestCase):
     def test_select_atoms(self):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
         cp = Molecule.from_molecule(ak)
-        cp.select_atoms(pattern="CA")
+        cp.change_model(model="carbonalpha")
         self.assertEqual(cp.n_atoms, 214)
         self.assertEqual(cp.coords.shape[0], 214)
         self.assertEqual(cp.coords[0,0], ak.coords[1,0])
@@ -75,25 +73,26 @@ class TestMoleculeChangeGeometry(unittest.TestCase):
 
 class TestMoleculeStructure(unittest.TestCase):
 
-    def test_structure_default(self):
+    def test_structure_carbonalpha(self):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
-        ak.select_atoms()
+        ak.change_model(model="carbonalpha")
         psf = MoleculeStructure.from_default(chain_id=ak.chain_id)
         self.assertEqual(len(psf.bonds) , 213)
         self.assertEqual(len(psf.angles) , 212)
         self.assertEqual(len(psf.dihedrals) , 211)
 
-    def test_structure_file(self):
+    def test_structure_allatoms(self):
         psf = MoleculeStructure.from_psf_file(file="tests_data/input/AK/AK.psf")
         self.assertEqual(len(psf.bonds),3365)
         self.assertEqual(len(psf.angles),6123)
         self.assertEqual(len(psf.dihedrals),8921)
 
+
 class TestMoleculeForceFieldPrm(unittest.TestCase):
 
-    def test_forcefieldprm_default(self):
+    def test_forcefieldprm_carbonalpha(self):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
-        ak.select_atoms()
+        ak.change_model(model="carbonalpha")
         psf = MoleculeStructure.from_default(chain_id=ak.chain_id)
         prm = MoleculeForcefieldPrm.from_default(psf)
         self.assertEqual(prm.mass[0], CARBON_MASS)
@@ -101,7 +100,7 @@ class TestMoleculeForceFieldPrm(unittest.TestCase):
         self.assertEqual(len(prm.Theta0) , 212)
         self.assertEqual(len(prm.delta) , 211)
 
-    def test_forcefieldprm_file(self):
+    def test_forcefieldprm_allatoms(self):
         psf = MoleculeStructure.from_psf_file(file="tests_data/input/AK/AK.psf")
         prm = MoleculeForcefieldPrm.from_prm_file(psf, "tests_data/input/par_all36_prot.prm")
         self.assertTrue(prm.mass[4]- CARBON_MASS< 0.1)
@@ -109,20 +108,35 @@ class TestMoleculeForceFieldPrm(unittest.TestCase):
         self.assertEqual(len(prm.Theta0),6123)
         self.assertEqual(len(prm.delta),8921)
 
+    def test_forcefieldprm_backbone(self):
+        pass
+        #TODO
+
 class TestMoleculeForceField(unittest.TestCase):
 
-    def test_force_field_default(self):
+    def test_force_field_carbonalpha(self):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
-        ak.select_atoms()
+        ak.change_model(model="carbonalpha")
         ak.set_forcefield()
         self.assertEqual(ak.prm.mass[0], CARBON_MASS)
         self.assertEqual(len(ak.prm.b0) , 213)
+        self.assertAlmostEqual(ak.get_energy(), 1063.1972616987032)
 
-    def test_force_field_files(self):
-        ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
+    def test_force_field_allatoms(self):
+        ak = Molecule.from_file("tests_data/input/AK/AK_PSF.pdb")
         ak.set_forcefield(psf_file="../data/AK/AK.psf", prm_file="tests_data/input/par_all36_prot.prm")
         self.assertTrue(ak.prm.mass[4]- CARBON_MASS< 0.1)
         self.assertEqual(len(ak.prm.b0) , 3365)
+        self.assertAlmostEqual(ak.get_energy() , 2751.138252615212)
+
+    def test_force_field_backbone(self):
+        ak = Molecule.from_file("tests_data/input/AK/AK_PSF.pdb")
+        ak.set_forcefield(psf_file="../data/AK/AK.psf", prm_file="tests_data/input/par_all36_prot.prm")
+        ak.change_model(model="backbone")
+        print(ak.prm.mass)
+        self.assertTrue(ak.prm.mass[1]- CARBON_MASS< 0.1)
+        self.assertEqual(len(ak.prm.b0) , 1680)
+        self.assertAlmostEqual(ak.get_energy(), 2356.9999160968127 )
 
 
 

@@ -44,13 +44,13 @@ def read_pdb(file):
 
     return np.array(coords), np.array(atom_type), chain_id, file
 
-def save_pdb(coords, file, genfile, coarse_grained = False):
+def save_pdb(coords, file, genfile, model = "allatoms"):
     """
     Save Molecule to PDB file
     :param coords: Coordinates to save
     :param file: PDB file
     :param genfile: original pdb file
-    :param coarse_grained: boolean
+    :param model: allatoms | carbonalpha | backbone
     """
     genfile = genfile
     print("Saving pdb file ...")
@@ -65,7 +65,8 @@ def save_pdb(coords, file, genfile, coarse_grained = False):
                         if n< coords.shape[0]:
                             l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
                                  line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
-                            if (coarse_grained and split_line[2] == 'CA') or (not coarse_grained):
+                            if (model=="carbonalpha" and split_line[2] == 'CA') or (model=="allatoms") or \
+                                (model=="backbone" and (not split_line[2].startswith("H"))):
                                 coord = coords[n]
                                 l[0] = l[0].ljust(6)  # atom#6s
                                 l[1] = l[1].rjust(5)  # aomnum#5d

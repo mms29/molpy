@@ -32,7 +32,7 @@ class TestGradientPotential(unittest.TestCase):
         ak = Molecule.from_file("tests_data/input/AK/AK.pdb")
         fnModes = ["../data/AK/modes/vec." + str(i + 7) for i in range(3)]
         ak.add_modes(fnModes)
-        ak.select_atoms()
+        ak.change_model(model="carbonalpha")
         ak.set_forcefield()
         grad = get_autograd(params = {
             FIT_VAR_LOCAL : np.zeros(ak.coords.shape),

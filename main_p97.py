@@ -15,6 +15,9 @@ init.center_structure()
 fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(4)])
 init.add_modes(fnModes)
 init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
+init.change_model(model="backbone")
+# init.get_energy()
+# chimera_molecule_viewer([init])
 
 size=128
 voxel_size=1.458
@@ -22,60 +25,60 @@ threshold=4
 gaussian_sigma=2
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 
-# target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-# target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
-# # target_density.rescale(init_density, "opt")
-# # target_density.compare_hist(init_density)
-# target_density.resize(200)
+target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
+# target_density.rescale(init_density, "opt")
+# target_density.compare_hist(init_density)
 
-from src.simulation import nma_deform
-target = nma_deform(init, [0,0,0,-1500])
-target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+# from src.simulation import nma_deform
+# target = nma_deform(init, [0,0,0,-1500])
+# target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
+target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 100,
+    "initial_biasing_factor" : 50,
     "potential_factor" : 1,
 
-    "local_dt" : 1e-15,
+    "local_dt" : 2e-15,
     "temperature" : 1000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":50,
-    "n_warmup":25,
-    "n_step": 20,
+    "n_iter":100,
+    "n_warmup":80,
+    "n_step": 40,
     "criterion": False,
 }
 n_chain=4
-verbose=1
-prefix = "results/p97_allatoms_exp1000"
+verbose=2
+prefix = "results/p97_allatoms_exp50"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
-# fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
-# fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_xq)
-fitx.HMC()
-#
-# fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
-#
-#
-# import matplotlib.pyplot as plt
-# from src.functions import cross_correlation
-# from matplotlib.ticker import MaxNLocator
-# cc_init= cross_correlation(init_density.data, target_density.data)
-# fig, ax = plt.subplots(1,1, figsize=(5,2))
-# for i in fits :
-#     if i is not None:
-#         ax.plot(np.array([cc_init]+fits[0].fit[0]["CC"]), '-', color="tab:red", label="x")
-# ax.set_ylabel("Correlation Coefficient")
-# ax.set_xlabel("HMC iteration")
-# ax.legend(loc="lower right", fontsize=9)
-# ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-# fig.savefig(prefix+ "_fits.png")
-#
-#
-#
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
+fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_xq)
+# fitxq.HMC_chain()
+
+fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
+
+
+import matplotlib.pyplot as plt
+from src.functions import cross_correlation
+from matplotlib.ticker import MaxNLocator
+cc_init= cross_correlation(init_density.data, target_density.data)
+fig, ax = plt.subplots(1,1, figsize=(5,2))
+for i in fits :
+    if i is not None:
+        ax.plot(np.array([cc_init]+fits[0].fit[0]["CC"]), '-', color="tab:red", label="x")
+ax.set_ylabel("Correlation Coefficient")
+ax.set_xlabel("HMC iteration")
+ax.legend(loc="lower right", fontsize=9)
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+fig.savefig(prefix+ "_fits.png")
+
+
+

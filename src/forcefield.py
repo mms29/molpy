@@ -115,6 +115,8 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     coord = copy.copy(mol.coords)
     pdiff = psim.data - pexp.data
 
+
+    # Forward model
     res = {}
     if FIT_VAR_LOCAL in params:
         res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
@@ -131,14 +133,16 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         res[FIT_VAR_SHIFT] = np.zeros(3)
         coord += params[FIT_VAR_SHIFT]
 
+    # Select impacted voxels
     vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.threshold)
 
+    # perform gradient computation of all atoms
     for i in range(mol.n_atoms):
         mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
               vox[i, 1]:vox[i, 1] + n_vox,
               vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
         coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
-        if expnt is not None:
+        if expnt is not None: # use a past
             e = expnt[i]
         else:
             e=np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
@@ -147,7 +151,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
                   vox[i, 2]:vox[i, 2] + n_vox]*e
         dpsim = np.sum(-(1 / (pexp.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp, tmp]), axis=(1, 2, 3))
 
-
+        # apply to parameters
         if FIT_VAR_ROTATION in params:
             dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
             res[FIT_VAR_ROTATION] += np.dot(dR, dpsim)

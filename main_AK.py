@@ -12,28 +12,31 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init =Molecule.from_file("data/AK/AK_PSF.pdb")
+init =Molecule.from_file("tests/tests_data/input/AK/AK.pdb")
 init.center_structure()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
+fnModes = np.array(["tests/tests_data/input/AK/modes/vec."+str(i+7) for i in range(3)])
 init.add_modes(fnModes)
 
 # init.set_forcefield(psf_file="data/AK/AK.psf")
-init.select_atoms(pattern='CA')
+init.change_model(model='carbonalpha')
 init.set_forcefield()
 
 q = [100,-100,0,]
 target = nma_deform(init, q)
-# target.rotate([0.17,-0.13,0.23])
+target.coords += np.array([1.5,-2.0,-0.5])
+target.rotate([0.17,-0.13,0.23])
 
 molecule_viewer([target, init])
 
 size=64
-sampling_rate=2.2
+sampling_rate=1.5
 threshold= 4
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
 target_density.show()
+# target_density.save_mrc(file="tests/tests_data/input/AK/ak_all_carbonalpha.mrc")
+# target.save_pdb(file="tests/tests_data/input/AK/ak_all_carbonalpha.pdb")
 
 # chimera_molecule_viewer([target, init])
 
@@ -45,12 +48,13 @@ params ={
     "n_step": 10,
 
     "local_dt" : 2*1e-15,
-    "temperature" : 1000,
+    "temperature" : 300,
 
-    "global_dt" : 0.1,
-    "rotation_dt" : 0.00001,
-    "n_iter":10,
-    "n_warmup":5,
+    "global_dt" : 0.05,
+    "rotation_dt" : 0.0001,
+    "shift_dt" : 0.001,
+    "n_iter":20,
+    "n_warmup":10,
 }
 fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2)# prefix ="results/testAK")
 fit.HMC()
