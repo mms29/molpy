@@ -26,7 +26,7 @@ target = nma_deform(init, q)
 target.coords += np.array([1.5,-2.0,-0.5])
 target.rotate([0.17,-0.13,0.23])
 
-molecule_viewer([target, init])
+# molecule_viewer([target, init])
 
 size=64
 sampling_rate=1.5
@@ -34,7 +34,7 @@ threshold= 4
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, threshold=threshold)
-target_density.show()
+# target_density.show()
 # target_density.save_mrc(file="tests/tests_data/input/AK/ak_all_carbonalpha.mrc")
 # target.save_pdb(file="tests/tests_data/input/AK/ak_all_carbonalpha.pdb")
 
@@ -56,13 +56,13 @@ params ={
     "n_iter":20,
     "n_warmup":10,
 }
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2)# prefix ="results/testAK")
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2, prefix ="results/testAK")
 fit.HMC()
-fit.show()
+# fit.show()
 # fit.show_3D()
 # chimera_molecule_viewer([fit.res["mol"], target])
 
-data= []
-for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
-    data += j
-src.functions.compute_pca(data=data, length=[len(data)], n_components=2)
+# data= []
+# for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
+#     data += j
+# src.functions.compute_pca(data=data, length=[len(data)], n_components=2)

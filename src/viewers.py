@@ -115,7 +115,7 @@ def fit_viewer(fit, save=None):
     ax[1, 0].set_title('H=U+K')
     ax[1, 1].set_title('acceptation')
     ax[1, 2].set_title('CC')
-    fig.tight_layout()
+    # fig.tight_layout()
     if save is not None:
         fig.savefig(save)
         plt.close(fig)
