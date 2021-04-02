@@ -10,12 +10,11 @@ import numpy as np
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
 
-init =src.molecule.Molecule.from_file("data/P97/5ftm_psf.pdb")
-init.center_structure()
+init =src.molecule.Molecule("data/P97/5ftm_psf.pdb")
+init.center()
 fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(4)])
-init.add_modes(fnModes)
+init.set_normalModeVec(fnModes)
 init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
-init.change_model(model="backbone")
 # init.get_energy()
 # chimera_molecule_viewer([init])
 
