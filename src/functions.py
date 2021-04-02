@@ -141,94 +141,23 @@ def pdb2vol(coord, size, sigma, voxel_size, threshold):
         vox[i, 2]:vox[i, 2] + n_vox] += expnt[i]
     return vol, expnt
 
-def allatoms2carbonalpha(mol):
-    mol.model = "carbonalpha"
-    carbonalpha_idx = np.where(mol.atom_type == "CA")[0]
-    mol.coords = mol.coords[carbonalpha_idx]
-    mol.n_atoms = mol.coords.shape[0]
-    mol.chain_id = [np.argmin(np.abs(carbonalpha_idx - mol.chain_id[i])) for i in range(mol.n_chain)] + [mol.n_atoms]
-    if mol.modes is not None:
-        mol.modes = mol.modes[carbonalpha_idx]
-    return mol
-
-def allatoms2backbone(mol):
-    mol.model = "backbone"
-
-    # Mol
-    backbone_idx=[]
-    for i in range(len(mol.atom_type)):
-        if not mol.atom_type[i].startswith("H"):
-            backbone_idx.append(i)
-    backbone_idx =  np.array(backbone_idx)
-    mol.psf.atoms = np.array(mol.psf.atoms)[backbone_idx]
-    mol.prm.mass = mol.prm.mass[backbone_idx]
-    mol.prm.charge = mol.prm.charge[backbone_idx]
-    mol.coords = mol.coords[backbone_idx]
-    mol.n_atoms = mol.coords.shape[0]
-    if mol.modes is not None:
-        mol.modes = mol.modes[backbone_idx]
-    mol.atom_type = mol.atom_type[backbone_idx]
-
-    # Bonds
-    bonds_idx = []
-    new_bonds = []
-    for i in range(len(mol.psf.bonds)):
-        b = np.zeros(2)
+def select_idx(param, idx):
+    new_param = []
+    new_param_idx = []
+    (n_param, len_param) = param.shape
+    for i in range(n_param):
+        elem = np.zeros(len_param)
         bool = True
-        for j in range(2):
-            if mol.psf.bonds[i,j] in backbone_idx:
-                b[j] = np.where(backbone_idx == mol.psf.bonds[i,j])[0][0]
-            else:
-                bool=False
-                break
-        if bool:
-            new_bonds.append(b.astype(int))
-            bonds_idx.append(i)
-    bonds_idx = np.array(bonds_idx)
-    mol.psf.bonds = np.array(new_bonds)
-    mol.prm.Kb = mol.prm.Kb[bonds_idx]
-    mol.prm.b0 = mol.prm.b0[bonds_idx]
-
-    # Angles
-    angles_idx = []
-    new_angles = []
-    for i in range(len(mol.psf.angles)):
-        b = np.zeros(3)
-        bool = True
-        for j in range(3):
-            if mol.psf.angles[i,j] in backbone_idx:
-                b[j] = np.where(backbone_idx == mol.psf.angles[i,j])[0][0]
-            else:
-                bool=False
-                break
-        if bool:
-            new_angles.append(b.astype(int))
-            angles_idx.append(i)
-    angles_idx = np.array(angles_idx)
-    mol.psf.angles = np.array(new_angles)
-    mol.prm.KTheta = mol.prm.KTheta[angles_idx]
-    mol.prm.Theta0 = mol.prm.Theta0[angles_idx]
-
-    #Dihedrals
-    dihedrals_idx = []
-    new_dihedrals = []
-    for i in range(len(mol.psf.dihedrals)):
-        b = np.zeros(4)
-        bool = True
-        for j in range(4):
-            if mol.psf.dihedrals[i, j] in backbone_idx:
-                b[j] = np.where(backbone_idx == mol.psf.dihedrals[i, j])[0][0]
+        for j in range(len_param):
+            if param[i, j] in idx:
+                elem[j] = np.where(idx == param[i, j])[0][0]
             else:
                 bool = False
                 break
         if bool:
-            new_dihedrals.append(b.astype(int))
-            dihedrals_idx.append(i)
-    dihedrals_idx = np.array(dihedrals_idx)
-    mol.psf.dihedrals = np.array(new_dihedrals)
-    mol.prm.Kchi = mol.prm.Kchi[dihedrals_idx]
-    mol.prm.delta = mol.prm.delta[dihedrals_idx]
-    mol.prm.n = mol.prm.n[dihedrals_idx]
-
-    return mol
+            new_param.append(elem)
+            new_param_idx.append(i)
+    new_param = np.array(new_param).astype(int)
+    new_param_idx = np.array(new_param_idx).astype(int)
+    return new_param, new_param_idx
 

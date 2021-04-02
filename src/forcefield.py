@@ -7,37 +7,75 @@ from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VA
 import src.functions
 
 
-def get_energy(coord, molstr, molprm, verbose=True):
+def get_energy(coords, forcefield, **kwargs):
     """
     Compute the potential energy
-    :param coord: the Cartesian coordinates numpy array N*3 (Angstrom)
-    :param molstr: Moleculestructure object
-    :param molprm: MoleculeForceFieldPrm object
-    :param verbose: verbose level
+    :param coords: np array N*3 (the Cartesian coordinates(Angstrom))
+    :param forcefield: MoleculeForceField object
     :return: Potential energy (kcal * mol-1)
     """
-    U_bonds = get_energy_bonds(coord, molstr.bonds, molprm)
-    U_angles = get_energy_angles(coord, molstr.angles, molprm)
-    U_dihedrals = get_energy_dihedrals(coord, molstr.dihedrals, molprm)
-    U_total = U_bonds + U_angles + U_dihedrals
+    if "potentials" in kwargs:
+        potentials= kwargs["potentials"]
+    else:
+        potentials = ["bonds", "angles", "dihedrals", "vdw", "elec"]
+    U=0
+    if "verbose" in kwargs:
+        print("Computing Potential energy ...")
 
-    if verbose:
-        print("|-- Bonds = " + str(round(U_bonds, 2)))
-        print("|-- Angles = " + str(round(U_angles, 2)))
-        print("|-- Dihedrals = " + str(round(U_dihedrals, 2)))
-        # print("|-- Van der Waals = " + str(round(U_torsions, 2)))
-        print("|== TOTAL = " + str(round(U_total, 2)))
+    # Bonds energy
+    if "bonds" in potentials:
+        U_bonds = get_energy_bonds(coords, forcefield)
+        U+=U_bonds
+        if "verbose" in kwargs:
+            print("|-- Bonds = " + str(round(U_bonds, 2)))
 
-    return U_total
+    # Angles energy
+    if "angles" in potentials:
+        U_angles = get_energy_angles(coords, forcefield)
+        U+=U_angles
+        if "verbose" in kwargs:
+            print("|-- Angles = " + str(round(U_angles, 2)))
 
-def get_autograd(params, mol):
+    # Dihedrals energy
+    if "dihedrals" in potentials:
+        U_dihedrals = get_energy_dihedrals(coords, forcefield)
+        U+=U_dihedrals
+        if "verbose" in kwargs:
+            print("|-- Dihedrals = " + str(round(U_dihedrals, 2)))
+
+    # Non bonded energy
+    if "vdw" in potentials or "elec" in potentials:
+        if "pairlist" in kwargs:
+            pairlist = kwargs["pairlist"]
+        else:
+            pairlist = get_pairlist(coords, 10.0)
+        invdist = get_invdist(coords, pairlist)
+
+        if "vdw" in potentials:
+            U_vdw = get_energy_vdw(invdist, pairlist, forcefield)
+            U += U_vdw
+            if "verbose" in kwargs:
+                print("|-- Van der Waals = " + str(round(U_vdw, 2)))
+
+        if "elec" in potentials:
+            U_elec = get_energy_elec(invdist, pairlist, forcefield)
+            U += U_elec
+            if "verbose" in kwargs:
+                print("|-- Electrostatics = " + str(round(U_elec, 2)))
+
+    if "verbose" in kwargs:
+        print("|== TOTAL = " + str(round(U, 2)))
+
+    return U
+
+def get_autograd(params, mol, **kwargs):
     """
     Compute the gradient of the potential energy by automatic differentiation
     :param params: dictionary with keys are the name of the parameters and values their values
     :param mol: initial Molecule
     :return: gradient for each parameter  (kcal * mol-1 * A)
     """
-    def get_energy_autograd(params, mol):
+    def get_energy_autograd(params, mol, **kwargs):
         """
         Energy function for automatic differentiation
         """
@@ -45,62 +83,102 @@ def get_autograd(params, mol):
         if FIT_VAR_LOCAL in params:
             coord += params[FIT_VAR_LOCAL]
         if FIT_VAR_GLOBAL in params:
-            coord += npg.dot(params[FIT_VAR_GLOBAL], mol.modes)
+            coord += npg.dot(params[FIT_VAR_GLOBAL], mol.normalModeVec)
         if FIT_VAR_ROTATION in params:
             coord = npg.dot(src.functions.generate_euler_matrix(params[FIT_VAR_ROTATION]), coord.T).T
         if FIT_VAR_SHIFT in params:
             coord += params[FIT_VAR_SHIFT]
 
-        U_bonds = get_energy_bonds(coord, mol.psf.bonds, mol.prm)
-        U_angles = get_energy_angles(coord, mol.psf.angles, mol.prm)
-        U_dihedrals = get_energy_dihedrals(coord, mol.psf.dihedrals, mol.prm)
+        U=0
 
-        return (U_bonds + U_angles + U_dihedrals)
+        if "bonds" in kwargs["potentials"]:
+            U += get_energy_bonds(coord, mol.forcefield)
+        if "angles" in kwargs["potentials"]:
+            U += get_energy_angles(coord, mol.forcefield)
+        if "dihedrals" in kwargs["potentials"]:
+            U += get_energy_dihedrals(coord, mol.forcefield)
+        if "vdw" in kwargs["potentials"] or "elec" in kwargs["potentials"]:
+            invdist = get_invdist(coord, kwargs["pairlist"])
+            if "vdw" in kwargs["potentials"]:
+                U += get_energy_vdw(invdist, kwargs["pairlist"], mol.forcefield)
+            if "elec" in kwargs["potentials"]:
+                U += get_energy_elec(invdist, kwargs["pairlist"], mol.forcefield)
+
+        return U
     grad = elementwise_grad(get_energy_autograd, 0)
 
-    F = grad(params, mol) # Get the derivative of the potential energy
+    F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
     return F
 
-def get_energy_bonds(coord, bonds, prm):
+def get_energy_bonds(coord, forcefield):
     """
     Compute bonds potential
     :param coord: Cartesian coordinates (Angstrom)
-    :param bonds: bonds index
-    :param prm: MoleculeForceFieldPrm
+    :param forcefield: MoleculeForceField
     :return: bonds potential  (kcal * mol-1)
     """
-    r = npg.linalg.norm(coord[bonds[:, 0]] - coord[bonds[:, 1]], axis=1)
-    return npg.sum(prm.Kb * npg.square(r - prm.b0))
+    r = npg.linalg.norm(coord[forcefield.bonds[:, 0]] - coord[forcefield.bonds[:, 1]], axis=1)
+    return npg.sum(forcefield.Kb * npg.square(r - forcefield.b0))
 
-def get_energy_angles(coord, angles, prm):
+def get_energy_angles(coord, forcefield):
     """
     Compute angles potnetial
     :param coord: Cartesian coordinates (Angstrom)
-    :param angles: angles index
-    :param prm: MoleculeForceFieldPrm
+    :param forcefield: MoleculeForceField
     :return: angles potential (kcal * mol-1)
     """
-    a1 = coord[angles[:, 0]]
-    a2 = coord[angles[:, 1]]
-    a3 = coord[angles[:, 2]]
+    a1 = coord[forcefield.angles[:, 0]]
+    a2 = coord[forcefield.angles[:, 1]]
+    a3 = coord[forcefield.angles[:, 2]]
     theta = -npg.arccos(npg.sum((a1 - a2) * (a2 - a3), axis=1)
                        / (npg.linalg.norm(a1 - a2, axis=1) * npg.linalg.norm(a2- a3, axis=1))) + npg.pi
-    return npg.sum(prm.KTheta * npg.square(theta - (prm.Theta0*npg.pi/180)))
+    return npg.sum(forcefield.KTheta * npg.square(theta - (forcefield.Theta0*npg.pi/180)))
 
-def get_energy_dihedrals(coord, dihedrals, prm):
+def get_energy_dihedrals(coord,forcefield):
     """
     Compute dihedrals potnetial
     :param coord: Cartesian coordinates (Agnstrom)
-    :param dihedrals: dihedrals index
-    :param prm: MoleculeForceFieldPrm
+    :param forcefield: MoleculeForceField
     :return: dihedrals potential  (kcal * mol-1)
     """
-    u1 = coord[dihedrals[:, 1]] - coord[dihedrals[:, 0]]
-    u2 = coord[dihedrals[:, 2]] - coord[dihedrals[:, 1]]
-    u3 = coord[dihedrals[:, 3]] - coord[dihedrals[:, 2]]
+    u1 = coord[forcefield.dihedrals[:, 1]] - coord[forcefield.dihedrals[:, 0]]
+    u2 = coord[forcefield.dihedrals[:, 2]] - coord[forcefield.dihedrals[:, 1]]
+    u3 = coord[forcefield.dihedrals[:, 3]] - coord[forcefield.dihedrals[:, 2]]
     torsions = npg.arctan2(npg.linalg.norm(u2, axis=1) * npg.sum(u1 * npg.cross(u2, u3), axis=1),
                            npg.sum(npg.cross(u1, u2) * npg.cross(u2, u3), axis=1))
-    return npg.sum(prm.Kchi * (1 + npg.cos(prm.n * (torsions) - (prm.delta*npg.pi/180))))
+    return npg.sum(forcefield.Kchi * (1 + npg.cos(forcefield.n * (torsions) - (forcefield.delta*npg.pi/180))))
+
+
+def get_pairlist(coord,cutoff=10.0):
+    pairlist = []
+    for i in range(coord.shape[0]):
+        dist = np.linalg.norm(coord[i + 1:] - coord[i], axis=1)
+        idx = np.where(dist < cutoff)[0] + i + 1
+        for j in idx:
+            pairlist.append([i, j])
+    return np.array(pairlist)
+
+def get_invdist(coord, pairlist):
+    dist = npg.linalg.norm(coord[pairlist[:, 0]] - coord[pairlist[:, 1]], axis=1)
+    return 1/dist
+
+def get_energy_vdw(invdist, pairlist, forcefield):
+    Rminij = forcefield.Rmin[pairlist[:, 0]] + forcefield.Rmin[pairlist[:, 1]]
+    Epsij = npg.sqrt(forcefield.epsilon[pairlist[:, 0]] * forcefield.epsilon[pairlist[:, 1]])
+    invdist6 = (Rminij * invdist) ** 6
+    invdist12 = invdist6 ** 2
+    return npg.sum(Epsij * (invdist12 - 2 * invdist6)) *0.00004
+
+def get_energy_elec(invdist, pairlist, forcefield):
+    # Electrostatics
+    eps0 = 0.0027865
+    return npg.sum(1 / (4 * npg.pi *eps0) * forcefield.charge[pairlist[:, 0]] * forcefield.charge[pairlist[:, 1]] *invdist)
+
+def get_energy_nonbonded(coord, pairlist, forcefield):
+    invdist = get_invdist(coord, pairlist)
+    U_vdw = get_energy_vdw(invdist, pairlist, forcefield)
+    U_elec = get_energy_elec(invdist, pairlist, forcefield)
+    return U_vdw+ U_elec
 
 
 def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
@@ -122,8 +200,8 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
         coord += params[FIT_VAR_LOCAL]
     if FIT_VAR_GLOBAL in params:
-        res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
-        coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+        res[FIT_VAR_GLOBAL] = np.zeros(mol.normalModeVec.shape[1])
+        coord += np.dot(params[FIT_VAR_GLOBAL], mol.normalModeVec)
     if FIT_VAR_ROTATION in params:
         res[FIT_VAR_ROTATION] = np.zeros(3)
         R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
@@ -159,7 +237,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         if FIT_VAR_LOCAL in params:
             res[FIT_VAR_LOCAL][i] = dpsim
         if FIT_VAR_GLOBAL in params:
-            res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i], dpsim)
+            res[FIT_VAR_GLOBAL] += np.dot(mol.normalModeVec[i], dpsim)
         if FIT_VAR_SHIFT in params:
             res[FIT_VAR_SHIFT] += dpsim
 
@@ -175,8 +253,8 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     #         res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
     #         coord += params[FIT_VAR_LOCAL]
     #     if FIT_VAR_GLOBAL in params:
-    #         res[FIT_VAR_GLOBAL] = np.zeros(mol.modes.shape[1])
-    #         coord += np.dot(params[FIT_VAR_GLOBAL], mol.modes)
+    #         res[FIT_VAR_GLOBAL] = np.zeros(mol.normalModeVec.shape[1])
+    #         coord += np.dot(params[FIT_VAR_GLOBAL], mol.normalModeVec)
     #     if FIT_VAR_ROTATION in params:
     #         res[FIT_VAR_ROTATION] = np.zeros(3)
     #         R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
@@ -206,7 +284,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     #         if FIT_VAR_LOCAL in params:
     #             res[FIT_VAR_LOCAL][i] = dpsim
     #         if FIT_VAR_GLOBAL in params:
-    #             res[FIT_VAR_GLOBAL] += np.dot(mol.modes[i, :, :2], dpsim)
+    #             res[FIT_VAR_GLOBAL] += np.dot(mol.normalModeVec[i, :, :2], dpsim)
     #         if FIT_VAR_SHIFT in params:
     #             res[FIT_VAR_SHIFT][:2] += dpsim
     #

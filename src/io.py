@@ -20,77 +20,69 @@ def read_pdb(file):
     """
     Read PDB file
     :param file: PDF file
-    :return: coord, atom_type, chain_id, genfile :  the Cartesian coordinates, list of atom types,
-                                                    list of chain indexes and generative PDB file
+    :return: dictionary with pdb data
     """
+    atom=[]
+    atomNum=[]
+    atomName=[]
+    resName=[]
+    chainName=[]
+    resNum=[]
     coords = []
-    atom_type=[]
-    chain_id =[0]
+    elemName=[]
+    print("Reading pdb file ...")
     with open(file, "r") as f :
         for line in f:
             spl = line.split()
             if len(spl) >0:
                 if (spl[0] == 'ATOM') or (spl[0] == 'HETATM'):
                     l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
-                         line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
+                         line[38:46], line[46:54], line[54:60], line[60:66], line[77:78]]
                     l = [i.strip() for i in l]
+                    atom.append(l[0])
+                    atomNum.append(l[1])
+                    atomName.append(l[2])
+                    resName.append(l[3])
+                    chainName.append(l[4])
+                    resNum.append(l[5])
                     coords.append([float(l[6]), float(l[7]), float(l[8])])
-                    atom_type.append(l[2])
-                if spl[0] == 'TER':
-                    chain_id.append(len(coords))
+                    elemName.append(l[11])
+    print("Done")
 
-    if len(chain_id) == 1:
-        chain_id.append(len(coords))
+    return {
+        "atom" : np.array(atom),
+        "atomNum" : np.array(atomNum).astype(int),
+        "atomName" : np.array(atomName),
+        "resName" : np.array(resName),
+        "chainName" : np.array(chainName),
+        "resNum" : np.array(resNum).astype(int),
+        "coords" : np.array(coords).astype(float),
+        "elemName" : np.array(elemName)
+    }
 
-    return np.array(coords), np.array(atom_type), chain_id, file
-
-def save_pdb(coords, file, genfile, model = "allatoms"):
+def save_pdb(data, file):
     """
     Save Molecule to PDB file
-    :param coords: Coordinates to save
+    :param data: dictionary with pdb data
     :param file: PDB file
-    :param genfile: original pdb file
-    :param model: allatoms | carbonalpha | backbone
     """
-    genfile = genfile
     print("Saving pdb file ...")
     with open(file, "w") as file:
-        with open(genfile, "r") as genfile:
-            n=0
-            for line in genfile:
-                split_line= line.split()
-
-                if len(split_line) > 0:
-                    if (split_line[0] == 'ATOM') or (split_line[0] == 'HETATM'):
-                        if n< coords.shape[0]:
-                            l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
-                                 line[38:46], line[46:54], line[54:60], line[60:66], line[66:78]]
-                            if (model=="carbonalpha" and split_line[2] == 'CA') or (model=="allatoms") or \
-                                (model=="backbone" and (not split_line[2].startswith("H"))):
-                                coord = coords[n]
-                                l[0] = l[0].ljust(6)  # atom#6s
-                                l[1] = l[1].rjust(5)  # aomnum#5d
-                                l[2] = l[2].center(4)  # atomname$#4s
-                                l[3] = l[3].ljust(3)  # resname#1s
-                                l[4] = l[4].rjust(1)  # Astring
-                                l[5] = l[5].rjust(4)  # resnum
-                                l[6] = str('%8.3f' % (float(coord[0]))).rjust(8)  # x
-                                l[7] = str('%8.3f' % (float(coord[1]))).rjust(8)  # y
-                                l[8] = str('%8.3f' % (float(coord[2]))).rjust(8)  # z\
-                                l[9] = str('%6.2f' % (float(l[9]))).rjust(6)  # occ
-                                l[10] = str('%6.2f' % (float(l[10]))).ljust(6)  # temp
-                                l[11] = l[11].rjust(12)  # elname
-                                file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (l[0],l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10], l[11]))
-                                n+=1
-
-                    elif split_line[0] == 'TER':
-                        file.write(line)
-
-                    elif split_line[0] == 'END':
-                        # file.write(line)
-                        file.write("END\n")
-                    # else :
-                    #     file.write(line)
+        for i in range(len(data["atom"])):
+            atom= data["atom"][i].ljust(6)  # atom#6s
+            atomNum= str(data["atomNum"][i]).rjust(5)  # aomnum#5d
+            atomName= data["atomName"][i].center(4)  # atomname$#4s
+            resName= data["resName"][i].ljust(3)  # resname#1s
+            chainName= data["chainName"][i].rjust(1)  # Astring
+            resNum= str(data["resNum"][i]).rjust(4)  # resnum
+            coordx= str('%8.3f' % (float(data["coords"][i][0]))).rjust(8)  # x
+            coordy= str('%8.3f' % (float(data["coords"][i][1]))).rjust(8)  # y
+            coordz= str('%8.3f' % (float(data["coords"][i][2]))).rjust(8)  # z\
+            occ= str().rjust(6)  # occ
+            temp= str().ljust(6)  # temp
+            elemName= data["elemName"][i].rjust(12)  # elname
+            file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
+                                                              coordx, coordy, coordz, occ, temp, elemName))
     print("Done")
 
 def read_mrc(file):
@@ -205,6 +197,7 @@ def read_psf(file):
             "bonds": 2,
             "angles": 3,
             "dihedrals": 4,
+            "impropers": 4
         }
         for line in psf_file:
             split_line = line.split()
@@ -227,13 +220,17 @@ def read_psf(file):
 
             elif len(split_line) > 1:
                 if "NATOM" in split_line[1]:
-                    dic["atoms"] = []
+                    dic["atomNameRes"] = []
+                    dic["atomCharge"] = []
+                    dic["atomMass"] = []
                     n = int(split_line[0])
                     n_curr = 0
                     while (n_curr < n):
                         line = psf_file.readline()
                         split_line = line.split()
-                        dic["atoms"].append([split_line[0], split_line[4], split_line[5], split_line[6], split_line[7]])
+                        dic["atomNameRes"].append(split_line[5])
+                        dic["atomCharge"].append(float(split_line[6]))
+                        dic["atomMass"].append(float(split_line[7]))
                         n_curr += 1
 
     return dic
@@ -247,7 +244,9 @@ def read_prm(file):
     dic ={
         "bonds" : {},
         "angles" : {},
-        "dihedrals" : {}
+        "dihedrals" : {},
+        "impropers": {},
+        "nonbonded" : {}
     }
     with open(file) as prm_file :
         curr = ""
@@ -263,6 +262,14 @@ def read_prm(file):
                     curr = "DIHEDRALS"
                 elif split_line[0] == "IMPROPER":
                     curr = "IMPROPER"
+                elif split_line[0] == "CMAP":
+                    curr = "NONBONDED"
+                elif split_line[0] == "NONBONDED":
+                    curr = "NONBONDED"
+                elif split_line[0] == "HBOND":
+                    curr = "HBOND"
+                elif split_line[0] == "END":
+                    curr = "END"
 
                 elif not split_line[0].startswith("!"):
                     if curr == "BONDS":
@@ -271,4 +278,13 @@ def read_prm(file):
                         dic["angles"][split_line[0]+"-"+split_line[1]+"-"+split_line[2]] = [float(split_line[3]), float(split_line[4])]
                     if curr == "DIHEDRALS":
                         dic["dihedrals"][split_line[0]+"-"+split_line[1]+"-"+split_line[2]+"-"+split_line[3]] = [float(split_line[4]), int(split_line[5]), float(split_line[6])]
+                    if curr == "IMPROPER":
+                        dic["impropers"][split_line[0]+"-"+split_line[1]+"-"+split_line[2]+"-"+split_line[3]] = [float(split_line[4]), float(split_line[6])]
+                    if curr == "NONBONDED":
+                        try :
+                            float(split_line[2])
+                            float(split_line[3])
+                        except ValueError: pass
+                        else:
+                            dic["nonbonded"][split_line[0]] = [float(split_line[2]), float(split_line[3])]
     return dic

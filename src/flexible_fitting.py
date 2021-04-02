@@ -51,7 +51,7 @@ class FlexibleFitting:
             p.join()
 
         # Regroup the chains results
-        self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
+        self.res = {"mol": self.init.copy()}
         self.res["mol"].coords = np.mean([i.res["mol"].coords for i in fits], axis=0)
         for v in self.vars:
             self.res[v] = np.mean([i.res[v] for i in fits], axis=0)
@@ -88,13 +88,13 @@ class FlexibleFitting:
 
         except RuntimeError as rte:
             print("Failed to run HMC chain : " + str(rte.args[0]))
-            self.res = {"mol" : src.molecule.Molecule.from_molecule(self.init)}
+            self.res = {"mol" : self.init.copy()}
             for i in self.vars:
                 self.res[i] = self._get(i)
 
         else:
             # Generate results
-            self.res = {"mol": src.molecule.Molecule.from_molecule(self.init)}
+            self.res = {"mol": self.init.copy()}
             self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
             for i in self.vars:
                 self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
@@ -129,20 +129,18 @@ class FlexibleFitting:
         if FIT_VAR_LOCAL in self.vars:
             default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
         if FIT_VAR_GLOBAL in self.vars:
-            default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.modes.shape[1])
+            default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.normalModeVec.shape[1])
         if FIT_VAR_ROTATION in self.vars:
             default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
         if FIT_VAR_SHIFT in self.vars:
             default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
 
-        if "initial_biasing_factor" in params :
-            params["biasing_factor"] = self._set_factor(params["initial_biasing_factor"])
-
         default_params.update(params)
         if (FIT_VAR_LOCAL in self.vars) and (not FIT_VAR_LOCAL + "_sigma" in params):
             default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
                                                     np.sqrt((K_BOLTZMANN * default_params["temperature"]) /
-                                                            (self.init.prm.mass * ATOMIC_MASS_UNIT)) * 1e10).T
+                                                            (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * 1e10).T
+        default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
         self.params = default_params
 
     def _get(self, key):
@@ -176,8 +174,8 @@ class FlexibleFitting:
         U+= U_biased
 
         # Energy Potential
-        U_potential = src.forcefield.get_energy(coord=self._get("coord_t"), molstr = self.init.psf,
-                                 molprm= self.init.prm, verbose=False)* self.params["potential_factor"]
+        U_potential = src.forcefield.get_energy(coords=self._get("coord_t"), forcefield=self.init.forcefield,
+                potentials=self.params["potentials"], pairlist=self._get("pairlist"))* self.params["potential_factor"]
         self._add("U_potential", U_potential)
         U += U_potential
 
@@ -203,12 +201,13 @@ class FlexibleFitting:
 
         dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
                                                      expnt = self._get("expnt"))
-        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init)
+        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init,
+                                                   potentials=self.params["potentials"], pairlist=self._get("pairlist"))
 
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
             if i == FIT_VAR_LOCAL:
-                F = (F.T * (1 / (self.init.prm.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+                F = (F.T * (1 / (self.init.forcefield.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
                 F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
                 F *= 1e20  # kg * m2 * s-2 -> kg * A2 * s-2
             if i+"_factor" in self.params:
@@ -225,7 +224,7 @@ class FlexibleFitting:
         K=0
         for i in self.vars:
             if i == FIT_VAR_LOCAL:
-                K +=  1 / 2 * np.sum((self.init.prm.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
+                K +=  1 / 2 * np.sum((self.init.forcefield.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
 
             else:
                 K +=  1 / 2 * np.sum(np.square(self._get(i+"_v"))/self.params[i+"_sigma"])
@@ -312,12 +311,12 @@ class FlexibleFitting:
         if FIT_VAR_LOCAL in self.vars:
             coord += self._get(FIT_VAR_LOCAL+"_t")
         if FIT_VAR_GLOBAL in self.vars:
-            coord += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.modes)
+            coord += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.normalModeVec)
         if FIT_VAR_ROTATION in self.vars:
             coord = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coord.T).T
         if FIT_VAR_SHIFT  in self.vars:
             coord += self._get(FIT_VAR_SHIFT+"_t")
-        self._add("coord_t", coord)
+        self._set("coord_t", coord)
 
     def _acceptation(self,H, H_init):
         """
@@ -357,6 +356,21 @@ class FlexibleFitting:
             printed_string += i + "=" + str(self._get(i)) + " ; "
         print(printed_string)
 
+    def _set_pairlist(self):
+        if "vdw" in self.params["potentials"] or "elec" in self.params["potentials"]:
+            if not "coord_pl" in self.fit:
+                self._set("coord_pl", self._get("coord_t"))
+            dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))
+            if (dx_max > (self.params["cutoffpl"] - self.params["cutoffnb"])) or (not "pairlist" in self.fit):
+                if self.verbose >1 : print("Computing pairlist ...")
+                t=time.time()
+                self._set("pairlist", src.forcefield.get_pairlist(self._get("coord_t"),self.params["cutoffpl"]))
+                self._set("coord_pl",self._get("coord_t"))
+                if self.verbose > 1: print("Done "+str(time.time()-t)+" s")
+        else:
+            self._set("pairlist",None)
+
+
     def HMC_step(self):
         """
         Run HMC iteration
@@ -367,6 +381,8 @@ class FlexibleFitting:
         self._forward_model()
     # initial density
         self._set_density()
+    # Check pairlist
+        self._set_pairlist()
     # Initial Potential Energy
         self._set_energy()
     # Initial gradient
@@ -389,6 +405,8 @@ class FlexibleFitting:
             self._set_density()
         # CC update
             self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
+        # Check pairlist
+            self._set_pairlist()
         # Potential energy update
             self._set_energy()
         # Gradient Update
@@ -414,8 +432,10 @@ class FlexibleFitting:
         self._acceptation(H, H_init)
     # save pdb step
         if self.prefix is not None:
-            src.io.save_pdb(coords = self._get("coord"), file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
-                            genfile=self.init.genfile, model=self.init.model)
+            cp = self.init.copy()
+            cp.coords = self._get("coord")
+            cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
+            del cp
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
 
     def show(self,save=None):
@@ -440,14 +460,13 @@ class FlexibleFitting:
             fit = pickle.load(file=f)
             return fit
 
-    def _set_factor(self, init_factor=100):
+    def _set_factor(self, init_factor=100, **kwargs):
         psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
                                                  voxel_size=self.target.voxel_size,
                                                  sigma=self.target.sigma, threshold=self.target.threshold)
         U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
 
-        U_potential = src.forcefield.get_energy(coord=self.init.coords, molstr = self.init.psf,
-                                 molprm= self.init.prm, verbose=False)
+        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)
         factor = init_factor/(U_biased/U_potential)
         if self.verbose > 0 : print("optimal initial factor : "+str(factor))
         return factor

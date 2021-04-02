@@ -42,6 +42,10 @@ DEFAULT_FIT_PARAMS ={
     "biasing_factor" : 1,
     "potential_factor" : 1,
 
+    "potentials" : ["bonds", "angles", "dihedrals"],
+    "cutoffpl" : 15.0,
+    "cutoffnb" : 10.0,
+
     "n_step": 10,
     "n_iter": 20,
     "n_warmup": 10,

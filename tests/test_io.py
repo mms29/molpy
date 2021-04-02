@@ -16,18 +16,16 @@ class TestIO(unittest.TestCase):
 
     def test_read_pdb(self):
         f="tests_data/input/P97/5ftm.pdb"
-        coords, atom_type, chain_id, file = read_pdb(f)
-        self.assertEqual(coords.shape[0],34200)
-        self.assertEqual(atom_type.shape[0],34200)
-        self.assertEqual(chain_id[-1],34200)
-        self.assertEqual(file,f)
+        data= read_pdb(f)
+        self.assertEqual(data["coords"].shape[0],34200)
+        self.assertEqual(data["atomNum"].shape[0],34200)
 
     def test_save_pdb(self):
         f = "tests_data/input/P97/5ftm.pdb"
-        coords, _, _, _ = read_pdb(f)
-        save_pdb(coords=coords, file="tests_data/output/mol.pdb", genfile=f)
-        coords2, _, _, _ = read_pdb("tests_data/output/mol.pdb")
-        self.assertEqual(coords.shape[0], coords2.shape[0])
+        data = read_pdb(f)
+        save_pdb(data, file="tests_data/output/mol.pdb")
+        data2 = read_pdb("tests_data/output/mol.pdb")
+        self.assertEqual(data2["coords"].shape[0], data["coords"].shape[0])
 
     def test_read_mrc(self):
         data, voxel_size=  read_mrc("tests_data/input/P97/emd_3299.mrc")
@@ -46,7 +44,7 @@ class TestIO(unittest.TestCase):
     def test_create_psf(self):
         create_psf(pdb_file="tests_data/input/P97/5ftm.pdb", prefix="tests_data/output/psf",
                    topology_file="tests_data/input/top_all36_prot.rtf")
-        mol = Molecule.from_file("tests_data/output/psf_PSF.pdb")
+        mol = Molecule("tests_data/output/psf_PSF.pdb")
         self.assertEqual(mol.n_atoms, 68862)
         dic= read_psf("tests_data/output/psf.psf")
         self.assertTrue("bonds" in dic)

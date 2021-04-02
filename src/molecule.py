@@ -14,118 +14,56 @@ class Molecule:
     Atomic structure of a molecule
     """
 
-    def __init__(self, coords, modes=None, atom_type=None, chain_id=None, genfile=None, model="allatoms"):
+    def __init__(self, pdb_file):
         """
         Contructor
-        :param coords: numpy array N*3 of Cartesian coordinates of N atoms
-        :param modes: numpy array of N*M*3 of normal modes vectors of M modes and N atoms
-        :param atom_type: list of name of atoms
-        :param chain_id: list of number of atoms where the chains of the proteins begins
-        :param genfile: PDB file used to generate the class
-        :param model: allatoms | carbonalpha | backbone
+        :param pdb_file: PDB file
         """
-        self.n_atoms= coords.shape[0]
-        self.coords = coords
-        self.modes=modes
-        self.atom_type = atom_type
-        self.genfile=genfile
-        self.model=model
-        if chain_id is None:
-            self.chain_id = [0,self.n_atoms]
-            self.n_chain=1
-        else:
-            self.chain_id=chain_id
-            self.n_chain = len(chain_id) -1
+        data = src.io.read_pdb(pdb_file)
 
-        self.prm = None
-        self.psf = None
+        self.coords = data["coords"]
+        self.n_atoms = data["coords"].shape[0]
+        self.atom = data["atom"]
+        self.atomNum = data["atomNum"]
+        self.atomName = data["atomName"]
+        self.resName = data["resName"]
+        self.chainName = data["chainName"]
+        self.resNum = data["resNum"]
+        self.elemName = data["elemName"]
+        self.normalModeVec=None
+        self.forcefield = None
 
-    @classmethod
-    def from_file(cls, file):
+    def copy(self):
         """
-        Constructor from PDB file
-        :param file: PDB file
+        Copy Molecule Object
         :return: Molecule
         """
-        coords, atom_type, chain_id, genfile =src.io.read_pdb(file)
-        return cls(coords=coords, atom_type=atom_type, chain_id=chain_id, genfile=genfile)
-
-    @classmethod
-    def from_molecule(cls, mol):
-        """
-        Copy Constructor
-        """
-        return copy.deepcopy(mol)
+        return copy.deepcopy(self)
 
 
-    def get_energy(self, verbose=False):
+    def get_energy(self, **kwargs):
         """
         Compute Potential energy of the object
-        :param verbose: verbose level
         :return: the Total Potential energy
         """
-        return src.forcefield.get_energy(coord=self.coords, molstr = self.psf, molprm = self.prm, verbose=verbose)
+        return src.forcefield.get_energy(coords=self.coords, forcefield=self.forcefield, **kwargs)
 
-    def add_modes(self, files, selection=None):
+    def center(self):
         """
-        Add normal modes vectors to the object
-        :param files: directory containing the normal modes
-        :param n_modes: number of desired normal modes
-        """
-        if selection is not None:
-            files = list(np.array(files)[np.array(selection)-1])
-        self.modes = src.io.read_modes(files)
-        if self.modes.shape[0] != self.n_atoms:
-            raise RuntimeError("Modes vectors and coordinates do not match : ("+str(self.modes.shape[0])+") != ("+str(self.n_atoms)+")")
-
-
-    def select_modes(self, selected_modes):
-        """
-        select specific normal modes vectors
-        :param selected_modes: index of selected modes
-        """
-        self.modes = self.modes[:, selected_modes]
-
-    def select_chain(self, chain_id):
-        """
-        Select chains from the molecule
-        :param chain_id: list of chain indexes to select
-        """
-        chains=[]
-        length = []
-        for i in chain_id:
-            chain = self.get_chain(i)
-            chains.append(chain)
-            length.append(chain.shape[0])
-        self.coords= np.concatenate(chains)
-        self.n_atoms = self.coords.shape[0]
-        self.chain_id = [0] + list(np.cumsum(length))
-        self.n_chain = len(self.chain_id )-1
-
-    def get_chain(self, id):
-        """
-        Return coordinates of a specific chain
-        :param id: chain number
-        :return: coordinates of the chain
-        """
-        return self.coords[self.chain_id[id]:self.chain_id[id+1]]
-
-    def change_model(self, model):
-        """
-        Change atomic model allatoms | carbonalpha | backbone
-        :param model: allatoms | carbonalpha | backbone
-        """
-        if model == "carbonalpha":
-            src.functions.allatoms2carbonalpha(self)
-        if model == "backbone":
-            src.functions.allatoms2backbone(self)
-
-
-    def center_structure(self):
-        """
-        Center the structure coordinates around 0,0,0
+        Center the coordinates around 0,0,0
         """
         self.coords -= np.mean(self.coords, axis=0)
+
+    def rotate(self, angles):
+        """
+        Rotate the coordinates
+        :param angles: list of 3 Euler angles
+        """
+        R= src.functions.generate_euler_matrix(angles)
+        self.coords = np.dot(R, self.coords.T).T
+        if self.normalModeVec is not None:
+            for i in range(self.n_atoms):
+                self.normalModeVec[i] =  np.dot(R , self.normalModeVec[i].T).T
 
     def show(self):
         """
@@ -133,80 +71,243 @@ class Molecule:
         """
         src.viewers.molecule_viewer(self)
 
-    def rotate(self, angles):
+    def set_normalModeVec(self, files, **kwargs):
         """
-        Rotate the molecule
-        :param angles: list of 3 Euler angles
+        Set normal modes vectors to the object
+        :param files: directory containing the normal modes
+        :param n_modes: number of desired normal modes
         """
-        R= src.functions.generate_euler_matrix(angles)
-        self.coords = np.dot(R, self.coords.T).T
-        for i in range(self.n_atoms):
-            if self.modes is not None :
-                self.modes[i] =  np.dot(R , self.modes[i].T).T
+        if "selection" in kwargs:
+            files = list(np.array(files)[np.array(kwargs["selection"])-1])
+        self.normalModeVec = src.io.read_modes(files)
+        if self.normalModeVec.shape[0] != self.n_atoms:
+            raise RuntimeError("Modes vectors and coordinates do not match : ("+str(self.normalModeVec.shape[0])+") != ("+str(self.n_atoms)+")")
 
-    def set_forcefield(self, psf_file=None,prm_file=None):
+    def set_forcefield(self, **kwargs):
         """
         Set the force field structure and parameters for the Molecule.
-        :param psf_file: .psf file associated to the molecule; If None, default parameters are assigned (CA only)
         """
-        if psf_file is not None:
-            self.psf = MoleculeStructure.from_psf_file(psf_file)
-            if prm_file is None:
-                prm_file = PARAMETER_FILE
-            self.prm = MoleculeForcefieldPrm.from_prm_file(self.psf, prm_file=prm_file)
-        else:
-            self.psf = MoleculeStructure.from_default(self.chain_id)
-            self.prm = MoleculeForcefieldPrm.from_default(self.psf)
+        self.forcefield = MoleculeForceField(mol=self,**kwargs)
 
     def save_pdb(self, file):
         """
         Save to PDB Format
         :param file: pdb file path
         """
-        src.io.save_pdb(coords = self.coords, file=file, genfile=self.genfile, model = self.model)
+        data = {
+            "atom" : self.atom,
+            "atomNum" : self.atomNum,
+            "atomName" : self.atomName,
+            "resName" : self.resName,
+            "chainName" : self.chainName,
+            "resNum" : self.resNum,
+            "coords" : self.coords,
+            "elemName" : self.elemName
+        }
+        src.io.save_pdb(data = data, file=file)
 
-class MoleculeStructure:
+    def allatoms2carbonalpha(self):
+        carbonalpha_idx = np.where(self.atomName == "CA")[0]
+        self.coords = self.coords[carbonalpha_idx]
+        self.n_atoms = self.coords.shape[0]
+
+        # Normal Modes
+        if self.normalModeVec is not None:
+            self.normalModeVec = self.normalModeVec[carbonalpha_idx]
+
+        #PDB
+        self.atom = self.atom[carbonalpha_idx]
+        self.atomNum = self.atomNum[carbonalpha_idx]
+        self.atomName = self.atomName[carbonalpha_idx]
+        self.resName = self.resName[carbonalpha_idx]
+        self.chainName = self.chainName[carbonalpha_idx]
+        self.resNum = self.resNum[carbonalpha_idx]
+        self.elemName = self.elemName[carbonalpha_idx]
+
+    def allatoms2backbone(self):
+        backbone_idx = []
+        for i in range(len(self.atomName)):
+            if not self.atomName[i].startswith("H"):
+                backbone_idx.append(i)
+        backbone_idx = np.array(backbone_idx)
+
+        self.coords = self.coords[backbone_idx]
+        self.n_atoms = self.coords.shape[0]
+
+        # Normal Modes
+        if self.normalModeVec is not None:
+            self.normalModeVec = self.normalModeVec[backbone_idx]
+
+        # Forcefield
+        self.forcefield.mass = self.forcefield.mass[backbone_idx]
+        self.forcefield.charge = self.forcefield.charge[backbone_idx]
+
+        # Bonds
+        new_bonds, bonds_idx = src.functions.select_idx(param=self.forcefield.bonds, idx=backbone_idx)
+        self.forcefield.bonds = new_bonds
+        self.forcefield.Kb = self.forcefield.Kb[bonds_idx]
+        self.forcefield.b0 = self.forcefield.b0[bonds_idx]
+
+        # Angles
+        new_angles, angles_idx = src.functions.select_idx(param=self.forcefield.angles, idx=backbone_idx)
+        self.forcefield.angles = new_angles
+        self.forcefield.KTheta = self.forcefield.KTheta[angles_idx]
+        self.forcefield.Theta0 = self.forcefield.Theta0[angles_idx]
+
+        # Dihedrals
+        new_dihedrals, dihedrals_idx = src.functions.select_idx(param=self.forcefield.dihedrals, idx=backbone_idx)
+        self.forcefield.dihedrals = new_dihedrals
+        self.forcefield.Kchi = self.forcefield.Kchi[dihedrals_idx]
+        self.forcefield.delta = self.forcefield.delta[dihedrals_idx]
+        self.forcefield.n = self.forcefield.n[dihedrals_idx]
+
+        # Impropers
+        new_impropers, impropers_idx = src.functions.select_idx(param=self.forcefield.impropers, idx=backbone_idx)
+        self.forcefield.impropers = new_impropers
+        self.forcefield.Kpsi = self.forcefield.Kchi[impropers_idx]
+        self.forcefield.psi0 = self.forcefield.delta[impropers_idx]
+
+        #PDB
+        self.atom = self.atom[backbone_idx]
+        self.atomNum = self.atomNum[backbone_idx]
+        self.atomName = self.atomName[backbone_idx]
+        self.resName = self.resName[backbone_idx]
+        self.chainName = self.chainName[backbone_idx]
+        self.resNum = self.resNum[backbone_idx]
+        self.elemName = self.elemName[backbone_idx]
+
+class MoleculeForceField:
     """
-    Structure of the Molecule
+    ForceField & Structure of the Molecule
     """
 
-    def __init__(self, bonds, angles, dihedrals, atoms):
-        """
-        Constructor
-        :param bonds: numpy array of size Nb*2 of Nb bonds index
-        :param angles: numpy array of size Na*3 of Na angles index
-        :param dihedrals: numpy array of size Nd*4 of Nd dihedrals index
-        :param atoms: TODO
-        """
-        self.bonds = bonds
-        self.angles=angles
-        self.dihedrals = dihedrals
-        self.atoms=atoms
-        self.n_atoms = len(atoms)
+    def __init__(self, mol, **kwargs):
+        if ("psf_file" in kwargs) and ("prm_file" in kwargs) :
+            self.set_forcefield_psf(mol, kwargs["psf_file"], kwargs["prm_file"])
+        else:
+            self.set_forcefield_default(mol)
 
-    @classmethod
-    def from_psf_file(cls, file):
-        """
-        Constructor from psf file
-        :param file: .psf file
-        :return: MoleculeStructure
-        """
-        psf = src.io.read_psf(file)
-        return cls(bonds=psf["bonds"], angles=psf["angles"], dihedrals=psf["dihedrals"], atoms=psf["atoms"])
 
-    @classmethod
-    def from_default(cls, chain_id):
-        """
-        Constructor from default structure (consecutive atoms in a chain are bonded)
-        :param chain_id: list of chain index
-        :return: MoleculeStructure
-        """
+    def set_forcefield_psf(self, mol, psf_file, prm_file):
+
+        psf = src.io.read_psf(psf_file)
+        prm = src.io.read_prm(prm_file)
+
+        self.bonds=psf["bonds"]
+        self.angles=psf["angles"]
+        self.dihedrals=psf["dihedrals"]
+        self.impropers=psf["impropers"]
+        atom_type = np.array(psf["atomNameRes"])
+
+        self.n_bonds = len(self.bonds)
+        self.n_angles = len(self.angles)
+        self.n_dihedrals = len(self.dihedrals)
+        self.n_impropers = len(self.impropers)
+
+        self.Kb = np.zeros(self.n_bonds)
+        self.b0 = np.zeros(self.n_bonds)
+        self.KTheta = np.zeros(self.n_angles)
+        self.Theta0 = np.zeros(self.n_angles)
+        self.Kchi = np.zeros(self.n_dihedrals)
+        self.n = np.zeros(self.n_dihedrals)
+        self.delta = np.zeros(self.n_dihedrals)
+        self.Kpsi = np.zeros(self.n_impropers)
+        self.psi0 = np.zeros(self.n_impropers)
+        self.charge = np.array(psf["atomCharge"])
+        self.mass = np.array(psf["atomMass"])
+        self.epsilon = np.zeros(mol.n_atoms)
+        self.Rmin = np.zeros(mol.n_atoms)
+
+        for i in range(self.n_bonds):
+            comb = atom_type[self.bonds[i]]
+            found = False
+            for perm in [comb, comb[::-1]]:
+                bond = "-".join(perm)
+                if bond in prm["bonds"]:
+                    self.Kb[i] = prm["bonds"][bond][0]
+                    self.b0[i] = prm["bonds"][bond][1]
+                    found = True
+                    break
+            if not found:
+                raise RuntimeError("Enable to locale BONDS item in the PRM file")
+
+        for i in range(self.n_angles):
+            comb = atom_type[self.angles[i]]
+            found = False
+            for perm in [comb, comb[::-1]]:
+                angle = "-".join(perm)
+                if angle in prm["angles"]:
+                    self.KTheta[i] = prm["angles"][angle][0]
+                    self.Theta0[i] = prm["angles"][angle][1]
+                    found = True
+                    break
+            if not found:
+                raise RuntimeError("Enable to locale ANGLES item in the PRM file")
+
+        for i in range(self.n_dihedrals):
+            comb = list(atom_type[self.dihedrals[i]])
+            found = False
+            for perm in permutations(comb):
+                dihedral = "-".join(perm)
+                if dihedral in prm["dihedrals"]:
+                    self.Kchi[i] = prm["dihedrals"][dihedral][0]
+                    self.n[i] = prm["dihedrals"][dihedral][1]
+                    self.delta[i] = prm["dihedrals"][dihedral][2]
+                    found = True
+                    break
+            if not found:
+                found = False
+                for perm in permutations(comb):
+                    dihedral = "-".join(['X'] + list(perm[1:3]) + ['X'])
+                    if dihedral in prm["dihedrals"]:
+                        self.Kchi[i] = prm["dihedrals"][dihedral][0]
+                        self.n[i] = prm["dihedrals"][dihedral][1]
+                        self.delta[i] = prm["dihedrals"][dihedral][2]
+                        found = True
+                        break
+                if not found:
+                    raise RuntimeError("Enable to locale DIHEDRAL item in the PRM file")
+
+        for i in range(self.n_impropers):
+            comb = list(atom_type[self.impropers[i]])
+            found = False
+            for perm in permutations(comb):
+                improper = "-".join(perm)
+                if improper in prm["impropers"]:
+                    self.Kpsi[i] = prm["impropers"][improper][0]
+                    self.psi0[i] = prm["impropers"][improper][1]
+                    found = True
+                    break
+            if not found:
+                found = False
+                for perm in permutations(comb):
+                    improper = "-".join([perm[0], 'X', 'X', perm[3]])
+                    if improper in prm["impropers"]:
+                        self.Kpsi[i] = prm["impropers"][improper][0]
+                        self.psi0[i] = prm["impropers"][improper][1]
+                        found = True
+                        break
+                if not found:
+                    raise RuntimeError("Enable to locale IMPROPER item in the PRM file")
+
+        for i in range(mol.n_atoms):
+            if atom_type[i] in prm["nonbonded"]:
+                self.epsilon[i] = prm["nonbonded"][atom_type[i]][0]
+                self.Rmin[i] = prm["nonbonded"][atom_type[i]][1]
+            else:
+                raise RuntimeError("Enable to locale NONBONDED item in the PRM file")
+
+    def set_forcefield_default(self, mol):
+
+        chainName = mol.chainName
+        chainSet = set(chainName)
+
         bonds = [[], []]
         angles = [[], [], []]
         dihedrals = [[], [], [], []]
 
-        for i in range(len(chain_id)-1):
-            idx = np.arange(chain_id[i], chain_id[i + 1])
+        for i in chainSet:
+            idx = np.where(chainName == i)[0]
             bonds[0] += list(idx[:-1])
             bonds[1] += list(idx[1:])
 
@@ -219,138 +320,15 @@ class MoleculeStructure:
             dihedrals[2] += list(idx[2:-1])
             dihedrals[3] += list(idx[3:])
 
-        bonds = np.array(bonds).T
-        angles = np.array(angles).T
-        dihedrals = np.array(dihedrals).T
-
-        # TODO : atoms
-        return cls(bonds=bonds, angles=angles, dihedrals=dihedrals, atoms=np.zeros(chain_id[-1]))
-
-
-class MoleculeForcefieldPrm:
-    """
-    Parameters of the force field of the Molecule
-    """
-
-    def __init__(self, Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass):
-        """
-        Constructor
-        :param Kb: bonds K
-        :param b0: bonds b0
-        :param KTheta: angles K
-        :param Theta0:  angles theta0
-        :param Kchi: dihedrals K
-        :param n: dihedrals n
-        :param delta: dihedrals delta
-        :param charge: atoms charge
-        :param mass: atoms mass
-        """
-        self.Kb = Kb
-        self.b0 = b0
-        self.KTheta = KTheta
-        self.Theta0 = Theta0
-        self.Kchi = Kchi
-        self.n = n
-        self.delta = delta
-        self.charge = charge
-        self.mass  = mass
-
-    @classmethod
-    def from_prm_file(cls, mol, prm_file):
-        """
-        Set the force field parameters from a .prm file (CHARMM)
-        :param mol: MoleculeStructure
-        :param prm_file: .prm parameter file
-        :return: MoleculeForcefieldPrm
-        """
-        charmm_force_field = src.io.read_prm(prm_file)
-
-        atom_type = []
-        for i in range(mol.n_atoms):
-            atom_type.append(mol.atoms[i][2])
-        atom_type = np.array(atom_type)
-
-        n_bonds = len(mol.bonds)
-        n_angles = len(mol.angles)
-        n_dihedrals = len(mol.dihedrals)
-
-        Kb = np.zeros(n_bonds)
-        b0 = np.zeros(n_bonds)
-        KTheta= np.zeros(n_angles)
-        Theta0= np.zeros(n_angles)
-        Kchi= np.zeros(n_dihedrals)
-        n= np.zeros(n_dihedrals)
-        delta= np.zeros(n_dihedrals)
-        charge= np.array(mol.atoms)[:, 3].astype(float)
-        mass= np.array(mol.atoms)[:, 4].astype(float)
-
-        for i in range(n_bonds):
-            comb = atom_type[mol.bonds[i]]
-            found = False
-            for perm in [comb, comb[::-1]]:
-                bond = "-".join(perm)
-                if bond in charmm_force_field["bonds"]:
-                    Kb[i] = charmm_force_field["bonds"][bond][0]
-                    b0[i] = charmm_force_field["bonds"][bond][1]
-                    found = True
-                    break
-            if not found:
-                print("Err")
-
-        for i in range(n_angles):
-            comb = atom_type[mol.angles[i]]
-            found = False
-            for perm in [comb, comb[::-1]]:
-                angle = "-".join(perm)
-                if angle in charmm_force_field["angles"]:
-                    KTheta[i] = charmm_force_field["angles"][angle][0]
-                    Theta0[i] = charmm_force_field["angles"][angle][1]
-                    found = True
-                    break
-            if not found:
-                print("Err")
-
-        for i in range(n_dihedrals):
-            comb = list(atom_type[mol.dihedrals[i]])
-            found = False
-            for perm in permutations(comb):
-                dihedral = "-".join(perm)
-                if dihedral in charmm_force_field["dihedrals"]:
-                    Kchi[i] = charmm_force_field["dihedrals"][dihedral][0]
-                    n[i] = charmm_force_field["dihedrals"][dihedral][1]
-                    delta[i] = charmm_force_field["dihedrals"][dihedral][2]
-                    found = True
-                    break
-            if not found:
-                found = False
-                for perm in permutations(comb):
-                    dihedral = "-".join(['X'] + list(perm[1:3]) + ['X'])
-                    if dihedral in charmm_force_field["dihedrals"]:
-                        Kchi[i] = charmm_force_field["dihedrals"][dihedral][0]
-                        n[i] = charmm_force_field["dihedrals"][dihedral][1]
-                        delta[i] = charmm_force_field["dihedrals"][dihedral][2]
-                        found = True
-                        break
-                if not found:
-                    print("Err")
-
-        return cls(Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass)
-
-    @classmethod
-    def from_default(cls, mol):
-        """
-        Set the force field parameters from default values (CA only)
-        :param mol: MoleculeStructure
-        :return: MoleculeForcefieldPrm
-        """
-        Kb = np.ones(mol.bonds.shape[0]) * K_BONDS
-        b0 = np.ones(mol.bonds.shape[0]) * R0_BONDS
-        KTheta = np.ones(mol.angles.shape[0]) * K_ANGLES
-        Theta0 = np.ones(mol.angles.shape[0]) * THETA0_ANGLES
-        Kchi = np.ones(mol.dihedrals.shape[0]) * K_TORSIONS
-        n = np.ones(mol.dihedrals.shape[0]) * N_TORSIONS
-        delta = np.ones(mol.dihedrals.shape[0]) * DELTA_TORSIONS
-        charge = np.zeros(mol.n_atoms)
-        mass = np.ones(mol.n_atoms) * CARBON_MASS
-
-        return cls(Kb, b0, KTheta, Theta0, Kchi, n, delta, charge, mass)
+        self.bonds = np.array(bonds).T
+        self.angles = np.array(angles).T
+        self.dihedrals = np.array(dihedrals).T
+        self.Kb = np.ones(self.bonds.shape[0]) * K_BONDS
+        self.b0 = np.ones(self.bonds.shape[0]) * R0_BONDS
+        self.KTheta = np.ones(self.angles.shape[0]) * K_ANGLES
+        self.Theta0 = np.ones(self.angles.shape[0]) * THETA0_ANGLES
+        self.Kchi = np.ones(self.dihedrals.shape[0]) * K_TORSIONS
+        self.n = np.ones(self.dihedrals.shape[0]) * N_TORSIONS
+        self.delta = np.ones(self.dihedrals.shape[0]) * DELTA_TORSIONS
+        self.charge = np.zeros(len(chainName))
+        self.mass = np.ones(len(chainName)) * CARBON_MASS

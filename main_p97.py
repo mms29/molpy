@@ -39,15 +39,16 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 50,
+    "initial_biasing_factor" : 10,
     "potential_factor" : 1,
+    "potentials":["bonds", "angles", "dihedrals", "vdw", "elec"],
 
     "local_dt" : 2e-15,
     "temperature" : 1000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":100,
-    "n_warmup":80,
+    "n_iter":50,
+    "n_warmup":40,
     "n_step": 40,
     "criterion": False,
 }
@@ -69,11 +70,10 @@ fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
 import matplotlib.pyplot as plt
 from src.functions import cross_correlation
 from matplotlib.ticker import MaxNLocator
-cc_init= cross_correlation(init_density.data, target_density.data)
 fig, ax = plt.subplots(1,1, figsize=(5,2))
-for i in fits :
-    if i is not None:
-        ax.plot(np.array([cc_init]+fits[0].fit[0]["CC"]), '-', color="tab:red", label="x")
+ax.plot(np.mean([i["CC"] for i in fits[0].fit], axis=0), '-', color="tab:red", label="local")
+ax.plot(np.mean([i["CC"] for i in fits[1].fit], axis=0), '-', color="tab:blue", label="global")
+ax.plot(np.mean([i["CC"] for i in fits[2].fit], axis=0), '-', color="tab:green", label="local + global")
 ax.set_ylabel("Correlation Coefficient")
 ax.set_xlabel("HMC iteration")
 ax.legend(loc="lower right", fontsize=9)
