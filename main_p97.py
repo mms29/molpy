@@ -46,8 +46,8 @@ params ={
     "temperature" : 1000,
     "global_dt" : 0.05,
     # "shift_dt" : 0.0001,
-    "n_iter":50,
-    "n_warmup":40,
+    "n_iter":100,
+    "n_warmup":80,
     "n_step": 40,
     "criterion": False,
 }
