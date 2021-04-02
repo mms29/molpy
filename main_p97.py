@@ -53,7 +53,7 @@ params ={
 }
 n_chain=4
 verbose=2
-prefix = "results/p97_allatoms_exp50_true"
+prefix = "results/p97_allatoms_synth"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
@@ -61,23 +61,23 @@ prefix_xq = prefix+"_fitxq"
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
 fitxq  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_xq)
-# fitxq.HMC_chain()
+fitxq.HMC_chain()
 
-fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
-
-
-import matplotlib.pyplot as plt
-from src.functions import cross_correlation
-from matplotlib.ticker import MaxNLocator
-fig, ax = plt.subplots(1,1, figsize=(5,2))
-ax.plot(np.mean([i["CC"] for i in fits[0].fit], axis=0), '-', color="tab:red", label="local")
-ax.plot(np.mean([i["CC"] for i in fits[1].fit], axis=0), '-', color="tab:blue", label="global")
-ax.plot(np.mean([i["CC"] for i in fits[2].fit], axis=0), '-', color="tab:green", label="local + global")
-ax.set_ylabel("Correlation Coefficient")
-ax.set_xlabel("HMC iteration")
-ax.legend(loc="lower right", fontsize=9)
-ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-fig.savefig(prefix+ "_fits.png")
+# fits = multiple_fitting(models=[fitx, fitq, fitxq], n_chain=n_chain, n_proc=13)
+#
+#
+# import matplotlib.pyplot as plt
+# from src.functions import cross_correlation
+# from matplotlib.ticker import MaxNLocator
+# fig, ax = plt.subplots(1,1, figsize=(5,2))
+# ax.plot(np.mean([i["CC"] for i in fits[0].fit], axis=0), '-', color="tab:red", label="local")
+# ax.plot(np.mean([i["CC"] for i in fits[1].fit], axis=0), '-', color="tab:blue", label="global")
+# ax.plot(np.mean([i["CC"] for i in fits[2].fit], axis=0), '-', color="tab:green", label="local + global")
+# ax.set_ylabel("Correlation Coefficient")
+# ax.set_xlabel("HMC iteration")
+# ax.legend(loc="lower right", fontsize=9)
+# ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+# fig.savefig(prefix+ "_fits.png")
 
 
 
