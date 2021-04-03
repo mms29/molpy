@@ -40,7 +40,7 @@ target_density.resize(200)
 params ={
     "initial_biasing_factor" : 10,
     "potential_factor" : 1,
-    "potentials":["bonds", "angles", "dihedrals", "vdw", "elec"],
+    "potentials":["bonds", "angles", "dihedrals"],
 
     "local_dt" : 2e-15,
     "temperature" : 1000,
