@@ -29,9 +29,9 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 # target_density.rescale(init_density, "opt")
 # target_density.compare_hist(init_density)
 
-# from src.simulation import nma_deform
-# target = nma_deform(init, [0,0,0,-1500])
-# target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
+from src.simulation import nma_deform
+target = nma_deform(init, [0,0,0,-1500])
+target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
@@ -53,7 +53,7 @@ params ={
 }
 n_chain=4
 verbose=2
-prefix = "results/p97_allatoms_exp"
+prefix = "results/p97_allatoms_synth"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
 prefix_xq = prefix+"_fitxq"
