@@ -21,10 +21,10 @@ init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_
 # init.allatoms2carbonalpha()
 # init.set_forcefield()
 
-q = [100,-100,0,]
+q = [300,-100,0,]
 target = nma_deform(init, q)
-target.coords += np.array([1.5,-2.0,-0.5])
-target.rotate([0.17,-0.13,0.23])
+# target.coords += np.array([1.5,-2.0,-0.5])
+# target.rotate([0.17,-0.13,0.23])
 
 # molecule_viewer([target, init])
 
@@ -53,15 +53,17 @@ params ={
     "global_dt" : 0.05,
     "rotation_dt" : 0.0001,
     "shift_dt" : 0.001,
-    "n_iter":20,
-    "n_warmup":10,
-    "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"]
+    "n_iter":100,
+    "n_warmup":80,
+    "potentials" : ["bonds", "angles", "dihedrals","vdw", "elec"],
+    "cutoffnb": 20,
+    "cutoffpl" :25
 }
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=4, verbose=2, prefix ="results/testAK")
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2, prefix ="results/testAK")
 fit.HMC_chain()
-# fit.show()
-# fit.show_3D()
-# chimera_molecule_viewer([fit.res["mol"], target])
+fit.show()
+fit.show_3D()
+chimera_molecule_viewer([fit.res["mol"], target])
 
 # data= []
 # for j in [[i.flatten() for i in n["coord"]] for n in fit.fit]:
