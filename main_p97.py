@@ -28,12 +28,10 @@ target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_si
 target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
 # target_density.rescale(init_density, "opt")
 # target_density.compare_hist(init_density)
-target_density.save_mrc("results/P97/target_exp.mrc")
 
 from src.simulation import nma_deform
 target = nma_deform(init, [0,0,0,-1500])
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, threshold=threshold)
-target_density.save_mrc("results/P97/target_synth.mrc")
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
