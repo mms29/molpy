@@ -142,6 +142,10 @@ class Molecule:
         self.forcefield.mass = self.forcefield.mass[backbone_idx]
         self.forcefield.charge = self.forcefield.charge[backbone_idx]
 
+        # vdw
+        self.forcefield.Rmin = self.forcefield.Rmin[backbone_idx]
+        self.forcefield.epsilon = self.forcefield.epsilon[backbone_idx]
+
         # Bonds
         new_bonds, bonds_idx = src.functions.select_idx(param=self.forcefield.bonds, idx=backbone_idx)
         self.forcefield.bonds = new_bonds
