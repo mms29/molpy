@@ -41,8 +41,8 @@ params ={
     "initial_biasing_factor" : 10,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"],
-    "cutoffpl": 25,
-    "cutoffnb" : 20,
+    "cutoffpl": 10,
+    "cutoffnb" : 7.5,
 
     "local_dt" : 2e-15,
     "temperature" : 300,
@@ -52,6 +52,7 @@ params ={
     "n_warmup":80,
     "n_step": 40,
     "criterion": False,
+    "target_coords" : target.coords
 }
 n_chain=4
 verbose=2
