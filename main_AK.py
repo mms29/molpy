@@ -17,9 +17,9 @@ init.center()
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
-init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
-# init.allatoms2carbonalpha()
-# init.set_forcefield()
+# init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
+init.allatoms2carbonalpha()
+init.set_forcefield()
 
 q = [300,-100,0,]
 target = nma_deform(init, q)
@@ -44,23 +44,24 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 #               HMC
 ########################################################################################################
 params ={
-    "initial_biasing_factor" : 100,
+    "initial_biasing_factor" : 50,
     "n_step": 10,
 
     "local_dt" : 2*1e-15,
-    "temperature" : 300,
+    "temperature" : 1000,
 
     "global_dt" : 0.05,
     "rotation_dt" : 0.0001,
     "shift_dt" : 0.001,
-    "n_iter":100,
-    "n_warmup":80,
-    "potentials" : ["bonds", "angles", "dihedrals","vdw", "elec"],
+    "n_iter":50,
+    "n_warmup":25,
+    "potentials" : ["bonds", "angles", "dihedrals"], #"vdw", "elec"],
     "cutoffnb": 20,
-    "cutoffpl" :25
+    "cutoffpl" :25,
+    "target_coords":target.coords,
 }
-fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2, prefix ="results/testAK")
-fit.HMC_chain()
+fit  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=4, verbose=2)
+fit.HMC()
 fit.show()
 fit.show_3D()
 chimera_molecule_viewer([fit.res["mol"], target])

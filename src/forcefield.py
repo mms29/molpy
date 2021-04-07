@@ -17,7 +17,7 @@ def get_energy(coords, forcefield, **kwargs):
     if "potentials" in kwargs:
         potentials= kwargs["potentials"]
     else:
-        potentials = ["bonds", "angles", "dihedrals", "vdw", "elec"]
+        potentials = ["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"]
     U=0
     if "verbose" in kwargs:
         print("Computing Potential energy ...")
@@ -42,6 +42,13 @@ def get_energy(coords, forcefield, **kwargs):
         U+=U_dihedrals
         if "verbose" in kwargs:
             print("|-- Dihedrals = " + str(round(U_dihedrals, 2)))
+
+    # Impropers energy
+    if "impropers" in potentials:
+        U_impropers = get_energy_impropers(coords, forcefield)
+        U+=U_impropers
+        if "verbose" in kwargs:
+            print("|-- Impropers = " + str(round(U_impropers, 2)))
 
     # Non bonded energy
     if "vdw" in potentials or "elec" in potentials:
@@ -97,6 +104,8 @@ def get_autograd(params, mol, **kwargs):
             U += get_energy_angles(coord, mol.forcefield)
         if "dihedrals" in kwargs["potentials"]:
             U += get_energy_dihedrals(coord, mol.forcefield)
+        if "impropers" in kwargs["potentials"]:
+            U += get_energy_impropers(coord, mol.forcefield)
         if "vdw" in kwargs["potentials"] or "elec" in kwargs["potentials"]:
             invdist = get_invdist(coord, kwargs["pairlist"])
             if "vdw" in kwargs["potentials"]:
@@ -147,6 +156,22 @@ def get_energy_dihedrals(coord,forcefield):
     torsions = npg.arctan2(npg.linalg.norm(u2, axis=1) * npg.sum(u1 * npg.cross(u2, u3), axis=1),
                            npg.sum(npg.cross(u1, u2) * npg.cross(u2, u3), axis=1))
     return npg.sum(forcefield.Kchi * (1 + npg.cos(forcefield.n * (torsions) - (forcefield.delta*npg.pi/180))))
+
+def get_energy_impropers(coord,forcefield):
+    """
+    Compute impropers potnetial
+    :param coord: Cartesian coordinates (Agnstrom)
+    :param forcefield: MoleculeForceField
+    :return: impropers potential  (kcal * mol-1)
+    """
+    rji = coord[forcefield.impropers[:, 0]] - coord[forcefield.impropers[:, 1]]
+    rjk = coord[forcefield.impropers[:, 2]] - coord[forcefield.impropers[:, 1]]
+    rkj = -rjk
+    rkl = coord[forcefield.impropers[:, 3]] - coord[forcefield.impropers[:, 2]]
+    ra = npg.cross(rji, rjk)
+    rb = npg.cross(rkj, rkl)
+    psi = npg.arccos(npg.sum(ra*rb, axis=1)/ (npg.linalg.norm(ra, axis=1) * npg.linalg.norm(rb, axis=1)))
+    return npg.sum(forcefield.Kpsi * (psi - forcefield.psi0*npg.pi/180)**2)
 
 
 def get_pairlist(coord,cutoff=10.0):

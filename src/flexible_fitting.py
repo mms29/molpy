@@ -405,6 +405,8 @@ class FlexibleFitting:
             self._set_density()
         # CC update
             self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
+            if "target_coords" in self.params:
+                self._add("RMSD", src.functions.get_RMSD_coords(self._get("coord_t"), self.params["target_coords"]))
         # Check pairlist
             self._set_pairlist()
         # Potential energy update

@@ -99,7 +99,7 @@ def fit_viewer(fit, save=None):
         fits = fit.fit
     else:
         fits = [fit.fit]
-    fig, ax = plt.subplots(2, 3, figsize=(10, 5))
+    fig, ax = plt.subplots(2, 4, figsize=(12, 5))
     for i in range(len(fits)):
         ax[0, 0].plot(fits[i]['U'])
         ax[0, 1].plot(fits[i]['U_potential'])
@@ -109,12 +109,17 @@ def fit_viewer(fit, save=None):
         ax[1, 0].plot(fits[i]['K'])
         ax[1, 1].plot(fits[i]['accept'], "o")
         ax[1, 2].plot(fits[i]['CC'])
+        ax[0, 3].plot(fits[i]['T'])
+        if 'RMSD' in fits[i]:
+                ax[1, 3].plot(fits[i]['RMSD'])
     ax[0, 0].set_title('U')
     ax[0, 1].set_title('U_potential')
     ax[0, 2].set_title('U_biased')
     ax[1, 0].set_title('H=U+K')
     ax[1, 1].set_title('acceptation')
     ax[1, 2].set_title('CC')
+    ax[0, 3].set_title('Temperature')
+    ax[1, 3].set_title('RMSD')
     # fig.tight_layout()
     if save is not None:
         fig.savefig(save)

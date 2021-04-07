@@ -164,8 +164,8 @@ class Molecule:
         # Impropers
         new_impropers, impropers_idx = src.functions.select_idx(param=self.forcefield.impropers, idx=backbone_idx)
         self.forcefield.impropers = new_impropers
-        self.forcefield.Kpsi = self.forcefield.Kchi[impropers_idx]
-        self.forcefield.psi0 = self.forcefield.delta[impropers_idx]
+        self.forcefield.Kpsi = self.forcefield.Kpsi[impropers_idx]
+        self.forcefield.psi0 = self.forcefield.psi0[impropers_idx]
 
         #PDB
         self.atom = self.atom[backbone_idx]

@@ -664,6 +664,7 @@ from src.molecule import Molecule
 import time
 import autograd.numpy as npg
 from autograd import elementwise_grad
+from src.forcefield import *
 
 mol = Molecule("data/AK/AK_PSF.pdb")
 mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
@@ -673,89 +674,24 @@ mol = Molecule("data/P97/5ftm_psf.pdb")
 mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 mol.get_energy(verbose=True)
 
-
-def get_pairlist(coord, cutoff):
-    pairlist = []
-    for i in range(coord.shape[0]):
-        # print(i)
-        dist = np.linalg.norm(coord[i + 1:] -coord[i], axis=1)
-        idx = np.where(dist < cutoff)[0] + i + 1
-        for j in idx:
-            pairlist.append([i, j])
-    return np.array(pairlist)
-
-def get_invdist(coord, pairlist):
-    dist = npg.linalg.norm(coord[pairlist[:, 0]] - coord[pairlist[:, 1]], axis=1)
-    return 1/dist
-
-def get_energy_vdw(invdist, pairlist, forcefield):
-    Rminij = forcefield.Rmin[pairlist[:, 0]] + forcefield.Rmin[pairlist[:, 1]]
-    Epsij = npg.sqrt(forcefield.epsilon[pairlist[:, 0]] * forcefield.epsilon[pairlist[:, 1]])
-    invdist6 = (Rminij * invdist) ** 6
-    invdist12 = invdist6 ** 2
-    return Epsij * (invdist12 - 2 * invdist6) *0.00004
-
-def get_energy_elec(invdist, pairlist, forcefield):
-    # Electrostatics
-    eps0 = 0.0027865
-    return npg.sum(1 / (4 * npg.pi *eps0) * forcefield.charge[pairlist[:, 0]] * forcefield.charge[pairlist[:, 1]] *invdist)
-
-def get_energy_nonbonded(coord, pairlist, forcefield):
-    invdist = get_invdist(coord, pairlist)
-    U_vdw = get_energy_vdw(invdist, pairlist, forcefield)
-    U_elec = get_energy_elec(invdist, pairlist, forcefield)
-    return U_vdw + U_elec
-
-
-def get_grad_nonbonded(coord, pairlist, forcefield):
-    u = coord[pairlist[:, 0]] - coord[pairlist[:, 1]]
-    dist = np.linalg.norm(u, axis=1)
-
-    # Van der Waals Forces
-    Rminij = forcefield.Rmin[pairlist[:, 0]] + forcefield.Rmin[pairlist[:, 1]]
-    Epsij = np.sqrt(forcefield.epsilon[pairlist[:, 0]] * forcefield.epsilon[pairlist[:, 1]])
-    invdist = 1/dist
-    invdist6 = (Rminij *invdist) ** 6
-    invdist12 = invdist6 ** 2
-    dUr = np.multiply(u.T, -12 * (invdist ** 2) * Epsij * (invdist12 - 2 * invdist6)).T
-    F_vdw = np.zeros(coord.shape)
-    for i in range(len(pairlist)):
-        print(i)
-        F_vdw[[pairlist[i, 0]]] -= dUr[i]
-        F_vdw[[pairlist[i, 1]]] += dUr[i]
-    return F_vdw
-
-t = time.time()
-pairlist = get_pairlist(mol.coords, cutoff=10.0)
-print(time.time()-t)
-
-
-t = time.time()
-U_nonbonded = get_energy_nonbonded(mol.coords, pairlist, mol.forcefield)
-print(time.time()-t)
-
-t = time.time()
-grad = elementwise_grad(get_energy_nonbonded, 0)
-F = grad(mol.coords, pairlist, mol.forcefield)
-print(time.time()-t)
-
-# t = time.time()
-# F2 = get_grad_nonbonded(mol.coords, pairlist, mol.forcefield)
-# print(time.time()-t)
-
-
-import matplotlib.pyplot as plt
+pairlist = get_pairlist(mol.coords,cutoff = 10.0)
+F_auto = get_autograd(params={"local":np.zeros(mol.coords.shape)}, mol=mol, potentials=["vdw"], pairlist=pairlist)["local"]
 
 invdist = get_invdist(mol.coords, pairlist)
-
+dist = 1/invdist
 Rminij = mol.forcefield.Rmin[pairlist[:, 0]] + mol.forcefield.Rmin[pairlist[:, 1]]
-Rminij = 1.0
 Epsij = npg.sqrt(mol.forcefield.epsilon[pairlist[:, 0]] * mol.forcefield.epsilon[pairlist[:, 1]])
-Epsij =0.058
-dist =  np.arange(0.5,5,0.001)
-invdist6 = (Rminij/dist) ** 6
+
+invdist6 = (Rminij * invdist) ** 6
 invdist12 = invdist6 ** 2
-vdw = Epsij * (invdist12 - 2 * invdist6)
+
+vdw = -12 * Epsij * invdist * (invdist12 - invdist6) * invdist * 0.00004
+
+F = np.zeros(mol.coords.shape)
+for i in range(len(pairlist)):
+    f = vdw[i] *mol.coords[pairlist[i, 0]]
+    F[pairlist[i, 0]] += f
+    F[pairlist[i, 1]] -= f
 
 plt.figure()
 plt.plot(dist, vdw)
