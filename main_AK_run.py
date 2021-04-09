@@ -28,7 +28,7 @@ targets = []
 targets_dens = []
 N=80
 for i in range(N):
-    mol =Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/AKrun_"+str(i)+".pdb")
+    mol =Molecule("data/AK_run/AKrun_"+str(i)+".pdb")
     targets.append(mol)
     targets_dens.append(Volume.from_coords(coord=mol.coords, size=size, threshold=threshold, sigma=sigma, voxel_size=voxel_size))
 
@@ -55,9 +55,9 @@ fits_a=[]
 for i in range(N):
     print(i)
     params["target_coords"]=targets[i].coords
-    fits_x.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AKrun/fit_x"))
-    fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AKrun/fit_q"))
-    fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AKrun/fit_q"))
+    fits_x.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_x"))
+    fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_q"))
+    fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_q"))
 
 multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 40 ,n_chain=n_chain)
 
