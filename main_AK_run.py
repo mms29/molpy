@@ -48,7 +48,7 @@ params ={
     "potentials" : ["bonds", "angles", "dihedrals"],
 }
 verbose = 0
-n_chain= 2
+n_chain= 4
 fits_x=[]
 fits_q=[]
 fits_a=[]
@@ -59,7 +59,7 @@ for i in range(N):
     fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_q"+str(i)))
     fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_a"+str(i)))
 
-multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 40 ,n_chain=n_chain)
+multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 20 ,n_chain=n_chain)
 
 #
 # data=[]
