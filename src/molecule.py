@@ -207,6 +207,7 @@ class MoleculeForceField:
         self.n_angles = len(self.angles)
         self.n_dihedrals = len(self.dihedrals)
         self.n_impropers = len(self.impropers)
+        self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
 
         self.Kb = np.zeros(self.n_bonds)
         self.b0 = np.zeros(self.n_bonds)
@@ -327,6 +328,7 @@ class MoleculeForceField:
         self.bonds = np.array(bonds).T
         self.angles = np.array(angles).T
         self.dihedrals = np.array(dihedrals).T
+        self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
         self.Kb = np.ones(self.bonds.shape[0]) * K_BONDS
         self.b0 = np.ones(self.bonds.shape[0]) * R0_BONDS
         self.KTheta = np.ones(self.angles.shape[0]) * K_ANGLES

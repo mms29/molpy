@@ -665,12 +665,54 @@ import time
 import autograd.numpy as npg
 from autograd import elementwise_grad
 from src.forcefield import *
+from src.constants import *
+import matplotlib.pyplot as plt
 
 mol = Molecule("data/AK/AK_PSF.pdb")
 mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
-mol.get_energy(verbose=True)
+mol.get_energy(verbose=True, cutoff=25.0)
+mol.forcefield.epsilon[-1] *  KCAL_TO_JOULE / (AVOGADRO_CONST*K_BOLTZMANN)
+
+def get_pairlist(coord,cutoff=10.0):
+    print("Building pairlist ...")
+    pairlist = []
+    for i in range(coord.shape[0]):
+        dist = np.linalg.norm(coord[i + 1:] - coord[i], axis=1)
+        idx = np.where(dist < cutoff)[0] + i + 1
+        for j in idx:
+            pairlist.append([i, j])
+    print("Converting to array ..." + str(sys.getsizeof(pairlist) / (8 * 1024)) + " kB")
+    pl_arr= np.array(pairlist)
+    print("Done : " + str(sys.getsizeof(pl_arr) / (8 * 1024)) + " kB")
+    return pl_arr
+
+pl = get_pairlist(mol.coords, cutoff=10.0)
+
+invdist = get_invdist(mol.coords, pairlist=pl)
+Rminij = mol.forcefield.Rmin[pl[:,0]] + mol.forcefield.Rmin[pl[:,1]]
+Epsij = npg.sqrt(mol.forcefield.epsilon[pl[:,0]] * mol.forcefield.epsilon[pl[:,1]])
+invdist6 = (Rminij*invdist) ** 6
+invdist12 = invdist6 ** 2
+U_vdw = Epsij * (invdist12 - 2*invdist6)
+
+pl2 = np.concatenate((mol.forcefield.bonds, mol.forcefield.angles[:,[0,2]]))
+invdist2 = get_invdist(mol.coords, pairlist=pl2)
+Rminij2 = mol.forcefield.Rmin[pl2[:,0]] + mol.forcefield.Rmin[pl2[:,1]]
+Epsij2 = npg.sqrt(mol.forcefield.epsilon[pl2[:,0]] * mol.forcefield.epsilon[pl2[:,1]])
+invdist62 = (Rminij2*invdist2) ** 6
+invdist122 = invdist62 ** 2
+U_vdw2 =  Epsij2 * (invdist122 - 2*invdist62)
+
+plt.plot(1/(invdist),U_vdw/Epsij, "x")
+plt.plot(1/(invdist2),U_vdw2/Epsij2, "x", color="g")
+plt.axhline(0, color="r")
+plt.xlim(0.9,10.0)
+plt.ylim(-1.5,1.5)
+
+print(U_vdw.sum() - U_vdw2.sum())
 
 mol = Molecule("data/P97/5ftm_psf.pdb")
+mol = Molecule("results/P97/p97_allatoms_exp_fitxq_chain0.pdb")
 mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 mol.get_energy(verbose=True)
 
@@ -696,3 +738,180 @@ for i in range(len(pairlist)):
 plt.figure()
 plt.plot(dist, vdw)
 plt.axhline(0)
+
+from src.functions import compute_pca
+from src.molecule import Molecule
+from src.simulation import nma_deform
+
+mol = Molecule("data/AK/AK_PSF.pdb")
+target = Molecule("data/AK/AK_PSF_deformed.pdb")
+
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
+mol.set_normalModeVec(fnModes)
+
+N=100
+data = []
+for i in range(N):
+    m = Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/min_"+str(i)+".pdb")
+    data.append(m.coords.flatten())
+
+for i in range(50) :
+    m = nma_deform(mol=mol, q=[6*i, -2*i,0])
+    data.append(m.coords.flatten())
+data.append(mol.coords.flatten())
+data.append(target.coords.flatten())
+
+compute_pca(data=data, length=[N, 50,1,1], labels=["Genesis trajectory", "NMA trajectory", "Reference", "Target"], save=None, n_components=2)
+
+
+
+###############################################################################################################################
+
+import numpy as np
+from src.molecule import Molecule
+import time
+import autograd.numpy as npg
+from autograd import elementwise_grad
+from src.forcefield import *
+from src.constants import *
+import matplotlib.pyplot as plt
+import sys
+
+mol = Molecule("data/AK/AK_PSF.pdb")
+mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
+mol.get_energy(verbose=True, cutoff=10.0)
+
+mol = Molecule("data/P97/5ftm_psf.pdb")
+mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
+
+ep = get_excluded_pairs(forcefield=mol.forcefield)
+pl, invpl = get_pairlist(coord=mol.coords, excluded_pairs=ep, cutoff=15.0, verbose=True)
+invdist = get_invdist(coord=mol.coords,pairlist=pl)
+
+def get_autograd_elec(coord, pairlist, forcefield):
+    def get_elec(coord, pairlist, forcefield):
+        invdist = get_invdist(coord, pairlist)
+        return get_energy_elec(invdist, pairlist, forcefield)
+    grad = elementwise_grad(get_elec, 0)
+    return grad(coord, pairlist, forcefield)
+
+def get_grad_elec(coord, invdist, pairlist, invpairlist, forcefield):
+    F = np.zeros(coord.shape)
+    for i in range(coord.shape[0]):
+        dU = forcefield.charge[invpairlist[i]] * forcefield.charge[i] * invdist ** 3 * CONSTANT_TEMP
+        dU = (coord[pairlist[:, 0]] - coord[pairlist[:, 1]]).T * dU
+        F[i] -= np.sum(dU[invpairlist[i]])
+        F[invpairlist[i]] += dU[:, i]
+    return F
+
+t = time.time()
+F1 = get_autograd_elec(coord=mol.coords, forcefield=mol.forcefield, pairlist = pl)
+print(time.time() - t)
+
+t = time.time()
+F2 = get_grad_elec(coord=mol.coords, invdist=invdist, pairlist=pl, forcefield=mol.forcefield, invpairlist=invpl)
+print(time.time() - t)
+
+def get_excluded_pairs(forcefield):
+    print("Building dic ...")
+    excluded_pairs = {}
+    for i in np.concatenate((forcefield.bonds, forcefield.angles[:,[0,2]])):
+        if i[0] in excluded_pairs:
+            excluded_pairs[i[0]].append(i[1])
+        else:
+            excluded_pairs[i[0]]= [i[1]]
+        if i[1] in excluded_pairs:
+            excluded_pairs[i[1]].append(i[0])
+        else:
+            excluded_pairs[i[1]]= [i[0]]
+    print("Converting to array ...")
+    for i in excluded_pairs:
+        excluded_pairs[i] = np.array(excluded_pairs[i])
+    print("Done : "+str(sys.getsizeof(excluded_pairs)/(8*1024))+" kB")
+    return excluded_pairs
+
+
+def get_pairlist(coord,cutoff=10.0):
+    print("Building pairlist ...")
+    pairlist = []
+    for i in range(coord.shape[0]):
+        dist = np.linalg.norm(coord[i + 1:] - coord[i], axis=1)
+        idx = np.where(dist < cutoff)[0] + i + 1
+        for j in idx:
+            pairlist.append([i, j])
+    print("Converting to array ..." + str(sys.getsizeof(pairlist) / (8 * 1024)) + " kB")
+    pl_arr= np.array(pairlist)
+    print("Done : " + str(sys.getsizeof(pl_arr) / (8 * 1024)) + " kB")
+    return pl_arr
+
+def get_pairlist2(coord,excluded_pairs, cutoff=10.0):
+    print("Building pairlist ...")
+    pairlist = []
+    n_atoms=coord.shape[0]
+    for i in range(n_atoms):
+        dist_idx = np.setdiff1d(np.arange(i + 1, n_atoms), excluded_pairs[i])
+        dist = np.linalg.norm(coord[dist_idx] - coord[i], axis=1)
+        idx = np.where(dist < cutoff)[0] + i + 1
+        for j in idx:
+            pairlist.append([i, j])
+    print("Converting to array ..." + str(sys.getsizeof(pairlist) / (8 * 1024)) + " kB")
+    pl_arr= np.array(pairlist)
+    print("Done : " + str(sys.getsizeof(pl_arr) / (8 * 1024)) + " kB")
+    return pl_arr
+
+def get_pairlist3(coord,cutoff=10.0):
+    print("Building pairlist ...")
+    pairlist = np.array([[],[]])
+    for i in range(coord.shape[0]):
+        dist = np.linalg.norm(coord[i + 1:] - coord[i], axis=1)
+        idx = np.where(dist < cutoff)[0] + i + 1
+        pairlist= np.concatenate((np.array([np.full(shape=idx.shape[0],fill_value=i,dtype=np.int), idx]),pairlist), axis=1)
+    print("Done : " + str(sys.getsizeof(pairlist) / (8 * 1024)) + " kB")
+    return pairlist
+
+t=time.time()
+ep = get_excluded_pairs(mol.forcefield)
+print(time.time()-t)
+print()
+
+t=time.time()
+pl = get_pairlist(mol.coords, cutoff=10.0)
+print(time.time()-t)
+print()
+
+t=time.time()
+pl2 = get_pairlist2(mol.coords, ep, cutoff=10.0)
+print(time.time()-t)
+print()
+
+t=time.time()
+pl3 = get_pairlist3(mol.coords, cutoff=10.0)
+print(time.time()-t)
+print()
+
+import numpy as np
+from src.molecule import Molecule
+import time
+import autograd.numpy as npg
+from autograd import elementwise_grad
+from src.forcefield import *
+from src.constants import *
+import matplotlib.pyplot as plt
+import sys
+
+mol = Molecule("data/AK/AK_PSF.pdb")
+mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
+
+T = 300
+sigma = (np.ones((3, mol.n_atoms)) * np.sqrt((K_BOLTZMANN * T) /
+                                                            (mol.forcefield.mass * ATOMIC_MASS_UNIT)) * 1e10).T
+v = np.random.normal(0, sigma)
+K =  1 / 2 * np.sum((mol.forcefield.mass*ATOMIC_MASS_UNIT)*np.square(v.T) * ANGSTROM_TO_METER**2 )
+Tinst = 2 * K / (K_BOLTZMANN * 3 * mol.n_atoms)
+print(Tinst)
+
+
+
+
+
+

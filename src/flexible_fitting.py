@@ -8,7 +8,7 @@ import numpy as np
 
 import src.constants
 from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT, \
-                                KCAL_TO_JOULE, AVOGADRO_CONST, ATOMIC_MASS_UNIT,K_BOLTZMANN
+                                KCAL_TO_JOULE, AVOGADRO_CONST, ATOMIC_MASS_UNIT,K_BOLTZMANN, ANGSTROM_TO_METER
 import src.density
 import src.forcefield
 import src.functions
@@ -139,7 +139,7 @@ class FlexibleFitting:
         if (FIT_VAR_LOCAL in self.vars) and (not FIT_VAR_LOCAL + "_sigma" in params):
             default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
                                                     np.sqrt((K_BOLTZMANN * default_params["temperature"]) /
-                                                            (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * 1e10).T
+                                                            (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
         default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
         self.params = default_params
 
@@ -174,10 +174,16 @@ class FlexibleFitting:
         U+= U_biased
 
         # Energy Potential
+        if self.verbose>3: verbose =True
+        else: verbose = False
         U_potential = src.forcefield.get_energy(coords=self._get("coord_t"), forcefield=self.init.forcefield,
-                potentials=self.params["potentials"], pairlist=self._get("pairlist"))* self.params["potential_factor"]
-        self._add("U_potential", U_potential)
-        U += U_potential
+                potentials=self.params["potentials"], pairlist=self._get("pairlist"), verbose=verbose)
+        for i in U_potential:
+            if i == "total":
+                self._add("U_potential", U_potential["total"]* self.params["potential_factor"])
+            else:
+                self._add("U_"+i, U_potential[i])
+        U += self._get("U_potential")
 
         # Additional Priors on parameters
         for i in self.vars:
@@ -209,7 +215,7 @@ class FlexibleFitting:
             if i == FIT_VAR_LOCAL:
                 F = (F.T * (1 / (self.init.forcefield.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
                 F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
-                F *= 1e20  # kg * m2 * s-2 -> kg * A2 * s-2
+                F *= ANGSTROM_TO_METER**-2  # kg * m2 * s-2 -> kg * A2 * s-2
             if i+"_factor" in self.params:
                 F+=  - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
@@ -229,7 +235,7 @@ class FlexibleFitting:
             else:
                 K +=  1 / 2 * np.sum(np.square(self._get(i+"_v"))/self.params[i+"_sigma"])
 
-        K *= 1e-20*(AVOGADRO_CONST /KCAL_TO_JOULE)# kg * A2 * s-2 -> kcal * mol-1s
+        K *= ANGSTROM_TO_METER**2 *(AVOGADRO_CONST /KCAL_TO_JOULE)# kg * A2 * s-2 -> kcal * mol-1
         self._add("K", K)
 
     def _set_instant_temp(self):
@@ -360,11 +366,12 @@ class FlexibleFitting:
         if "vdw" in self.params["potentials"] or "elec" in self.params["potentials"]:
             if not "coord_pl" in self.fit:
                 self._set("coord_pl", self._get("coord_t"))
-            dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))
+            dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))/2
             if (dx_max > (self.params["cutoffpl"] - self.params["cutoffnb"])) or (not "pairlist" in self.fit):
                 if self.verbose >1 : print("Computing pairlist ...")
                 t=time.time()
-                self._set("pairlist", src.forcefield.get_pairlist(self._get("coord_t"),self.params["cutoffpl"]))
+                self._set("pairlist", src.forcefield.get_pairlist(self._get("coord_t"),
+                        excluded_pairs= self.init.forcefield.excluded_pairs,cutoff=self.params["cutoffpl"]))
                 self._set("coord_pl",self._get("coord_t"))
                 if self.verbose > 1: print("Done "+str(time.time()-t)+" s")
         else:
@@ -389,6 +396,8 @@ class FlexibleFitting:
         self._set_gradient()
     # Initial Kinetic Energy
         self._set_kinetic()
+    # Temperature update
+        self._set_instant_temp()
     # Initial Hamiltonian
         H_init = self._get_hamiltonian()
     # Init vars
@@ -408,7 +417,7 @@ class FlexibleFitting:
             if "target_coords" in self.params:
                 self._add("RMSD", src.functions.get_RMSD_coords(self._get("coord_t"), self.params["target_coords"]))
         # Check pairlist
-            self._set_pairlist()
+        #     self._set_pairlist()
         # Potential energy update
             self._set_energy()
         # Gradient Update
@@ -419,6 +428,8 @@ class FlexibleFitting:
             self._set_kinetic()
         # Temperature update
             self._set_instant_temp()
+            # self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
+
         # criterion update
             self._set_criterion()
             self.fit["L"][-1] +=1
@@ -468,8 +479,8 @@ class FlexibleFitting:
                                                  sigma=self.target.sigma, threshold=self.target.threshold)
         U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
 
-        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)
-        factor = init_factor/(U_biased/U_potential)
+        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
+        factor = np.abs(init_factor/(U_biased/U_potential))
         if self.verbose > 0 : print("optimal initial factor : "+str(factor))
         return factor
 

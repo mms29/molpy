@@ -2,8 +2,10 @@ import autograd.numpy as npg
 from autograd import elementwise_grad
 import numpy as np
 import copy
+import sys
+import time
 
-from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
+from src.constants import *
 import src.functions
 
 
@@ -18,60 +20,55 @@ def get_energy(coords, forcefield, **kwargs):
         potentials= kwargs["potentials"]
     else:
         potentials = ["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"]
-    U=0
     if "verbose" in kwargs:
+        verbose = kwargs["verbose"]
+    else:
+        verbose=False
+    U={}
+    if verbose:
         print("Computing Potential energy ...")
 
     # Bonds energy
     if "bonds" in potentials:
-        U_bonds = get_energy_bonds(coords, forcefield)
-        U+=U_bonds
-        if "verbose" in kwargs:
-            print("|-- Bonds = " + str(round(U_bonds, 2)))
+        U["bonds"] = get_energy_bonds(coords, forcefield)
 
     # Angles energy
     if "angles" in potentials:
-        U_angles = get_energy_angles(coords, forcefield)
-        U+=U_angles
-        if "verbose" in kwargs:
-            print("|-- Angles = " + str(round(U_angles, 2)))
+        U["angles"] = get_energy_angles(coords, forcefield)
 
     # Dihedrals energy
     if "dihedrals" in potentials:
-        U_dihedrals = get_energy_dihedrals(coords, forcefield)
-        U+=U_dihedrals
-        if "verbose" in kwargs:
-            print("|-- Dihedrals = " + str(round(U_dihedrals, 2)))
+        U["dihedrals"] = get_energy_dihedrals(coords, forcefield)
 
     # Impropers energy
     if "impropers" in potentials:
-        U_impropers = get_energy_impropers(coords, forcefield)
-        U+=U_impropers
-        if "verbose" in kwargs:
-            print("|-- Impropers = " + str(round(U_impropers, 2)))
+        U["impropers"] = get_energy_impropers(coords, forcefield)
 
     # Non bonded energy
     if "vdw" in potentials or "elec" in potentials:
         if "pairlist" in kwargs:
             pairlist = kwargs["pairlist"]
         else:
-            pairlist = get_pairlist(coords, 10.0)
+            if "cutoff" in kwargs:
+                cutoff = kwargs["cutoff"]
+            else:
+                cutoff = 10.0
+            pairlist = get_pairlist(coords, excluded_pairs=forcefield.excluded_pairs, cutoff=cutoff)
         invdist = get_invdist(coords, pairlist)
 
         if "vdw" in potentials:
-            U_vdw = get_energy_vdw(invdist, pairlist, forcefield)
-            U += U_vdw
-            if "verbose" in kwargs:
-                print("|-- Van der Waals = " + str(round(U_vdw, 2)))
+            U["vdw"] = get_energy_vdw(invdist, pairlist, forcefield)
 
         if "elec" in potentials:
-            U_elec = get_energy_elec(invdist, pairlist, forcefield)
-            U += U_elec
-            if "verbose" in kwargs:
-                print("|-- Electrostatics = " + str(round(U_elec, 2)))
+            U["elec"] = get_energy_elec(invdist, pairlist, forcefield)
 
-    if "verbose" in kwargs:
-        print("|== TOTAL = " + str(round(U, 2)))
+    if verbose:
+        for i in U:
+            print("|-- "+i+" = " + str(round(U[i], 2)))
+
+    U["total"] = np.sum([U[i] for i in U])
+    if verbose:
+        print("|== TOTAL = " + str(round(U["total"], 2)))
 
     return U
 
@@ -117,6 +114,16 @@ def get_autograd(params, mol, **kwargs):
     grad = elementwise_grad(get_energy_autograd, 0)
 
     F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
+
+    # EDIT TODO
+    if "elec" in kwargs["potentials"]:
+        limit = 1000
+        Fabs = np.linalg.norm(F["local"], axis=1)
+        idx= np.where(Fabs > limit)[0]
+        if idx.shape[0]>0:
+            print(" ===============  LIMITER ACTIVATED  =================  ")
+            F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+
     return F
 
 def get_energy_bonds(coord, forcefield):
@@ -173,15 +180,40 @@ def get_energy_impropers(coord,forcefield):
     psi = npg.arccos(npg.sum(ra*rb, axis=1)/ (npg.linalg.norm(ra, axis=1) * npg.linalg.norm(rb, axis=1)))
     return npg.sum(forcefield.Kpsi * (psi - forcefield.psi0*npg.pi/180)**2)
 
+def get_excluded_pairs(forcefield):
+    excluded_pairs = {}
+    pairs = np.concatenate((forcefield.bonds, forcefield.angles[:,[0,2]]))
+    # pairs = np.concatenate((pairs, forcefield.dihedrals[:,[0,3]]))
+    for i in pairs:
+        if i[0] in excluded_pairs:
+            excluded_pairs[i[0]].append(i[1])
+        else:
+            excluded_pairs[i[0]]= [i[1]]
+        if i[1] in excluded_pairs:
+            excluded_pairs[i[1]].append(i[0])
+        else:
+            excluded_pairs[i[1]]= [i[0]]
+    for i in excluded_pairs:
+        excluded_pairs[i] = np.array(excluded_pairs[i])
+    return excluded_pairs
 
-def get_pairlist(coord,cutoff=10.0):
+def get_pairlist(coord, excluded_pairs, cutoff=10.0, verbose=False):
+    if verbose : print("Building pairlist ...")
+    t=time.time()
     pairlist = []
-    for i in range(coord.shape[0]):
-        dist = np.linalg.norm(coord[i + 1:] - coord[i], axis=1)
-        idx = np.where(dist < cutoff)[0] + i + 1
+    n_atoms=coord.shape[0]
+    for i in range(n_atoms):
+        dist_idx = np.setdiff1d(np.arange(i + 1, n_atoms), excluded_pairs[i])
+        dist = np.linalg.norm(coord[dist_idx] - coord[i], axis=1)
+        idx = dist_idx[np.where(dist < cutoff)[0] ]
         for j in idx:
             pairlist.append([i, j])
-    return np.array(pairlist)
+    pl_arr= np.array(pairlist)
+    if verbose :
+        print("Done ")
+        print("\t Size : " + str(sys.getsizeof(pl_arr) / (8 * 1024)) + " kB")
+        print("\t Time : " + str(time.time()-t) + " s")
+    return pl_arr
 
 def get_invdist(coord, pairlist):
     dist = npg.linalg.norm(coord[pairlist[:, 0]] - coord[pairlist[:, 1]], axis=1)
@@ -192,19 +224,13 @@ def get_energy_vdw(invdist, pairlist, forcefield):
     Epsij = npg.sqrt(forcefield.epsilon[pairlist[:, 0]] * forcefield.epsilon[pairlist[:, 1]])
     invdist6 = (Rminij * invdist) ** 6
     invdist12 = invdist6 ** 2
-    return npg.sum(Epsij * (invdist12 - 2 * invdist6)) *0.00004
+    return npg.sum(Epsij * (invdist12 - 2 * invdist6)) *2
 
 def get_energy_elec(invdist, pairlist, forcefield):
     # Electrostatics
-    eps0 = 0.0027865
-    return npg.sum(1 / (4 * npg.pi *eps0) * forcefield.charge[pairlist[:, 0]] * forcefield.charge[pairlist[:, 1]] *invdist)
-
-def get_energy_nonbonded(coord, pairlist, forcefield):
-    invdist = get_invdist(coord, pairlist)
-    U_vdw = get_energy_vdw(invdist, pairlist, forcefield)
-    U_elec = get_energy_elec(invdist, pairlist, forcefield)
-    return U_vdw+ U_elec
-
+    U = npg.sum( forcefield.charge[pairlist[:, 0]] * forcefield.charge[pairlist[:, 1]] *invdist)
+    return U * (ELEMENTARY_CHARGE) ** 2 * AVOGADRO_CONST / \
+     (VACUUM_PERMITTIVITY * WATER_RELATIVE_PERMIT * ANGSTROM_TO_METER * KCAL_TO_JOULE)*2
 
 def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     """
