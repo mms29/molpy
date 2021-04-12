@@ -911,6 +911,50 @@ Tinst = 2 * K / (K_BOLTZMANN * 3 * mol.n_atoms)
 print(Tinst)
 
 
+from src.flexible_fitting import FlexibleFitting
+import matplotlib.pyplot as plt
+import numpy as np
+
+idx = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240,
+                260, 280, 300, 320, 340, 360, 380])
+N=80
+CC_x = []
+CC_q = []
+CC_a = []
+
+RMSD_x = []
+RMSD_q = []
+RMSD_a = []
+
+for i in range(N):
+
+    fits_x = FlexibleFitting.load("results/fit_x"+str(i)+"_output.pkl")
+    fits_q = FlexibleFitting.load("results/fit_q"+str(i)+"_output.pkl")
+    fits_a = FlexibleFitting.load("results/fit_a"+str(i)+"_output.pkl")
+
+    CC_x.append(np.mean([np.array(i["CC"]) for i in fits_x.fit], axis=0))
+    CC_q.append(np.mean([np.array(i["CC"]) for i in fits_q.fit], axis=0))
+    CC_a.append(np.mean([np.array(i["CC"]) for i in fits_a.fit], axis=0))
+
+    RMSD_x.append(np.mean([np.array(i["RMSD"]) for i in fits_x.fit], axis=0))
+    RMSD_q.append(np.mean([np.array(i["RMSD"]) for i in fits_q.fit], axis=0))
+    RMSD_a.append(np.mean([np.array(i["RMSD"]) for i in fits_a.fit], axis=0))
+
+CC_x = np.mean(CC_x, axis=0)
+CC_q = np.mean(CC_q, axis=0)
+CC_a = np.mean(CC_a, axis=0)
+RMSD_x= np.mean(RMSD_x, axis=0)
+RMSD_q= np.mean(RMSD_q, axis=0)
+RMSD_a= np.mean(RMSD_a, axis=0)
+
+fig, ax = plt.subplots(2,1)
+ax[0].plot(CC_x)
+ax[0].plot(CC_q)
+ax[0].plot(CC_a)
+ax[1].plot(RMSD_x)
+ax[1].plot(RMSD_q)
+ax[1].plot(RMSD_a)
+ax[1].set_xscale('log')
 
 
 
