@@ -31,8 +31,8 @@ targets_dens = []
 f = 4
 N=200//f
 for i in range(N):
-    mol =Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/1ake24ake_"+str(i)+".pdb")
-    # mol =Molecule("data/1ake24ake/1ake24ake_"+str(int(i*4))+".pdb")
+    # mol =Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/1ake24ake_"+str(i)+".pdb")
+    mol =Molecule("data/1ake24ake/1ake24ake_"+str(int(i*4))+".pdb")
     mol.center()
     targets.append(mol)
     targets_dens.append(Volume.from_coords(coord=mol.coords, size=size, cutoff=cutoff, sigma=sigma, voxel_size=voxel_size))
