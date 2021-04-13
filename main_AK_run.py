@@ -63,7 +63,7 @@ for i in range(N):
     fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,prefix="results/1ake24ake/fit_q"+str(i)))
     fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,prefix="results/1ake24ake/fit_a"+str(i)))
 
-multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 192 ,n_chain=n_chain)
+multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 560 ,n_chain=n_chain)
 
 #
 # data=[]
