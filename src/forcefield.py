@@ -263,7 +263,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         coord += params[FIT_VAR_SHIFT]
 
     # Select impacted voxels
-    vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.threshold)
+    vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.cutoff)
 
     # perform gradient computation of all atoms
     for i in range(mol.n_atoms):
@@ -315,7 +315,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
     #         res[FIT_VAR_SHIFT] = np.zeros(3)
     #         coord += params[FIT_VAR_SHIFT]
     #
-    #     vox, n_pix = src.functions.select_voxels(coord, self.size, self.voxel_size, self.threshold)
+    #     vox, n_pix = src.functions.select_voxels(coord, self.size, self.voxel_size, self.cutoff)
     #     pix = vox[:, :2]
     #
     #     for i in range(mol.n_atoms):

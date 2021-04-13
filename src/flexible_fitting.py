@@ -140,7 +140,9 @@ class FlexibleFitting:
             default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
                                                     np.sqrt((K_BOLTZMANN * default_params["temperature"]) /
                                                             (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
-        default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
+        if "initial_biasing_factor" in default_params:
+            default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
+
         self.params = default_params
 
     def _get(self, key):
@@ -267,10 +269,10 @@ class FlexibleFitting:
         #     else:
         #     psim = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
         #                                          voxel_size=self.target.voxel_size,
-        #                                          sigma=self.target.sigma, threshold=self.target.threshold)
+        #                                          sigma=self.target.sigma, cutoff=self.target.cutoff)
         psim, expnt = src.functions.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
                                   voxel_size=self.target.voxel_size,
-                                  sigma=self.target.sigma, threshold=self.target.threshold)
+                                  sigma=self.target.sigma, cutoff=self.target.cutoff)
 
         if self.verbose >= 3: print("Density=" + str(time.time() - t))
         self._set("psim",psim)
@@ -348,7 +350,6 @@ class FlexibleFitting:
         for i in self.vars:
             self._remove(i + "_F")
 
-
     def _print_step(self):
         """
         Print step information
@@ -363,6 +364,9 @@ class FlexibleFitting:
         print(printed_string)
 
     def _set_pairlist(self):
+        """
+        Generate Non-bonded pairlist based on cutoff parameters
+        """
         if "vdw" in self.params["potentials"] or "elec" in self.params["potentials"]:
             if not "coord_pl" in self.fit:
                 self._set("coord_pl", self._get("coord_t"))
@@ -476,7 +480,7 @@ class FlexibleFitting:
     def _set_factor(self, init_factor=100, **kwargs):
         psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
                                                  voxel_size=self.target.voxel_size,
-                                                 sigma=self.target.sigma, threshold=self.target.threshold)
+                                                 sigma=self.target.sigma, cutoff=self.target.cutoff)
         U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
 
         U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]

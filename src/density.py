@@ -13,29 +13,29 @@ class Density:
     """
     Cryo EM Density
     """
-    def __init__(self, data, voxel_size, sigma, threshold):
+    def __init__(self, data, voxel_size, sigma, cutoff):
         """
         Constructor
         :param data: numpy array containing pixels/voxels data
         :param voxel_size: voxels/pixel size
         :param sigma: TODO
-        :param threshold: TODO
+        :param cutoff: TODO
         """
         self.data =data
         self.voxel_size = voxel_size
         self.sigma = sigma
         self.size = data.shape[0]
-        self.threshold = threshold
+        self.cutoff = cutoff
 
     @classmethod
-    def from_coords(cls, coord, size, sigma, voxel_size, threshold):
+    def from_coords(cls, coord, size, sigma, voxel_size, cutoff):
         """
         Constructor from Cartesian coordinates
         :param coord: Cartesian coordinates
         :param size: number of pixel/voxel in a row for the density
         :param sigma: standard deviation of gaussian kernels
         :param voxel_size: voxel/pixel size
-        :param threshold: the distance from the atom beyond which the gaussian kernels are not integrated anymore
+        :param cutoff: the distance from the atom beyond which the gaussian kernels are not integrated anymore
         """
         pass
 
@@ -85,8 +85,8 @@ class Volume(Density):
     """
 
     @classmethod
-    def from_coords(cls, coord, size, sigma, voxel_size, threshold):
-        vox, n_vox = src.functions.select_voxels(coord, size, voxel_size, threshold)
+    def from_coords(cls, coord, size, sigma, voxel_size, cutoff):
+        vox, n_vox = src.functions.select_voxels(coord, size, voxel_size, cutoff)
         n_atoms = coord.shape[0]
         vol = np.zeros((size, size, size))
         for i in range(n_atoms):
@@ -98,14 +98,14 @@ class Volume(Density):
             vox[i, 1]:vox[i, 1] + n_vox,
             vox[i, 2]:vox[i, 2] + n_vox] += np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
 
-        return cls(data=vol, voxel_size=voxel_size, sigma=sigma, threshold=threshold)
+        return cls(data=vol, voxel_size=voxel_size, sigma=sigma, cutoff=cutoff)
 
     @classmethod
-    def from_file(cls, file, sigma, threshold, voxel_size=None):
+    def from_file(cls, file, sigma, cutoff, voxel_size=None):
         data, vs = src.io.read_mrc(file)
         if voxel_size is None:
             voxel_size=vs
-        return cls(data=data, voxel_size=voxel_size, sigma=sigma, threshold=threshold)
+        return cls(data=data, voxel_size=voxel_size, sigma=sigma, cutoff=cutoff)
 
     def show(self):
         src.viewers.volume_viewer(self)
@@ -120,13 +120,14 @@ class Volume(Density):
         vol[low:high, low:high, low:high] = self.data
         self.data= vol
         self.size=size
+
 class Image(Density):
     """
     Cryo EM density image
     """
     @classmethod
-    def from_coords(cls, coord, size, sigma, voxel_size, threshold):
-        vox, n_pix = src.functions.select_voxels(coord, size, voxel_size, threshold)
+    def from_coords(cls, coord, size, sigma, voxel_size, cutoff):
+        vox, n_pix = src.functions.select_voxels(coord, size, voxel_size, cutoff)
         pix = vox[:, :2]
         n_atoms = coord.shape[0]
         img = np.zeros((size, size))
@@ -137,7 +138,7 @@ class Image(Density):
             img[pix[i, 0]:pix[i, 0] + n_pix,
             pix[i, 1]:pix[i, 1] + n_pix] += np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
 
-        return cls(data=img, voxel_size=voxel_size, sigma=sigma, threshold=threshold)
+        return cls(data=img, voxel_size=voxel_size, sigma=sigma, cutoff=cutoff)
 
     def show(self):
         src.viewers.image_viewer(self)

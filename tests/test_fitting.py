@@ -15,7 +15,7 @@ class TestFittingAK(unittest.TestCase):
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
 
-        target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, threshold=4)
+        target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = { "initial_biasing_factor": 100 , "local_dt":2*1e-15}
         fit = FlexibleFitting(init=ak, target=target, vars=["local"], params=params, n_chain=4, verbose=0)
         fit.HMC()
@@ -24,7 +24,7 @@ class TestFittingAK(unittest.TestCase):
         rmsd = get_RMSD_coords(ground_truth.coords, fit.res["mol"].coords)
 
         self.assertTrue(rmsd < 1 ) # RMSD < 1 Angstrom
-        self.assertTrue(fit.res["mol"].get_energy(potentials=["bonds", "angles", "dihedrals"])<1500)
+        self.assertTrue(fit.res["mol"].get_energy(potentials=["bonds", "angles", "dihedrals"])["total"]<1500)
 
     def test_fitting_AK_global_carbonalpha(self):
         ak = Molecule("tests_data/input/AK/AK.pdb")
@@ -33,7 +33,7 @@ class TestFittingAK(unittest.TestCase):
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
 
-        target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, threshold=4)
+        target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "global_dt": 0.05}
         fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=0)
         fit.HMC()
@@ -52,7 +52,7 @@ class TestFittingAK(unittest.TestCase):
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
 
-        target = Volume.from_file(file="tests_data/input/AK/ak_rotation_carbonalpha.mrc", voxel_size=1.5, sigma=2, threshold=4)
+        target = Volume.from_file(file="tests_data/input/AK/ak_rotation_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "rotation_dt": 0.0001}
         fit = FlexibleFitting(init=ak, target=target, vars=["rotation"], params=params, n_chain=4, verbose=0)
         fit.HMC()
@@ -68,7 +68,7 @@ class TestFittingAK(unittest.TestCase):
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
 
-        target = Volume.from_file(file="tests_data/input/AK/ak_shift_carbonalpha.mrc", voxel_size=1.5, sigma=2, threshold=4)
+        target = Volume.from_file(file="tests_data/input/AK/ak_shift_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "shift_dt": 0.001}
         fit = FlexibleFitting(init=ak, target=target, vars=["shift"], params=params, n_chain=4, verbose=0)
         fit.HMC()
@@ -85,7 +85,7 @@ class TestFittingAK(unittest.TestCase):
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
 
-        target = Volume.from_file(file="tests_data/input/AK/ak_all_carbonalpha.mrc", voxel_size=1.5, sigma=2, threshold=4)
+        target = Volume.from_file(file="tests_data/input/AK/ak_all_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {
             "initial_biasing_factor": 100,
             "local_dt": 2 * 1e-15,

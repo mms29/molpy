@@ -23,15 +23,16 @@ init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_
 size=64
 voxel_size=1.5
 sigma=2
-threshold=4
+cutoff=6.0
 targets = []
 targets_dens = []
-N=80
+N=200
 for i in range(N):
-    # mol =Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/AKrun_"+str(i)+".pdb")
-    mol =Molecule("data/AK_run/AKrun_"+str(i)+".pdb")
+    # mol =Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/1ake24ake_"+str(i)+".pdb")
+    mol =Molecule("data/1ake24ake/1ake24ake_"+str(i)+".pdb")
+    mol.center()
     targets.append(mol)
-    targets_dens.append(Volume.from_coords(coord=mol.coords, size=size, threshold=threshold, sigma=sigma, voxel_size=voxel_size))
+    targets_dens.append(Volume.from_coords(coord=mol.coords, size=size, cutoff=cutoff, sigma=sigma, voxel_size=voxel_size))
 
 
 params ={
@@ -44,8 +45,8 @@ params ={
     "global_dt" : 0.05,
     "rotation_dt" : 0.0001,
     "shift_dt" : 0.001,
-    "n_iter":100,
-    "n_warmup":80,
+    "n_iter":200,
+    "n_warmup":180,
     "potentials" : ["bonds", "angles", "dihedrals"],
 }
 verbose = 0
@@ -55,11 +56,10 @@ fits_q=[]
 fits_a=[]
 
 for i in range(N):
-    print(i)
     params["target_coords"]=targets[i].coords
-    fits_x.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_x"+str(i)))
-    fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_q"+str(i)))
-    fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK_run/fit_a"+str(i)))
+    fits_x.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,prefix="results/1ake24ake/fit_x"+str(i)))
+    fits_q.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,prefix="results/1ake24ake/fit_q"+str(i)))
+    fits_a.append(FlexibleFitting(init = init, target= targets_dens[i], vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,prefix="results/1ake24ake/fit_a"+str(i)))
 
 multiple_fitting(models = fits_x + fits_q + fits_a, n_proc = 40 ,n_chain=n_chain)
 

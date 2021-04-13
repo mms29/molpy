@@ -897,9 +897,41 @@ from autograd import elementwise_grad
 from src.forcefield import *
 from src.constants import *
 import matplotlib.pyplot as plt
+from src.density import Volume
+from src.viewers import chimera_fit_viewer
+from src.flexible_fitting import FlexibleFitting, multiple_fitting
 import sys
+from src.functions import compute_pca
 
-mol = Molecule("data/AK/AK_PSF.pdb")
+
+mol = Molecule("/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/000637_ProtImportPdb/extra/AK.pdb")
+mol.center()
+mol.set_normalModeVec(np.array(["/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/000922_FlexProtNMA/modes/vec." + str(i + 7) for i in range(3)]))
+mol.allatoms2carbonalpha()
+mol.set_forcefield()
+
+init = Volume.from_coords(coord=mol.coords, size=64, voxel_size=2.0, sigma=2.0, cutoff=6.0)
+params = { "biasing_factor": 100 , "global_dt":0.05, "n_iter":20, "n_warmup":10, "n_step":10}
+models=[]
+for i in range(20):
+    vol = Volume.from_file("/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/001347_FlexProtBayesianFlexibleFitting/extra/"+
+                           str(i+1).zfill(5)+"_reconstructed.mrc", cutoff=6.0, voxel_size=2.0, sigma=2.0)
+    vol.rescale(init)
+    models.append(FlexibleFitting(init=mol, target=vol, vars=["global"], n_chain=2, params=params, verbose=0))
+fits = multiple_fitting(models=models, n_chain=2, n_proc=10)
+
+compute_pca(data=[i.res["mol"].coords.flatten() for i in fits], length=[20], n_components=2)
+
+data = []
+for i in range(20):
+    mol = Molecule(
+        "/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/001347_FlexProtBayesianFlexibleFitting/extra/"+str(i).zfill(5)+"_fitted.pdb")
+    data.append(mol.coords.flatten())
+
+compute_pca(data=data, length=[20], n_components=2)
+
+
+
 mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
 
 T = 300
@@ -914,6 +946,7 @@ print(Tinst)
 from src.flexible_fitting import FlexibleFitting
 import matplotlib.pyplot as plt
 import numpy as np
+from src.functions import compute_pca
 
 idx = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240,
                 260, 280, 300, 320, 340, 360, 380])
@@ -925,6 +958,11 @@ CC_a = []
 RMSD_x = []
 RMSD_q = []
 RMSD_a = []
+
+data_x =[]
+data_q =[]
+data_a =[]
+data_init=[]
 
 for i in range(N):
 
@@ -940,6 +978,11 @@ for i in range(N):
     RMSD_q.append(np.mean([np.array(i["RMSD"]) for i in fits_q.fit], axis=0))
     RMSD_a.append(np.mean([np.array(i["RMSD"]) for i in fits_a.fit], axis=0))
 
+    data_x.append(fits_x.res["mol"].coords.flatten())
+    data_q.append(fits_q.res["mol"].coords.flatten())
+    data_a.append(fits_a.res["mol"].coords.flatten())
+    data_init.append(fits_a.params["target_coords"].flatten())
+
 CC_x = np.mean(CC_x, axis=0)
 CC_q = np.mean(CC_q, axis=0)
 CC_a = np.mean(CC_a, axis=0)
@@ -948,14 +991,46 @@ RMSD_q= np.mean(RMSD_q, axis=0)
 RMSD_a= np.mean(RMSD_a, axis=0)
 
 fig, ax = plt.subplots(2,1)
-ax[0].plot(CC_x)
-ax[0].plot(CC_q)
-ax[0].plot(CC_a)
-ax[1].plot(RMSD_x)
-ax[1].plot(RMSD_q)
-ax[1].plot(RMSD_a)
-ax[1].set_xscale('log')
+ax[0].plot(CC_x, label="Local")
+ax[0].plot(CC_q, label="Global")
+ax[0].plot(CC_a, label="Local+Global")
+ax[1].plot(RMSD_x, label="Local")
+ax[1].plot(RMSD_q, label="Global")
+ax[1].plot(RMSD_a, label="Local+Global")
+ax[0].set_ylabel("CC")
+ax[0].set_xlabel("MD step")
+ax[1].set_ylabel("RMSD (A)")
+ax[1].set_xlabel("MD step")
+# ax[0].set_xscale('log')
+# ax[1].set_xscale('log')
+plt.legend()
+
+compute_pca(data=data_init+ data_x + data_q +data_a, length=[N,N,N,N], n_components=2, labels=["Reference","Local", "Global", "Local+Global"])
 
 
+
+
+############################################################
+# 1ake to 4ake
+############################################################
+from src.functions import compute_pca
+from src.molecule import Molecule
+N=200
+data=[]
+for i in range(N):
+    mol= Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/1ake24ake_"+str(i)+".pdb")
+    data.append(mol.coords.flatten())
+data.append(Molecule("data/1AKE/1ake_chainA_psf.pdb").coords.flatten())
+data.append(Molecule("data/4AKE/4ake_fitted.pdb").coords.flatten())
+
+compute_pca(data=data, length=[N,1,1,1], n_components=2)
+
+
+from src.viewers import chimera_molecule_viewer
+ak1 = Molecule("data/AK/AK_PSF.pdb")
+ak2 = Molecule("data/4AKE/4ake_fitted.pdb")
+ak2.center()
+
+chimera_molecule_viewer([ak1,ak2 ])
 
 

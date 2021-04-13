@@ -8,13 +8,13 @@ from sklearn.decomposition import PCA
 def get_RMSD(psim, pexp):
     return np.linalg.norm(psim-pexp)**2
 
-def select_voxels(coord, size, sampling_rate, threshold):
+def select_voxels(coord, size, voxel_size, cutoff):
     n_atoms = coord.shape[0]
-    n_vox = threshold*2 +1
+    threshold = int(np.ceil(cutoff/voxel_size))
+    n_vox = int(threshold*2 +1)
     l=np.zeros((n_atoms,3))
-
     for i in range(n_atoms):
-        l[i] = (coord[i]/sampling_rate -threshold + size/2).astype(int)
+        l[i] = (coord[i]/voxel_size -threshold + size/2).astype(int)
 
     if (np.max(l) >= size or np.min(l)<0) or (np.max(l+n_vox) >= size or np.min(l+n_vox)<0):
         raise RuntimeError("ERROR : Atomic coordinates got outside the box")
@@ -75,6 +75,7 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
 
     # Compute PCA
     arr = np.array(data)
+    print(arr.shape)
     pca = PCA(n_components=n_components)
     pca.fit(arr.T)
 
@@ -125,8 +126,8 @@ def show_rmsd_fit(mol, fit, save=None):
         fit.savefig(save)
 
 
-def pdb2vol(coord, size, sigma, voxel_size, threshold):
-    vox, n_vox = select_voxels(coord, size, voxel_size, threshold)
+def pdb2vol(coord, size, sigma, voxel_size, cutoff):
+    vox, n_vox = select_voxels(coord, size, voxel_size, cutoff)
     n_atoms = coord.shape[0]
     vol = np.zeros((size, size, size))
     expnt = np.zeros((n_atoms, n_vox, n_vox, n_vox))
