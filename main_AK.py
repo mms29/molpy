@@ -52,14 +52,14 @@ params1 ={
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params1, n_chain=2, verbose=0, prefix="results/AK_test1")
+fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params1, n_chain=2, verbose=1, prefix="results/AK_test1")
 params2 ={
     "initial_biasing_factor" : 10,"local_dt" : 2e-15,
     "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params2, n_chain=2, verbose=0, prefix="results/AK_test2")
+fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params2, n_chain=2, verbose=1, prefix="results/AK_test2")
 
 params3 ={
     "initial_biasing_factor" : 1,"local_dt" : 2e-15,
@@ -67,14 +67,14 @@ params3 ={
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params3, n_chain=2, verbose=0, prefix="results/AK_test3")
+fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params3, n_chain=2, verbose=1, prefix="results/AK_test3")
 params4 ={
     "initial_biasing_factor" : 0.1,"local_dt" : 2e-15,
     "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params4, n_chain=2, verbose=0, prefix="results/AK_test4")
+fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params4, n_chain=2, verbose=1, prefix="results/AK_test4")
 
 fits=  multiple_fitting(models=[fit1,fit2,fit3,fit4], n_chain=2, n_proc =10)
 # fit.HMC()
