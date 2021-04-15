@@ -777,16 +777,24 @@ from src.constants import *
 import matplotlib.pyplot as plt
 import sys
 
+CONSTANT_TEMP = (ELEMENTARY_CHARGE) ** 2 * AVOGADRO_CONST / \
+     (VACUUM_PERMITTIVITY * WATER_RELATIVE_PERMIT * ANGSTROM_TO_METER * KCAL_TO_JOULE)*2
+
 mol = Molecule("data/AK/AK_PSF.pdb")
 mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
-mol.get_energy(verbose=True, cutoff=10.0)
+mol.get_energy(verbose=True, cutoff=8.0)
 
 mol = Molecule("data/P97/5ftm_psf.pdb")
 mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 
 ep = get_excluded_pairs(forcefield=mol.forcefield)
-pl, invpl = get_pairlist(coord=mol.coords, excluded_pairs=ep, cutoff=15.0, verbose=True)
+pl, invpl = get_pairlist(coord=mol.coords, excluded_pairs=ep, cutoff=12.0, verbose=True)
 invdist = get_invdist(coord=mol.coords,pairlist=pl)
+
+F = get_autograd(params={"local": np.zeros(mol.coords.shape)}, mol=mol, potentials=["bonds"], pairlist = pl)["local"]
+Fms = np.linalg.norm(F, axis=1)
+plt.figure()
+plt.plot(Fms)
 
 def get_autograd_elec(coord, pairlist, forcefield):
     def get_elec(coord, pairlist, forcefield):
@@ -803,13 +811,25 @@ def get_grad_elec(coord, invdist, pairlist, invpairlist, forcefield):
         F[i] -= np.sum(dU[invpairlist[i]])
         F[invpairlist[i]] += dU[:, i]
     return F
+def get_grad_elec(coord, pairlist, forcefield):
+    F = np.zeros(coord.shape)
+    for i in range(coord.shape[0]):
+        dist = np.linalg.norm(coord[i] - coord[pairlist[i]], axis=1)
+    dU = forcefield.charge[pairlist[:,0]] * forcefield.charge[pairlist[:,1]] * invdist ** 3 * CONSTANT_TEMP
+    dU = (coord[pairlist[:, 0]] - coord[pairlist[:, 1]]).T  * dU
+    for i in range(dU.shape[0]):
+        F[i] -= np.sum(dU[invpairlist[i]])
+        F[invpairlist[i]] += dU[:, i]
+    return dU
+
+
 
 t = time.time()
 F1 = get_autograd_elec(coord=mol.coords, forcefield=mol.forcefield, pairlist = pl)
 print(time.time() - t)
 
 t = time.time()
-F2 = get_grad_elec(coord=mol.coords, invdist=invdist, pairlist=pl, forcefield=mol.forcefield, invpairlist=invpl)
+F2 = get_grad_elec(coord=mol.coords, pairlist=invpl, forcefield=mol.forcefield)
 print(time.time() - t)
 
 def get_excluded_pairs(forcefield):
@@ -950,7 +970,7 @@ from src.functions import compute_pca
 
 idx = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240,
                 260, 280, 300, 320, 340, 360, 380])
-N=80
+N=50
 CC_x = []
 CC_q = []
 CC_a = []
@@ -966,9 +986,9 @@ data_init=[]
 
 for i in range(N):
 
-    fits_x = FlexibleFitting.load("results/fit_x"+str(i)+"_output.pkl")
-    fits_q = FlexibleFitting.load("results/fit_q"+str(i)+"_output.pkl")
-    fits_a = FlexibleFitting.load("results/fit_a"+str(i)+"_output.pkl")
+    fits_x = FlexibleFitting.load("results/1ake24ake/fit_x"+str(i)+"_output.pkl")
+    fits_q = FlexibleFitting.load("results/1ake24ake/fit_q"+str(i)+"_output.pkl")
+    fits_a = FlexibleFitting.load("results/1ake24ake/fit_a"+str(i)+"_output.pkl")
 
     CC_x.append(np.mean([np.array(i["CC"]) for i in fits_x.fit], axis=0))
     CC_q.append(np.mean([np.array(i["CC"]) for i in fits_q.fit], axis=0))
@@ -1007,8 +1027,13 @@ plt.legend()
 
 compute_pca(data=data_init+ data_x + data_q +data_a, length=[N,N,N,N], n_components=2, labels=["Reference","Local", "Global", "Local+Global"])
 
-
-
+i=0
+fit = FlexibleFitting.load("results/1ake24ake/fit_x"+str(i)+"_output.pkl")
+# fit.show_3D()
+target = Molecule.copy(fit.init)
+target.coords = fit.params["target_coords"]
+chimera_molecule_viewer([target,fit.res["mol"]])
+chimera_molecule_viewer([target])
 
 ############################################################
 # 1ake to 4ake
@@ -1034,3 +1059,41 @@ ak2.center()
 chimera_molecule_viewer([ak1,ak2 ])
 
 
+
+#########################################################################
+# Speed test GENESIS
+######################################################################""
+
+
+from src.molecule import Molecule
+from src.viewers import *
+from src.functions import get_RMSD_coords
+import matplotlib.pyplot as plt
+from src.flexible_fitting import FlexibleFitting
+from src.io import create_psf
+create_psf(pdb_file="data/AK/AK_CA.pdb",topology_file="/home/guest/toppar/top_all36_prot.rtf", prefix="data/AK/")
+
+init = Molecule("data/AK/AK_PSF.pdb")
+init.center()
+target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
+target.center()
+target.save_pdb(file="/home/guest/Workspace/Genesis/FlexibleFitting/input/1ake_center.pdb")
+
+rmsd=[]
+for i in range(200):
+    mol = Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/genesis_speedtest_"+str(i)+".pdb")
+    mol.center()
+    rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+
+fit_a = FlexibleFitting.load("results/1ake24ake/fit_a0_output.pkl")
+fit_x = FlexibleFitting.load("results/1ake24ake/fit_x0_output.pkl")
+fit_q = FlexibleFitting.load("results/1ake24ake/fit_q0_output.pkl")
+
+fig, ax = plt.subplots(1,1)
+ax.plot(rmsd, label="Genesis")
+ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0)[::10], label="Local")
+ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0)[::10], label="Global")
+ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0)[::10], label="Local+Global")
+ax.set_xlabel("MD step")
+ax.set_ylabel("RMSD (A)")
+plt.legend()

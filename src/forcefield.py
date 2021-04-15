@@ -116,13 +116,13 @@ def get_autograd(params, mol, **kwargs):
     F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
 
     # EDIT TODO
-    if "elec" in kwargs["potentials"]:
-        limit = 1000
-        Fabs = np.linalg.norm(F["local"], axis=1)
-        idx= np.where(Fabs > limit)[0]
-        if idx.shape[0]>0:
-            print(" ===============  LIMITER ACTIVATED  =================  ")
-            F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+    # if "elec" in kwargs["potentials"]:
+    #     limit = 1000
+    #     Fabs = np.linalg.norm(F["local"], axis=1)
+    #     idx= np.where(Fabs > limit)[0]
+    #     if idx.shape[0]>0:
+    #         print(" ===============  LIMITER ACTIVATED  =================  ")
+    #         F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
 
     return F
 
@@ -183,7 +183,7 @@ def get_energy_impropers(coord,forcefield):
 def get_excluded_pairs(forcefield):
     excluded_pairs = {}
     pairs = np.concatenate((forcefield.bonds, forcefield.angles[:,[0,2]]))
-    # pairs = np.concatenate((pairs, forcefield.dihedrals[:,[0,3]]))
+    pairs = np.concatenate((pairs, forcefield.dihedrals[:,[0,3]]))
     for i in pairs:
         if i[0] in excluded_pairs:
             excluded_pairs[i[0]].append(i[1])
@@ -201,11 +201,13 @@ def get_pairlist(coord, excluded_pairs, cutoff=10.0, verbose=False):
     if verbose : print("Building pairlist ...")
     t=time.time()
     pairlist = []
+    # invpairlist= []
     n_atoms=coord.shape[0]
     for i in range(n_atoms):
         dist_idx = np.setdiff1d(np.arange(i + 1, n_atoms), excluded_pairs[i])
         dist = np.linalg.norm(coord[dist_idx] - coord[i], axis=1)
         idx = dist_idx[np.where(dist < cutoff)[0] ]
+        # invpairlist.append(idx)
         for j in idx:
             pairlist.append([i, j])
     pl_arr= np.array(pairlist)
@@ -224,7 +226,7 @@ def get_energy_vdw(invdist, pairlist, forcefield):
     Epsij = npg.sqrt(forcefield.epsilon[pairlist[:, 0]] * forcefield.epsilon[pairlist[:, 1]])
     invdist6 = (Rminij * invdist) ** 6
     invdist12 = invdist6 ** 2
-    return npg.sum(Epsij * (invdist12 - 2 * invdist6)) *2
+    return npg.sum(Epsij * (invdist12 - 2 * invdist6)) *2/10
 
 def get_energy_elec(invdist, pairlist, forcefield):
     # Electrostatics
