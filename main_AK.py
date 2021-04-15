@@ -74,7 +74,7 @@ params4 ={
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params3, n_chain=2, verbose=0, prefix="results/AK_test4")
+fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params4, n_chain=2, verbose=0, prefix="results/AK_test4")
 
 fits=  multiple_fitting(models=[fit1,fit2,fit3,fit4], n_chain=2, n_proc =10)
 # fit.HMC()
