@@ -39,7 +39,7 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=v
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
-target_density.resize(200)
+# target_density.resize(200)
 
 params ={
     "initial_biasing_factor" : 10,
@@ -50,13 +50,13 @@ params ={
 
     "local_dt" : 2e-15,
     "temperature" : 300,
-    "global_dt" : 0.1,
+    "global_dt" : 0.05,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
     "n_iter":200,
     "n_warmup":180,
-    "n_step": 17,
+    "n_step": 20,
     "criterion": False,
     # "target_coords" : target.coords
 }
