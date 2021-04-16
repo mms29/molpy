@@ -25,6 +25,7 @@ init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_
 
 target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
 target.center()
+target.save_pdb("data/1AKE/1ake_center.pdb")
 # target.coords += np.array([1.5,-2.0,-0.5])
 # target.rotate([0.17,-0.13,0.23])
 
