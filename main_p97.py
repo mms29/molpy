@@ -61,7 +61,7 @@ params ={
     # "target_coords" : target.coords
 }
 n_chain=2
-verbose=1
+verbose=2
 prefix = "results/5ftm25ftn"
 prefix_x =  prefix+"_fitx"
 prefix_q =  prefix+"_fitq"
@@ -71,7 +71,6 @@ fitx  =FlexibleFitting(init=init, target=target_density, vars=["local", "rotatio
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_a)
 
-fita.HMC_chain()
 fits = multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc=13)
 
 #
