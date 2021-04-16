@@ -42,7 +42,7 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=v
 target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 5,
+    "initial_biasing_factor" : 10,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers"],
     "cutoffpl": 10,
@@ -54,9 +54,9 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":200,
-    "n_warmup":180,
-    "n_step": 20,
+    "n_iter":100,
+    "n_warmup":90,
+    "n_step": 40,
     "criterion": False,
     # "target_coords" : target.coords
 }
