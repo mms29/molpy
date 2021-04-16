@@ -54,9 +54,9 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":100,
-    "n_warmup":90,
-    "n_step": 40,
+    "n_iter":200,
+    "n_warmup":180,
+    "n_step": 17,
     "criterion": False,
     # "target_coords" : target.coords
 }
