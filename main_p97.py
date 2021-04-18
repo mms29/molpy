@@ -42,15 +42,15 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=v
 # target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 10,
+    "initial_biasing_factor" : 50,
     "potential_factor" : 1,
-    "potentials":["bonds", "angles", "dihedrals", "impropers"],
+    "potentials":["bonds", "angles", "dihedrals"],
     "cutoffpl": 10,
     "cutoffnb" : 7.0,
 
     "local_dt" : 2e-15,
     "temperature" : 300,
-    "global_dt" : 0.05,
+    "global_dt" : 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
@@ -62,10 +62,10 @@ params ={
 }
 n_chain=2
 verbose=2
-prefix = "results/5ftm25ftn"
-prefix_x =  prefix+"_fitx"
-prefix_q =  prefix+"_fitq"
-prefix_a = prefix+"_fita"
+prefix = "results/P97/5ftm25ftn"
+prefix_x = prefix+"_x"
+prefix_q = prefix+"_q"
+prefix_a = prefix+"_a"
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
