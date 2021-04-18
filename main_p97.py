@@ -62,14 +62,14 @@ params ={
 }
 n_chain=2
 verbose=2
-prefix = "results/P97/5ftm25ftn"
+prefix = "results/P97/5ftm25ftn_noR"
 prefix_x = prefix+"_x"
 prefix_q = prefix+"_q"
 prefix_a = prefix+"_a"
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
-fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global", "rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_a)
+fitx  =FlexibleFitting(init=init, target=target_density, vars=["local","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
+fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global","shift"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_a)
 
 fits = multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc=13)
 
