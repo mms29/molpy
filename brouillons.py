@@ -1065,33 +1065,37 @@ chimera_molecule_viewer([ak1,ak2 ])
 
 from src.molecule import Molecule
 from src.viewers import *
-from src.functions import get_RMSD_coords
+from src.functions import get_RMSD_coords, cross_correlation
 import matplotlib.pyplot as plt
 from src.flexible_fitting import FlexibleFitting
 from src.io import create_psf
-create_psf(pdb_file="data/AK/AK_CA.pdb",topology_file="/home/guest/toppar/top_all36_prot.rtf", prefix="data/AK/")
+from src.density import Volume
 
-init = Molecule("data/AK/AK_PSF.pdb")
-init.center()
-target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
+target = Molecule("data/P97/5ftn_PSF.pdb")
 target.center()
-target.save_pdb(file="/home/guest/Workspace/Genesis/FlexibleFitting/input/1ake_center.pdb")
+target_density = Volume.from_coords(coord=target.coords, size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
 rmsd=[]
-for i in range(200):
-    mol = Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/genesis_speedtest_"+str(i)+".pdb")
+cc =[]
+for i in range(100):
+    print(i)
+    mol = Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/5ftm_"+str(i)+".pdb")
     mol.center()
-    rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+    # rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+    vol = Volume.from_coords(coord=mol.coords, size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
+    cc.append(cross_correlation(vol.data,target_density.data))
+    print("CC="+str(cc[-1]))
 
-fit_a = FlexibleFitting.load("results/1ake24ake/fit_a0_output.pkl")
-fit_x = FlexibleFitting.load("results/1ake24ake/fit_x0_output.pkl")
-fit_q = FlexibleFitting.load("results/1ake24ake/fit_q0_output.pkl")
+chimera_molecule_viewer([target, mol])
+fit_a = FlexibleFitting.load("results/P97/5ftm25ftn_noR_a_output.pkl")
+fit_x = FlexibleFitting.load("results/P97/5ftm25ftn_noR_x_output.pkl")
+fit_q = FlexibleFitting.load("results/P97/5ftm25ftn_noR_q_output.pkl")
 
 fig, ax = plt.subplots(1,1)
-ax.plot(rmsd, label="Genesis")
-ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0)[::10], label="Local")
-ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0)[::10], label="Global")
-ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0)[::10], label="Local+Global")
+ax.plot(np.arange(len(cc))*100,cc, label="Genesis")
+ax.plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local")
+ax.plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global")
+ax.plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global")
 ax.set_xlabel("MD step")
 ax.set_ylabel("RMSD (A)")
 plt.legend()
