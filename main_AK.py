@@ -44,40 +44,29 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 #               HMC
 ########################################################################################################
-n_iter = 1000
-n_step = 50
-n_warmup = 900
-params1 ={
-    "initial_biasing_factor" : 100,"local_dt" : 2e-15,
-    "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
-    "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"],
-    "target_coords":target.coords,
-}
-fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params1, n_chain=2, verbose=1, prefix="results/AKnb_test1")
-params2 ={
-    "initial_biasing_factor" : 10,"local_dt" : 2e-15,
-    "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
-    "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"],
-    "target_coords":target.coords,
-}
-fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params2, n_chain=2, verbose=1, prefix="results/AKnb_test2")
 
-params3 ={
-    "initial_biasing_factor" : 1,"local_dt" : 2e-15,
-    "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
+params ={
+    "initial_biasing_factor" : 50,
+    "local_dt" : 1e-15,
+    "global_dt": 0.1,
+    "rotation_dt": 0.0001,
+    "shift_dt": 0.001,
+    "n_step": 40,
+    "n_iter":200,
+    "n_warmup":180,
     "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"],
     "target_coords":target.coords,
 }
-fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params3, n_chain=2, verbose=1, prefix="results/AKnb_test3")
-params4 ={
-    "initial_biasing_factor" : 0.1,"local_dt" : 2e-15,
-    "n_step": n_step, "n_iter":n_iter, "n_warmup":n_warmup,
-    "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"],
-    "target_coords":target.coords,
-}
-fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params4, n_chain=2, verbose=1, prefix="results/AKnb_test4")
+n_chain=2
+verbose = 2
+fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x")
+fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_q")
+fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a")
 
-fits=  multiple_fitting(models=[fit1,fit2,fit3,fit4], n_chain=2, n_proc =10)
+fits=  multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc =12)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
 # fit.show()

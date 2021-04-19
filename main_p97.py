@@ -28,6 +28,8 @@ target= Molecule("data/P97/5ftn_PSF.pdb")
 target.center()
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma,
                                     cutoff=cutoff)
+target = Molecule("data/P97/5ftm_156.pdb")
+target.center()
 # target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc', voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 # target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
 # target_density.rescale(init_density, "opt")
@@ -58,7 +60,7 @@ params ={
     "n_warmup":180,
     "n_step": 20,
     "criterion": False,
-    # "target_coords" : target.coords
+    "target_coords" : target.coords
 }
 n_chain=2
 verbose=2

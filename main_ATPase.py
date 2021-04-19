@@ -39,13 +39,13 @@ params ={
     "cutoffnb":7.0,
     "local_dt" : 1e-15,
     "temperature" : 300,
-    "global_dt" : 0.8,
+    "global_dt" : 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":200,
-    "n_warmup":180,
-    "n_step": 20,
+    "n_iter":100,
+    "n_warmup":90,
+    "n_step": 40,
     "criterion": False,
     "target_coords" : target.coords
 }

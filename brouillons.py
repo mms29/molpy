@@ -968,8 +968,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from src.functions import compute_pca
 
-idx = np.array([0, 20, 40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240,
-                260, 280, 300, 320, 340, 360, 380])
 N=50
 CC_x = []
 CC_q = []
@@ -1097,3 +1095,41 @@ ax.plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0)[::10], label="
 ax.set_xlabel("MD step")
 ax.set_ylabel("RMSD (A)")
 plt.legend()
+
+
+
+
+
+
+
+
+#########################################################################
+# p97 all atoms
+######################################################################""
+
+from src.flexible_fitting import FlexibleFitting
+import matplotlib.pyplot as plt
+
+fitx = FlexibleFitting.load(file="results/P97/5ftm25ftn_noR_x_output.pkl")
+fitq = FlexibleFitting.load(file="results/P97/5ftm25ftn_noR_q_output.pkl")
+fita = FlexibleFitting.load(file="results/P97/5ftm25ftn_noR_a_output.pkl")
+
+CC_x = np.mean([i["CC"] for i in fitx.fit], axis=0)
+CC_q = np.mean([i["CC"] for i in fitq.fit], axis=0)
+CC_a = np.mean([i["CC"] for i in fita.fit], axis=0)
+
+RMSD_x= np.mean([i["RMSD"] for i in fitx.fit], axis=0)
+RMSD_q= np.mean([i["RMSD"] for i in fitq.fit], axis=0)
+RMSD_a= np.mean([i["RMSD"] for i in fita.fit], axis=0)
+
+fig, ax = plt.subplots(1,1, figsize=(6,3))
+ax.plot(CC_x, label="Local")
+ax.plot(CC_q, label="Global")
+ax.plot(CC_a, label="Local+Global")
+ax.set_ylabel("CC")
+ax.set_xlabel("MD step")
+
+# ax[0].set_xscale('log')
+# ax[1].set_xscale('log')
+plt.legend()
+fig.tight_layout()
