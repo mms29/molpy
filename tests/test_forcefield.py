@@ -39,7 +39,8 @@ class TestGradientPotential(unittest.TestCase):
             FIT_VAR_GLOBAL : np.zeros(ak.normalModeVec.shape[1]),
             FIT_VAR_ROTATION : np.zeros(3),
             FIT_VAR_SHIFT : np.zeros(3),
-        }, mol=ak, potentials=["bonds", "angles", "dihedrals"])
+        }, mol=ak, potentials=["bonds", "angles", "dihedrals"],
+        normalModeVec=ak.normalModeVec)
         self.assertAlmostEqual(grad[FIT_VAR_LOCAL][0,0],-0.8017397359949898)
         self.assertAlmostEqual(grad[FIT_VAR_GLOBAL][0],-0.12597578)
         self.assertAlmostEqual(grad[FIT_VAR_ROTATION][0],0)

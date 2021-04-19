@@ -208,8 +208,8 @@ class FlexibleFitting:
             vals[i] = self._get(i+"_t")
 
         dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
-                                                     expnt = self._get("expnt"))
-        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init,
+                                                     expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
+        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
                                                    potentials=self.params["potentials"], pairlist=self._get("pairlist"))
 
         for i in self.vars:
@@ -321,7 +321,7 @@ class FlexibleFitting:
         if FIT_VAR_GLOBAL in self.vars:
             coord += np.dot(self._get(FIT_VAR_GLOBAL+"_t"), self.init.normalModeVec)
         if FIT_VAR_ROTATION in self.vars:
-            coord = np.dot( src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coord.T).T
+            coord = np.dot(src.functions.generate_euler_matrix(self._get(FIT_VAR_ROTATION+"_t")),  coord.T).T
         if FIT_VAR_SHIFT  in self.vars:
             coord += self._get(FIT_VAR_SHIFT+"_t")
         self._set("coord_t", coord)
@@ -432,7 +432,8 @@ class FlexibleFitting:
             self._set_kinetic()
         # Temperature update
             self._set_instant_temp()
-            # self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
+            if FIT_VAR_LOCAL in self.vars:
+                self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
 
         # criterion update
             self._set_criterion()

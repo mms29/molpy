@@ -87,7 +87,7 @@ def get_autograd(params, mol, **kwargs):
         if FIT_VAR_LOCAL in params:
             coord += params[FIT_VAR_LOCAL]
         if FIT_VAR_GLOBAL in params:
-            coord += npg.dot(params[FIT_VAR_GLOBAL], mol.normalModeVec)
+            coord += npg.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
         if FIT_VAR_ROTATION in params:
             coord = npg.dot(src.functions.generate_euler_matrix(params[FIT_VAR_ROTATION]), coord.T).T
         if FIT_VAR_SHIFT in params:
@@ -234,7 +234,7 @@ def get_energy_elec(invdist, pairlist, forcefield):
     return U * (ELEMENTARY_CHARGE) ** 2 * AVOGADRO_CONST / \
      (VACUUM_PERMITTIVITY * WATER_RELATIVE_PERMIT * ANGSTROM_TO_METER * KCAL_TO_JOULE)*2
 
-def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
+def get_gradient_RMSD(mol, psim, pexp, params, **kwargs):
     """
     Compute the gradient of the RMSD between the density and a simultaed denisty
     :param mol: Mol used for simulting densitty
@@ -253,8 +253,8 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
         coord += params[FIT_VAR_LOCAL]
     if FIT_VAR_GLOBAL in params:
-        res[FIT_VAR_GLOBAL] = np.zeros(mol.normalModeVec.shape[1])
-        coord += np.dot(params[FIT_VAR_GLOBAL], mol.normalModeVec)
+        res[FIT_VAR_GLOBAL] = np.zeros(kwargs["normalModeVec"].shape[1])
+        coord += np.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
     if FIT_VAR_ROTATION in params:
         res[FIT_VAR_ROTATION] = np.zeros(3)
         R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
@@ -273,8 +273,8 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
               vox[i, 1]:vox[i, 1] + n_vox,
               vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
         coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
-        if expnt is not None: # use a past
-            e = expnt[i]
+        if "expnt" in kwargs: # use a past
+            e = kwargs["expnt"][i]
         else:
             e=np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
         tmp = 2 * pdiff[vox[i, 0]:vox[i, 0] + n_vox,
@@ -290,7 +290,7 @@ def get_gradient_RMSD(mol, psim, pexp, params, expnt=None):
         if FIT_VAR_LOCAL in params:
             res[FIT_VAR_LOCAL][i] = dpsim
         if FIT_VAR_GLOBAL in params:
-            res[FIT_VAR_GLOBAL] += np.dot(mol.normalModeVec[i], dpsim)
+            res[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i], dpsim)
         if FIT_VAR_SHIFT in params:
             res[FIT_VAR_SHIFT] += dpsim
 
