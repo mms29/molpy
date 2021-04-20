@@ -46,26 +46,27 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "initial_biasing_factor" : 50,
-    "local_dt" : 1e-15,
+    # "initial_biasing_factor" : 50,
+    "biasing_factor" : 0.26,
+    "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 40,
+    "n_step": 10,
     "n_iter":200,
     "n_warmup":180,
-    "potentials" : ["bonds", "angles", "dihedrals", "vdw", "elec"],
+    "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
     "target_coords":target.coords,
 }
 n_chain=2
-verbose = 2
-fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+verbose =1
+fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fit_x")
+fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a")
+params["potentials"] = ["bonds", "angles", "dihedrals"]
 fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fit_q")
-fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a")
-
 fits=  multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc =12)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
