@@ -1071,33 +1071,53 @@ from src.flexible_fitting import FlexibleFitting
 from src.io import create_psf
 from src.density import Volume
 
-target = Molecule("data/P97/5ftn_PSF.pdb")
-target.center()
-target_density = Volume.from_coords(coord=target.coords, size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
+def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
+    target.center()
+    target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
+    rmsd=[]
+    cc =[]
+    for i in range(N):
+        print(i)
+        mol = Molecule(prefix+str(i)+".pdb")
+        mol.center()
+        rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+        vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
+        cc.append(cross_correlation(vol.data,target_density.data))
+        np.save(file=prefix+"_cc.npy", arr=np.array(cc))
+        np.save(file=prefix+"_rmsd.npy", arr=np.array(rmsd))
+    return np.array(cc), np.array(rmsd)
 
-rmsd=[]
-cc =[]
-for i in range(100):
-    print(i)
-    mol = Molecule("/home/guest/Workspace/Genesis/FlexibleFitting/output/5ftm_"+str(i)+".pdb")
-    mol.center()
-    # rmsd.append(get_RMSD_coords(mol.coords, target.coords))
-    vol = Volume.from_coords(coord=mol.coords, size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
-    cc.append(cross_correlation(vol.data,target_density.data))
-    print("CC="+str(cc[-1]))
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_",
+    target=Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
-chimera_molecule_viewer([target, mol])
-fit_a = FlexibleFitting.load("results/P97/5ftm25ftn_noR_a_output.pkl")
-fit_x = FlexibleFitting.load("results/P97/5ftm25ftn_noR_x_output.pkl")
-fit_q = FlexibleFitting.load("results/P97/5ftm25ftn_noR_q_output.pkl")
 
-fig, ax = plt.subplots(1,1)
-ax.plot(np.arange(len(cc))*100,cc, label="Genesis")
-ax.plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local")
-ax.plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global")
-ax.plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global")
-ax.set_xlabel("MD step")
-ax.set_ylabel("RMSD (A)")
+
+# fit_a = FlexibleFitting.load("results/P97/5ftm25ftn_noR_a_output.pkl")
+# fit_x = FlexibleFitting.load("results/P97/5ftm25ftn_noR_x_output.pkl")
+# fit_q = FlexibleFitting.load("results/P97/5ftm25ftn_noR_q_output.pkl")
+# cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
+# rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
+
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_output.pkl")
+fit_a.fit = [fit_a.fit[0]]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_x_output.pkl")
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_output.pkl")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
+
+fig, ax = plt.subplots(2,1)
+ax[0].plot(np.arange(len(cc))*10,cc, label="Genesis")
+ax[1].plot(np.arange(len(cc))*10,rmsd, label="Genesis")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global")
+ax[0].set_xlabel("MD step")
+ax[0].set_ylabel("CC")
+ax[1].set_xlabel("MD step")
+ax[1].set_ylabel("RMSD (A)")
 plt.legend()
 
 

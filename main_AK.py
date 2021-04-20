@@ -52,22 +52,57 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 10,
-    "n_iter":200,
-    "n_warmup":180,
+    "n_step": 20,
+    "n_iter":400,
+    "n_warmup":390,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
     "target_coords":target.coords,
 }
 n_chain=2
 verbose =1
-fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_x")
-fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a")
+fitxdt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x_dt2")
+fitadt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a_dt2")
+fitqdt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_q_dt2")
+
+params["local_dt"] = 1e-15
+fitxdt1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                      prefix="results/AK/fit_x_dt1")
+fitadt1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                      prefix="results/AK/fit_a_dt1")
+
+
 params["potentials"] = ["bonds", "angles", "dihedrals"]
-fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_q")
-fits=  multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc =12)
+fitxnoNb1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x_noNb1")
+fitanoNb1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a_noNb1")
+
+params["local_dt"] = 2e-15
+fitxnoNb2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x_noNb1")
+fitanoNb2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a_noNb1")
+
+params["local_dt"] = 2e-15
+params["potentials"] = ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"]
+params["n_step"] = 10
+params["n_iter"] = 800
+params["n_warmup"] = 790
+
+fitxnstep10  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x_nstep10")
+params["n_step"] = 40
+params["n_iter"] = 200
+params["n_warmup"] = 190
+
+fitxnstep40  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x_nstep40")
+
+fits=  multiple_fitting(models=[fitxdt2 , fitadt2 , fitqdt2 , fitxdt1 , fitadt1 , fitxnoNb1 , fitanoNb1 , fitxnoNb2 , fitanoNb2, fitxnstep10, fitxnstep40],
+                        n_chain=n_chain, n_proc =25)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
 # fit.show()

@@ -83,11 +83,18 @@ class FlexibleFitting:
         # HMC Loop
         try :
             for i in range(self.params["n_iter"]):
-                if self.verbose > 0 : print("HMC iter : " + str(i)+ " | Chain id : "+str(chain_id))
+                if self.verbose > 0 :
+                    s = "HMC iter : " + str(i) + " | Chain id : " + str(chain_id)
+                    if self.prefix is not None:
+                        s = "["+self.prefix +"] "+s
+                    print(s)
                 self.HMC_step()
 
         except RuntimeError as rte:
-            print("Failed to run HMC chain : " + str(rte.args[0]))
+            s = "Failed to run HMC chain : " + str(rte.args[0])
+            if self.prefix is not None:
+                s = "["+self.prefix +"] "+s
+            print(s)
             self.res = {"mol" : self.init.copy()}
             for i in self.vars:
                 self.res[i] = self._get(i)
