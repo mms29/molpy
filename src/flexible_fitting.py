@@ -115,7 +115,9 @@ class FlexibleFitting:
                 print("#######################################################")
 
             # Cleaning
-            del self.fit["coord"]
+            # for i in range(len(self.fit["coord"])):
+            #     if i%10 != 0:
+            #         del (self.fit["coord"])[i]
             del self.fit["coord_t"]
             del self.fit["psim"]
             del self.fit["expnt"]
@@ -398,6 +400,7 @@ class FlexibleFitting:
     # Compute Forward model
         self._forward_model()
     # initial density
+        self._set_density()
         self._set_density()
     # Check pairlist
         self._set_pairlist()

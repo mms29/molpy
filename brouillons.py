@@ -1065,11 +1065,39 @@ chimera_molecule_viewer([ak1,ak2 ])
 
 from src.molecule import Molecule
 from src.viewers import *
-from src.functions import get_RMSD_coords, cross_correlation
+from src.functions import get_RMSD_coords, cross_correlation, get_mol_conv
 import matplotlib.pyplot as plt
 from src.flexible_fitting import FlexibleFitting
 from src.io import create_psf
 from src.density import Volume
+
+pdb_5ftm = Molecule("data/P97/5ftm_psf.pdb")
+pdb_5ftn = Molecule("data/P97/5ftn_PSF.pdb")
+
+
+res_bff = Molecule("/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/001881_FlexProtGenesisMin/extra/output.pdb")
+res_genesis = Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
+
+chimera_molecule_viewer([pdb_5ftm, pdb_5ftn, res_bff, res_genesis])
+
+pdb_5ftm.center()
+pdb_5ftn.center()
+res_bff.center()
+res_genesis.center()
+
+# res_genesis.center()
+
+idx = get_mol_conv(pdb_5ftm, pdb_5ftn)
+rmsd_i = get_RMSD_coords(pdb_5ftm.coords[idx[:,0]], pdb_5ftn.coords[idx[:,1]])
+
+rmsd_i_genesis = get_RMSD_coords(res_genesis.coords, pdb_5ftm.coords)
+rmsd_f_genesis = get_RMSD_coords(res_genesis.coords[idx[:,0]], pdb_5ftn.coords[idx[:,1]])
+rmsd_i_bff = get_RMSD_coords(res_bff.coords, pdb_5ftm.coords)
+rmsd_f_bff = get_RMSD_coords(res_bff.coords[idx[:,0]], pdb_5ftn.coords[idx[:,1]])
+print(rmsd_i_genesis)
+print(rmsd_f_genesis)
+print(rmsd_i_bff)
+print(rmsd_f_bff)
 
 def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
     target.center()
@@ -1092,16 +1120,19 @@ cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/5ftm
 
 
 
-# fit_a = FlexibleFitting.load("results/P97/5ftm25ftn_noR_a_output.pkl")
-# fit_x = FlexibleFitting.load("results/P97/5ftm25ftn_noR_x_output.pkl")
-# fit_q = FlexibleFitting.load("results/P97/5ftm25ftn_noR_q_output.pkl")
-# cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
-# rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_x_output.pkl")
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_q_output.pkl")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_output.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_dt2_output.pkl")
 fit_a.fit = [fit_a.fit[0]]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_x_output.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_x_dt2_output.pkl")
+fit_x.fit = [fit_x.fit[0]]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_output.pkl")
+fit_q.fit = [fit_q.fit[1]]
+
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
 
@@ -1119,13 +1150,14 @@ ax[0].set_ylabel("CC")
 ax[1].set_xlabel("MD step")
 ax[1].set_ylabel("RMSD (A)")
 plt.legend()
+fig.tight_layout()
 
 
 
 
 
 
-
+fit_a.show_3D()
 
 #########################################################################
 # p97 all atoms

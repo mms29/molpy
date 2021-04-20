@@ -20,16 +20,12 @@ fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
-# init.allatoms2carbonalpha()
-# init.set_forcefield()
 
-target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
-target.center()
-target.save_pdb("data/1AKE/1ake_center.pdb")
-# target.coords += np.array([1.5,-2.0,-0.5])
-# target.rotate([0.17,-0.13,0.23])
+init.allatoms2carbonalpha()
+init.set_forcefield()
+target = nma_deform(init, [200,-100,0])
 
-size=100
+size=64
 sampling_rate=2.0
 cutoff= 6.0
 gaussian_sigma=2
@@ -46,44 +42,27 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    # "initial_biasing_factor" : 50,
-    "biasing_factor" : 0.26,
+    "initial_biasing_factor" : 50,
+    # "biasing_factor" : 0.26,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     "n_step": 20,
-    "n_iter":1000,
-    "n_warmup":900,
-    "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
+    "n_iter":50,
+    "n_warmup":45,
+    "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
 n_chain=4
 verbose =1
-fitxdt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_x_dt2")
-fitadt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a_dt2")
+fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,)
+fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,)
+fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,)
 
-params["biasing_factor"] = 0.5
-fitx05  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx05")
-
-params["biasing_factor"] = 5
-fitx5  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx5")
-
-params["biasing_factor"] = 50
-fitx50  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx50")
-
-params["biasing_factor"] = 0.26
-params["potentials"] = ["bonds", "angles", "dihedrals"]
-fitqdt2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL,FIT_VAR_ROTATION,  FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_q_dt2")
-
-fits=  multiple_fitting(models=[fitxdt2 , fitadt2 , fitqdt2,fitx05,  fitx5,fitx50],
-                        n_chain=n_chain, n_proc =25)
+fits=  multiple_fitting(models=[fitx , fita , fitq ],n_chain=n_chain, n_proc =25)
+fits[0].show_3D()
+fits[2].show()
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
 # fit.show()

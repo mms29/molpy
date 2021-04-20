@@ -162,3 +162,22 @@ def select_idx(param, idx):
     new_param_idx = np.array(new_param_idx).astype(int)
     return new_param, new_param_idx
 
+def get_mol_conv(mol1,mol2):
+    id1 = []
+    for i in range(mol1.n_atoms):
+        id1.append(mol1.chainName[i] + str(mol1.resNum[i]) + mol1.atomName[i])
+    id1 = np.array(id1)
+
+    id2 = []
+    for i in range(mol2.n_atoms):
+        id2.append(mol2.chainName[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+    id2 = np.array(id2)
+
+    idx = []
+    for i in range(len(id1)):
+        idx_tmp = np.where(id1[i] == id2)[0]
+        if len(idx_tmp) == 1:
+            idx.append([i, idx_tmp[0]])
+            print(idx[-1])
+    return np.array(idx)
+
