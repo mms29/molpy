@@ -87,16 +87,12 @@ class FlexibleFitting:
             for i in range(self.params["n_iter"]):
                 if self.verbose > 0 :
                     s = "HMC iter : " + str(i) + " | Chain id : " + str(chain_id)
-                    if self.prefix is not None:
-                        s = "["+self.prefix +"] "+s
-                    print(s)
+                    self._write(s)
                 self.HMC_step()
 
         except RuntimeError as rte:
             s = "Failed to run HMC chain : " + str(rte.args[0])
-            if self.prefix is not None:
-                s = "["+self.prefix +"] "+s
-            print(s)
+            self._write(s)
             self.res = {"mol" : self.init.copy()}
             for i in self.vars:
                 self.res[i] = self._get(i)
@@ -110,11 +106,11 @@ class FlexibleFitting:
 
             # End
             if self.verbose >0 :
-                print("############### HMC FINISHED ##########################")
-                print("### Total execution time : "+str(time.time()-t)+" s")
-                print("### Initial CC value : "+str(self.fit["CC"][0]))
-                print("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
-                print("#######################################################")
+                self._write("############### HMC FINISHED ##########################")
+                self._write("### Total execution time : "+str(time.time()-t)+" s")
+                self._write("### Initial CC value : "+str(self.fit["CC"][0]))
+                self._write("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
+                self._write("#######################################################")
 
             # Cleaning
             # for i in range(len(self.fit["coord"])):
@@ -207,7 +203,7 @@ class FlexibleFitting:
 
         # Total energy
         self._add("U", U)
-        if self.verbose>=3: print("Energy="+str(time.time()-t))
+        if self.verbose>=3: self._write("Energy="+str(time.time()-t))
 
     def _set_gradient(self):
         """
@@ -234,7 +230,7 @@ class FlexibleFitting:
 
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)
-        if self.verbose >= 3: print("Gradient=" + str(time.time() - t))
+        if self.verbose >= 3: self._write("Gradient=" + str(time.time() - t))
 
     def _set_kinetic(self):
         """
@@ -285,7 +281,7 @@ class FlexibleFitting:
                                   voxel_size=self.target.voxel_size,
                                   sigma=self.target.sigma, cutoff=self.target.cutoff)
 
-        if self.verbose >= 3: print("Density=" + str(time.time() - t))
+        if self.verbose >= 3: self._write("Density=" + str(time.time() - t))
         self._set("psim",psim)
         self._set("expnt",expnt)
 
@@ -349,10 +345,10 @@ class FlexibleFitting:
         # Update variables
         if self._get("accept") > np.random.rand() :
             suffix = "_t"
-            if self.verbose > 1 : print("ACCEPTED " + str(self._get("accept")))
+            if self.verbose > 1 : self._write("ACCEPTED " + str(self._get("accept")))
         else:
             suffix = ""
-            if self.verbose > 1 : print("REJECTED " + str(self._get("accept")))
+            if self.verbose > 1 : self._write("REJECTED " + str(self._get("accept")))
         for i in self.vars:
             self._add(i, self._get(i+suffix))
         self._add("coord", self._get("coord"+suffix))
@@ -393,12 +389,12 @@ class FlexibleFitting:
                 self._set("coord_pl", self._get("coord_t"))
             dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))/2
             if (dx_max > (self.params["cutoffpl"] - self.params["cutoffnb"])) or (not "pairlist" in self.fit):
-                if self.verbose >1 : print("Computing pairlist ...")
+                if self.verbose >1 : self._write("Computing pairlist ...")
                 t=time.time()
                 self._set("pairlist", src.forcefield.get_pairlist(self._get("coord_t"),
                         excluded_pairs= self.init.forcefield.excluded_pairs,cutoff=self.params["cutoffpl"]))
                 self._set("coord_pl",self._get("coord_t"))
-                if self.verbose > 1: print("Done "+str(time.time()-t)+" s")
+                if self.verbose > 1: self._write("Done "+str(time.time()-t)+" s")
         else:
             self._set("pairlist",None)
 
@@ -508,7 +504,7 @@ class FlexibleFitting:
 
         U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
         factor = np.abs(init_factor/(U_biased/U_potential))
-        if self.verbose > 0 : print("optimal initial factor : "+str(factor))
+        if self.verbose > 0 : self._write("optimal initial factor : "+str(factor))
         return factor
 
 
