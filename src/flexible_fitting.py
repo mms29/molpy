@@ -38,7 +38,9 @@ class FlexibleFitting:
         self.vars = vars
         self._set_init_fit_params(params)
         self.prefix = prefix
-
+        if self.prefix is not None:
+            with open(self.prefix +"_log.txt", "w") as f:
+                f.write("")
     def HMC(self):
         """
         Run HMC fitting with the specified number of chain in parallel
@@ -367,10 +369,20 @@ class FlexibleFitting:
         for i in self.vars :
             if i+"_factor" in self.params:
                 s.append("U_"+i)
-        printed_string=""
+        printed_string="ChainID="+str(self.chain_id)+" ; "
         for i in s:
-            printed_string += i + "=" + str(self._get(i)) + " ; "
-        print(printed_string)
+            printed_string += i + "=%.2f ;" % self._get(i)
+        self._write(printed_string+"\n")
+
+    def _write(self, s):
+        """
+        Write string to console/log file
+        """
+        if self.prefix is not None:
+            with open(self.prefix + "_log.txt", "a") as f :
+                f.write(s)
+        print(s)
+
 
     def _set_pairlist(self):
         """

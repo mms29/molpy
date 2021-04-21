@@ -1111,12 +1111,15 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
         rmsd.append(get_RMSD_coords(mol.coords, target.coords))
         vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
         cc.append(cross_correlation(vol.data,target_density.data))
-        np.save(file=prefix+"_cc.npy", arr=np.array(cc))
-        np.save(file=prefix+"_rmsd.npy", arr=np.array(rmsd))
+        np.save(file=prefix+"cc.npy", arr=np.array(cc))
+        np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
     return np.array(cc), np.array(rmsd)
 
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_",
     target=Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
+
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000_",
+    target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
 
 
@@ -1133,12 +1136,12 @@ fit_x.fit = [fit_x.fit[0]]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_output.pkl")
 fit_q.fit = [fit_q.fit[1]]
 
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000__cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000__rmsd.npy")
 
 fig, ax = plt.subplots(2,1)
-ax[0].plot(np.arange(len(cc))*10,cc, label="Genesis")
-ax[1].plot(np.arange(len(cc))*10,rmsd, label="Genesis")
+ax[0].plot(np.arange(len(cc))*100,cc, label="Genesis")
+ax[1].plot(np.arange(len(cc))*100,rmsd, label="Genesis")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global")

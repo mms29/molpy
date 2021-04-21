@@ -54,13 +54,13 @@ params ={
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }
-n_chain=4
+n_chain=2
 verbose =1
-fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,)
-fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,)
-fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,)
+fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testx")
+fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testa")
+fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testq")
 
-fits=  multiple_fitting(models=[fitx , fita , fitq ],n_chain=n_chain, n_proc =25)
+fits=  multiple_fitting(models=[fitx , fita , fitq ],n_chain=n_chain, n_proc =6)
 fits[0].show_3D()
 fits[2].show()
 # fit.HMC()
