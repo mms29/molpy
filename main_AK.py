@@ -51,23 +51,23 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 20,
-    "n_iter":1000,
-    "n_warmup":900,
+    "n_step": 1000,
+    "n_iter":20,
+    "n_warmup":18,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
     "target_coords":target.coords,
 }
 n_chain=4
 verbose =2
 fitxbf50  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf50")
+                       prefix="results/AK/fitxbf50s")
 fitabf50  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitabf50")
+                       prefix="results/AK/fitabf50s")
 params["initial_biasing_factor"] = 10
 fitxbf10  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                    prefix="results/AK/fitxbf10")
+                    prefix="results/AK/fitxbf10s")
 fitabf10  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitabf10")
+                       prefix="results/AK/fitabf10s")
 
 fits=  multiple_fitting(models=[fitxbf50 , fitabf50 , fitxbf10,fitabf10],
                         n_chain=n_chain, n_proc =25)

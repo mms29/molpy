@@ -362,16 +362,18 @@ class FlexibleFitting:
         """
         Print step information
         """
-        s=["L", "U_biased", "U_potential", "CC", "Time", "K", "T"]
+        s=["CC", "Time", "K", "T", "U_biased", "U_potential",]
         for i in self.vars :
             if i+"_factor" in self.params:
                 s.append("U_"+i)
         for i in self.params["potentials"]:
             s.append("U_"+i)
-        printed_string="ChainID="+str(self.chain_id)+" ; "
-        for i in s:
-            printed_string += i + "=%.2f ;" % self._get(i)
-        self._write(printed_string)
+
+        print_values = [self.chain_id, self._get("L")] + [self._get(i) for i in s]
+        print_values_str = " ".join(["%6i"%i if isinstance(i,int) else "%12.2f"%i for i in print_values])
+        print_header_str = " Chain   Iter "+" ".join(["%12s" % i for i in s])
+
+        self._write(print_header_str +"\n"+print_values_str)
 
     def _write(self, s):
         """
