@@ -36,11 +36,12 @@ class FlexibleFitting:
         self.n_chain = n_chain
         self.verbose = verbose
         self.vars = vars
-        self._set_init_fit_params(params)
         self.prefix = prefix
         if self.prefix is not None:
             with open(self.prefix +"_log.txt", "w") as f:
                 f.write("")
+        self._set_init_fit_params(params)
+
     def HMC(self):
         """
         Run HMC fitting with the specified number of chain in parallel
