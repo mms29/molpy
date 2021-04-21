@@ -366,10 +366,12 @@ class FlexibleFitting:
         for i in self.vars :
             if i+"_factor" in self.params:
                 s.append("U_"+i)
+        for i in self.params["potentials"]:
+            s.append("U_"+i)
         printed_string="ChainID="+str(self.chain_id)+" ; "
         for i in s:
             printed_string += i + "=%.2f ;" % self._get(i)
-        self._write(printed_string+"\n")
+        self._write(printed_string)
 
     def _write(self, s):
         """
@@ -377,7 +379,7 @@ class FlexibleFitting:
         """
         if self.prefix is not None:
             with open(self.prefix + "_log.txt", "a") as f :
-                f.write(s)
+                f.write(s+"\n")
         print(s)
 
 
