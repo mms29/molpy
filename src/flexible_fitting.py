@@ -86,9 +86,7 @@ class FlexibleFitting:
         # HMC Loop
         try :
             for i in range(self.params["n_iter"]):
-                if self.verbose > 0 :
-                    s = "HMC iter : " + str(i) + " | Chain id : " + str(chain_id)
-                    self._write(s)
+                self._set("Iter", i)
                 self.HMC_step()
 
         except RuntimeError as rte:
@@ -346,10 +344,10 @@ class FlexibleFitting:
         # Update variables
         if self._get("accept") > np.random.rand() :
             suffix = "_t"
-            if self.verbose > 1 : self._write("ACCEPTED " + str(self._get("accept")))
+            if self.verbose > 2 : self._write("ACCEPTED " + str(self._get("accept")))
         else:
             suffix = ""
-            if self.verbose > 1 : self._write("REJECTED " + str(self._get("accept")))
+            if self.verbose > 2 : self._write("REJECTED " + str(self._get("accept")))
         for i in self.vars:
             self._add(i, self._get(i+suffix))
         self._add("coord", self._get("coord"+suffix))
@@ -369,9 +367,9 @@ class FlexibleFitting:
         for i in self.params["potentials"]:
             s.append("U_"+i)
 
-        print_values = [self.chain_id, self._get("L")] + [self._get(i) for i in s]
+        print_values = [self.chain_id, self._get("Iter"),self._get("L")] + [self._get(i) for i in s]
         print_values_str = " ".join(["%6i"%i if isinstance(i,int) else "%12.2f"%i for i in print_values])
-        print_header_str = " Chain   Iter "+" ".join(["%12s" % i for i in s])
+        print_header_str = " Chain   Iter   Step "+" ".join(["%12s" % i for i in s])
 
         self._write(print_header_str +"\n"+print_values_str)
 
@@ -394,15 +392,25 @@ class FlexibleFitting:
                 self._set("coord_pl", self._get("coord_t"))
             dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))/2
             if (dx_max > (self.params["cutoffpl"] - self.params["cutoffnb"])) or (not "pairlist" in self.fit):
-                if self.verbose >1 : self._write("Computing pairlist ...")
+                if self.verbose >2 : self._write("Computing pairlist ...")
                 t=time.time()
                 self._set("pairlist", src.forcefield.get_pairlist(self._get("coord_t"),
                         excluded_pairs= self.init.forcefield.excluded_pairs,cutoff=self.params["cutoffpl"]))
                 self._set("coord_pl",self._get("coord_t"))
-                if self.verbose > 1: self._write("Done "+str(time.time()-t)+" s")
+                if self.verbose > 2: self._write("Done "+str(time.time()-t)+" s")
         else:
             self._set("pairlist",None)
 
+    def _set_factor(self, init_factor=100, **kwargs):
+        psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
+                                                 voxel_size=self.target.voxel_size,
+                                                 sigma=self.target.sigma, cutoff=self.target.cutoff)
+        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
+
+        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
+        factor = np.abs(init_factor/(U_biased/U_potential))
+        if self.verbose > 0 : self._write("optimal initial factor : "+str(factor))
+        return factor
 
     def HMC_step(self):
         """
@@ -444,7 +452,7 @@ class FlexibleFitting:
             if "target_coords" in self.params:
                 self._add("RMSD", src.functions.get_RMSD_coords(self._get("coord_t"), self.params["target_coords"]))
         # Check pairlist
-        #     self._set_pairlist()
+            self._set_pairlist()
         # Potential energy update
             self._set_energy()
         # Gradient Update
@@ -500,17 +508,6 @@ class FlexibleFitting:
         with open(file, 'rb') as f:
             fit = pickle.load(file=f)
             return fit
-
-    def _set_factor(self, init_factor=100, **kwargs):
-        psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
-                                                 voxel_size=self.target.voxel_size,
-                                                 sigma=self.target.sigma, cutoff=self.target.cutoff)
-        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
-
-        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
-        factor = np.abs(init_factor/(U_biased/U_potential))
-        if self.verbose > 0 : self._write("optimal initial factor : "+str(factor))
-        return factor
 
 
 

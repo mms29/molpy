@@ -56,22 +56,21 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":200,
-    "n_warmup":180,
-    "n_step": 20,
+    "n_iter":20,
+    "n_warmup":18,
+    "n_step": 1000,
     "criterion": False,
     "target_coords" : target.coords
 }
-n_chain=2
+n_chain=4
 verbose=2
-prefix = "results/P97/5ftm25ftn_noR"
-prefix_x = prefix+"_x"
-prefix_q = prefix+"_q"
-prefix_a = prefix+"_a"
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_x)
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix=prefix_q)
-fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global","shift"], params=params, n_chain=n_chain, verbose=verbose,prefix=prefix_a)
+fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97/fitxs")
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97/fitqs")
+fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97/fitas")
 
 fits = multiple_fitting(models=[fitx, fitq, fita], n_chain=n_chain, n_proc=13)
 
