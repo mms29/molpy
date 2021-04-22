@@ -14,7 +14,7 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init =Molecule("data/ATPase/1su4_PSF.pdb")
+init =Molecule("data/ATPase/1su4_PSF_min.pdb")
 init.center()
 fnModes = np.array(["data/ATPase/1su4_modes_PSF/vec."+str(i+7) for i in range(5)])
 init.set_normalModeVec(fnModes)
@@ -47,12 +47,11 @@ params ={
     "n_warmup":0,
     "n_step": 2000,
     "criterion": False,
-    "target_coords" : target.coords
+    "target_coords" : target.coords,
+    "output_update":10
 }
 n_chain=4
 verbose=2
-prefix = "results/ATPase/1su421iwo"
-prefix2 = "results/ATPase/1su421iwoNoR"
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix = "results/ATPase/fitx")

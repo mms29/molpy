@@ -86,7 +86,7 @@ class FlexibleFitting:
         self.chain_id = chain_id
 
         # initialize fit variables
-        self.fit= {"coord":[copy.deepcopy(self.init.coords)]}
+        self.fit= {"coord":[copy.deepcopy(self.init.coords)],"accept":[0]}
         for i in self.vars:
             self._set(i ,[self.params[i+"_init"]])
 
@@ -195,7 +195,7 @@ class FlexibleFitting:
             if self.verbose > 1:
                 self._print_step()
         # save step
-            if self._get("L") % self.params["output_update"]:
+            if self._get("L") % self.params["output_update"] ==0 :
                 self._save_step()
         if self.verbose == 1:
             self._print_step()

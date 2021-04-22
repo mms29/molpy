@@ -116,14 +116,14 @@ def get_autograd(params, mol, **kwargs):
     F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
 
     # EDIT TODO
-    if "elec" in kwargs["potentials"]:
-        if "local" in F:
-            limit = 1000
-            Fabs = np.linalg.norm(F["local"], axis=1)
-            idx= np.where(Fabs > limit)[0]
-            if idx.shape[0]>0:
-                print(" ===============  LIMITER ACTIVATED  =================  ")
-                F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+    # if "elec" in kwargs["potentials"]:
+    #     if "local" in F:
+    #         limit = 1000
+    #         Fabs = np.linalg.norm(F["local"], axis=1)
+    #         idx= np.where(Fabs > limit)[0]
+    #         if idx.shape[0]>0:
+    #             print(" ===============  LIMITER ACTIVATED  =================  ")
+    #             F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
     return F
 
 def get_energy_bonds(coord, forcefield):
