@@ -49,10 +49,10 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 200,
-    "n_iter":25,
-    "n_warmup":20,
-    "potentials" : ["bonds", "angles", "dihedrals"],
+    "n_step": 10,
+    "n_iter":250,
+    "n_warmup":200,
+    "potentials" : ["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"],
     "target_coords":target.coords,
 }
 n_chain=4
@@ -61,14 +61,8 @@ fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL]
                        prefix="results/AK_synth/fitx")
 fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL,FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK_synth/fita")
-params["n_step"]=10
-params["n_iter"]=100
-fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK_synth/fitq")
-
-fitq.HMC()
-# fits=  multiple_fitting(models=[fitx, fita, fitq],
-#                         n_chain=n_chain, n_proc =25)
+fits=  multiple_fitting(models=[fitx, fita],
+                        n_chain=n_chain, n_proc =25)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
 # fit.show()

@@ -51,7 +51,7 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 20000,
+    "n_step": 5000,
     "n_iter":1,
     "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
@@ -66,7 +66,7 @@ fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL]
                        prefix="results/AK/fitxbf10md")
 params["local_dt"]=1e-15
 fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf50dt1md")
+                       prefix="results/AK/fitxbf10dt1md")
 params["initial_biasing_factor"]=50
 fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fitxbf50dt1md")
