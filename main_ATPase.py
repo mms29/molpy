@@ -37,29 +37,26 @@ params ={
     "potentials":["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"],
     "cutoffpl":10.0,
     "cutoffnb":7.0,
-    "local_dt" : 1e-15,
+    "local_dt" : 2e-15,
     "temperature" : 300,
     "global_dt" : 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":100,
-    "n_warmup":90,
-    "n_step": 40,
+    "n_iter":1,
+    "n_warmup":0,
+    "n_step": 2000,
     "criterion": False,
     "target_coords" : target.coords
 }
-n_chain=2
+n_chain=4
 verbose=2
 prefix = "results/ATPase/1su421iwo"
 prefix2 = "results/ATPase/1su421iwoNoR"
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local","rotation", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix+"_x")
-fita  =FlexibleFitting(init=init, target=target_density, vars=["local","rotation", "global","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix+"_a")
-fitxNoR  =FlexibleFitting(init=init, target=target_density, vars=["local", "shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix2+"_x")
-fitaNoR  =FlexibleFitting(init=init, target=target_density, vars=["local", "global","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix2+"_a")
-params["potentials"] = ["bonds", "angles", "dihedrals"]
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","rotation","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix+"_q")
-fitqNoR  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose, prefix = prefix2+"_q")
+fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix = "results/ATPase/fitx")
+fita  =FlexibleFitting(init=init, target=target_density, vars=["local","global"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix = "results/ATPase/fita")
 
-fits = multiple_fitting(models=[fitx, fitq, fita, fitxNoR, fitqNoR, fitaNoR], n_chain=n_chain, n_proc=28)
+fits = multiple_fitting(models=[fitx, fita,], n_chain=n_chain, n_proc=8)

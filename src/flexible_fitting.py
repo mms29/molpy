@@ -15,6 +15,11 @@ import src.functions
 import src.molecule
 from src.viewers import fit_viewer, chimera_fit_viewer
 
+#################################################################################################################
+#                          Flexible Fitting
+#################################################################################################################
+
+
 class FlexibleFitting:
     """
     Perform flexible fitting between initial atomic structure and target Density using HMC
@@ -41,6 +46,8 @@ class FlexibleFitting:
             with open(self.prefix +"_log.txt", "w") as f:
                 f.write("")
         self._set_init_fit_params(params)
+
+    # =============================================== HMC ======================================================
 
     def HMC(self):
         """
@@ -126,6 +133,134 @@ class FlexibleFitting:
 
         return self
 
+    def HMC_step(self):
+        """
+        Run HMC iteration
+        """
+    # Initial coordinates
+        self._initialize()
+    # Compute Forward model
+        self._forward_model()
+    # initial density
+        self._set_density()
+        self._set_density()
+    # Check pairlist
+        self._set_pairlist()
+    # Initial Potential Energy
+        self._set_energy()
+    # Initial gradient
+        self._set_gradient()
+    # Initial Kinetic Energy
+        self._set_kinetic()
+    # Temperature update
+        self._set_instant_temp()
+    # Initial Hamiltonian
+        H_init = self._get_hamiltonian()
+    # Init vars
+        self._add("C",0)
+        self._add("L", 0)
+    # MD loop
+        while (self._get("C") >= 0 and self._get("L")< self.params["n_step"]):
+            tt = time.time()
+        # Coordinate update
+            self._update_positions()
+        # Compute Forward model
+            self._forward_model()
+        # Density update
+            self._set_density()
+        # CC update
+            self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
+            if "target_coords" in self.params:
+                self._add("RMSD", src.functions.get_RMSD_coords(self._get("coord_t"), self.params["target_coords"]))
+        # Check pairlist
+            self._set_pairlist()
+        # Potential energy update
+            self._set_energy()
+        # Gradient Update
+            self._set_gradient()
+        # velocities update
+            self._update_velocities()
+        # Kinetic update
+            self._set_kinetic()
+        # Temperature update
+            self._set_instant_temp()
+            if FIT_VAR_LOCAL in self.vars:
+                self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
+
+        # criterion update
+            self._set_criterion()
+            self.fit["L"][-1] +=1
+        # Prints
+            self._add("Time", time.time() -tt)
+            if self.verbose > 1:
+                self._print_step()
+        # save step
+            if self._get("L") % self.params["output_update"]:
+                self._save_step()
+        if self.verbose == 1:
+            self._print_step()
+    # Hamiltonian update
+        H = self._get_hamiltonian()
+    # Metropolis acceptation
+        self._acceptation(H, H_init)
+    # save pdb step
+        self._save_step()
+
+    # ==========================================   FlexibleFitting  IO        ===============================================
+
+    def show(self,save=None):
+        """
+        Show fitting statistics
+        """
+        fit_viewer(self,save=save)
+
+    def show_3D(self):
+        """
+        Show fitting results in 3D
+        """
+        chimera_fit_viewer(self.res["mol"], self.target)
+
+    def save(self, file):
+        with open(file, 'wb') as f:
+            pickle.dump(file=f, obj=self)
+
+    @classmethod
+    def load(cls, file):
+        with open(file, 'rb') as f:
+            fit = pickle.load(file=f)
+            return fit
+
+    # ==========================================     FlexibleFitting controls        ===============================================
+
+    def _get(self, key):
+        if isinstance(self.fit[key], list):
+            return self.fit[key][-1]
+        else:
+            return self.fit[key]
+
+    def _add(self, key, value):
+        if key in self.fit:
+            self.fit[key].append(value)
+        else:
+            self.fit[key] = [value]
+
+    def _set(self, key, value):
+        self.fit[key] = value
+
+    def _remove(self, key):
+        del self.fit[key]
+
+    def _write(self, s):
+        """
+        Write string to console/log file
+        """
+        if self.prefix is not None:
+            with open(self.prefix + "_log.txt", "a") as f :
+                f.write(s+"\n")
+        print(s)
+
+    # ==========================================  Initialization        ===============================================
+
     def _set_init_fit_params(self, params):
         """
         Set initial parameters of the fitting
@@ -151,23 +286,15 @@ class FlexibleFitting:
 
         self.params = default_params
 
-    def _get(self, key):
-        if isinstance(self.fit[key], list):
-            return self.fit[key][-1]
-        else:
-            return self.fit[key]
+    def _initialize(self):
+        """
+        Initialize all variables positions and velocities
+        """
+        for i in self.vars:
+            self._set(i+"_t", self._get(i))
+            self._set(i+"_v", np.random.normal(0, self.params[i+"_sigma"], self._get(i).shape))
 
-    def _add(self, key, value):
-        if key in self.fit:
-            self.fit[key].append(value)
-        else:
-            self.fit[key] = [value]
-
-    def _set(self, key, value):
-        self.fit[key] = value
-
-    def _remove(self, key):
-        del self.fit[key]
+    # ==========================================   Forcefield       ===============================================
 
     def _set_energy(self):
         """
@@ -253,18 +380,6 @@ class FlexibleFitting:
         T = 2 * self._get("K")*(KCAL_TO_JOULE/AVOGADRO_CONST ) / (K_BOLTZMANN * 3 * self.init.n_atoms)
         self._add("T", T)
 
-    def _set_criterion(self):
-        """
-        Compute NUTS criterion (optional)
-        """
-        C = 0
-        if self.params["criterion"]:
-            for i in self.vars:
-                C += np.dot((self._get(i+"_t").flatten() - self._get(i).flatten()), self._get(i+"_v").flatten())
-            self._add("C",C)
-        else:
-            self._add("C", 0)
-
     def _set_density(self):
         """
         Compute the density (Image or Volume)
@@ -287,13 +402,7 @@ class FlexibleFitting:
     def _get_hamiltonian(self):
         return self._get("U") +  self._get("K")
 
-    def _initialize(self):
-        """
-        Initialize all variables positions and velocities
-        """
-        for i in self.vars:
-            self._set(i+"_t", self._get(i))
-            self._set(i+"_v", np.random.normal(0, self.params[i+"_sigma"], self._get(i).shape))
+    # ==========================================   HMC update       ===============================================
 
     def _update_positions(self):
         """
@@ -332,29 +441,7 @@ class FlexibleFitting:
             coord += self._get(FIT_VAR_SHIFT+"_t")
         self._set("coord_t", coord)
 
-    def _acceptation(self,H, H_init):
-        """
-        Perform Metropolis Acceptation step
-        :param H: Current Hamiltonian
-        :param H_init: Initial Hamiltonian
-        """
-        # Set acceptance value
-        self._add("accept",  np.min([1, H_init/H]) )
-
-        # Update variables
-        if self._get("accept") > np.random.rand() :
-            suffix = "_t"
-            if self.verbose > 2 : self._write("ACCEPTED " + str(self._get("accept")))
-        else:
-            suffix = ""
-            if self.verbose > 2 : self._write("REJECTED " + str(self._get("accept")))
-        for i in self.vars:
-            self._add(i, self._get(i+suffix))
-        self._add("coord", self._get("coord"+suffix))
-
-        # clean forces
-        for i in self.vars:
-            self._remove(i + "_F")
+    # ==========================================   HMC IO       ===============================================
 
     def _print_step(self):
         """
@@ -373,15 +460,16 @@ class FlexibleFitting:
 
         self._write(print_header_str +"\n"+print_values_str)
 
-    def _write(self, s):
-        """
-        Write string to console/log file
-        """
+    def _save_step(self):
         if self.prefix is not None:
-            with open(self.prefix + "_log.txt", "a") as f :
-                f.write(s+"\n")
-        print(s)
+            cp = self.init.copy()
+            cp.coords = self._get("coord")
+            cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
+            del cp
+            self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
+            self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")
 
+    # ==========================================   HMC Others       ===============================================
 
     def _set_pairlist(self):
         """
@@ -412,104 +500,41 @@ class FlexibleFitting:
         if self.verbose > 0 : self._write("optimal initial factor : "+str(factor))
         return factor
 
-    def HMC_step(self):
+    def _set_criterion(self):
         """
-        Run HMC iteration
+        Compute NUTS criterion (optional)
         """
-    # Initial coordinates
-        self._initialize()
-    # Compute Forward model
-        self._forward_model()
-    # initial density
-        self._set_density()
-        self._set_density()
-    # Check pairlist
-        self._set_pairlist()
-    # Initial Potential Energy
-        self._set_energy()
-    # Initial gradient
-        self._set_gradient()
-    # Initial Kinetic Energy
-        self._set_kinetic()
-    # Temperature update
-        self._set_instant_temp()
-    # Initial Hamiltonian
-        H_init = self._get_hamiltonian()
-    # Init vars
-        self._add("C",0)
-        self._add("L", 0)
-    # MD loop
-        while (self._get("C") >= 0 and self._get("L")< self.params["n_step"]):
-            tt = time.time()
-        # Coordinate update
-            self._update_positions()
-        # Compute Forward model
-            self._forward_model()
-        # Density update
-            self._set_density()
-        # CC update
-            self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
-            if "target_coords" in self.params:
-                self._add("RMSD", src.functions.get_RMSD_coords(self._get("coord_t"), self.params["target_coords"]))
-        # Check pairlist
-            self._set_pairlist()
-        # Potential energy update
-            self._set_energy()
-        # Gradient Update
-            self._set_gradient()
-        # velocities update
-            self._update_velocities()
-        # Kinetic update
-            self._set_kinetic()
-        # Temperature update
-            self._set_instant_temp()
-            if FIT_VAR_LOCAL in self.vars:
-                self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
+        C = 0
+        if self.params["criterion"]:
+            for i in self.vars:
+                C += np.dot((self._get(i+"_t").flatten() - self._get(i).flatten()), self._get(i+"_v").flatten())
+            self._add("C",C)
+        else:
+            self._add("C", 0)
 
-        # criterion update
-            self._set_criterion()
-            self.fit["L"][-1] +=1
-        # Prints
-            self._add("Time", time.time() -tt)
-            if self.verbose > 1:
-                self._print_step()
-        if self.verbose == 1:
-            self._print_step()
-    # Hamiltonian update
-        H = self._get_hamiltonian()
-    # Metropolis acceptation
-        self._acceptation(H, H_init)
-    # save pdb step
-        if self.prefix is not None:
-            cp = self.init.copy()
-            cp.coords = self._get("coord")
-            cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
-            del cp
-            self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
-
-    def show(self,save=None):
+    def _acceptation(self,H, H_init):
         """
-        Show fitting statistics
+        Perform Metropolis Acceptation step
+        :param H: Current Hamiltonian
+        :param H_init: Initial Hamiltonian
         """
-        fit_viewer(self,save=save)
+        # Set acceptance value
+        self._add("accept",  np.min([1, H_init/H]) )
 
-    def show_3D(self):
-        """
-        Show fitting results in 3D
-        """
-        chimera_fit_viewer(self.res["mol"], self.target)
+        # Update variables
+        if self._get("accept") > np.random.rand() :
+            suffix = "_t"
+            if self.verbose > 2 : self._write("ACCEPTED " + str(self._get("accept")))
+        else:
+            suffix = ""
+            if self.verbose > 2 : self._write("REJECTED " + str(self._get("accept")))
+        for i in self.vars:
+            self._add(i, self._get(i+suffix))
+        self._add("coord", self._get("coord"+suffix))
 
-    def save(self, file):
-        with open(file, 'wb') as f:
-            pickle.dump(file=f, obj=self)
-
-    @classmethod
-    def load(cls, file):
-        with open(file, 'rb') as f:
-            fit = pickle.load(file=f)
-            return fit
-
-
+        # clean forces
+        for i in self.vars:
+            self._remove(i + "_F")
 
 def multiple_fitting(models, n_chain, n_proc):
     class NoDaemonProcess(multiprocessing.Process):

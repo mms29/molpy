@@ -55,6 +55,8 @@ DEFAULT_FIT_PARAMS ={
     "n_warmup": 10,
     "criterion" :False,
 
+    "output_update":10,
+
     FIT_VAR_LOCAL+"_dt" : 1e-15,
     "temperature" : 300,
     FIT_VAR_GLOBAL+"_dt" : 0.01,

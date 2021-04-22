@@ -1115,8 +1115,8 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
         np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
     return np.array(cc), np.array(rmsd)
 
-cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_",
-    target=Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_",
+    target=Molecule("/home/guest/Workspace/Paper_Frontiers/AKsynth/AK_synth_min.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000_",
     target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
@@ -1134,9 +1134,18 @@ fit_a.fit = [fit_a.fit[1]]
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
 fit_x.fit = [fit_x.fit[0]]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
-
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
+
+
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitabf50s_output.pkl")
+fit_a.fit = [fit_a.fit[1]]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
+fit_x.fit = [fit_x.fit[0]]
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_rmsd.npy")
+
 
 fig, ax = plt.subplots(2,1)
 ax[0].plot(np.arange(len(cc))*100,cc, label="Genesis", c="tab:orange")
