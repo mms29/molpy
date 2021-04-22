@@ -462,7 +462,7 @@ class FlexibleFitting:
     def _save_step(self):
         if self.prefix is not None:
             cp = self.init.copy()
-            cp.coords = self._get("coord")
+            cp.coords = self._get("coord_t")
             cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
             del cp
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
