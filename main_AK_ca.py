@@ -48,9 +48,9 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 20,
-    "n_iter":50,
-    "n_warmup":45,
+    "n_step": 100,
+    "n_iter":1,
+    "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
 }

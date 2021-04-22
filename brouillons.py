@@ -1129,25 +1129,24 @@ fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5f
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_dt2_output.pkl")
-fit_a.fit = [fit_a.fit[0]]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_x_dt2_output.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitabf50s_output.pkl")
+fit_a.fit = [fit_a.fit[1]]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
 fit_x.fit = [fit_x.fit[0]]
-fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_output.pkl")
-fit_q.fit = [fit_q.fit[1]]
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
 
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000__cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000__rmsd.npy")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
 
 fig, ax = plt.subplots(2,1)
-ax[0].plot(np.arange(len(cc))*100,cc, label="Genesis")
-ax[1].plot(np.arange(len(cc))*100,rmsd, label="Genesis")
-ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local")
-ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global")
-ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global")
-ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local")
-ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global")
-ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global")
+ax[0].plot(np.arange(len(cc))*10,cc, label="Genesis", c="tab:orange")
+ax[1].plot(np.arange(len(cc))*10,rmsd, label="Genesis", c="tab:orange")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
 ax[0].set_xlabel("MD step")
 ax[0].set_ylabel("CC")
 ax[1].set_xlabel("MD step")
