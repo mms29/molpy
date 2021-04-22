@@ -52,17 +52,19 @@ params ={
 n_chain=4
 verbose=2
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_synth/fitx")
-
-fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_synth/fita")
+# fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
+#                        prefix="results/P97_synth/fitx")
+#
+# fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
+#                        prefix="results/P97_synth/fita")
 
 params["n_iter"] = 1000
 params["n_step"] = 20
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/P97_synth/fitq")
-fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=13)
+
+fitq.HMC()
+# fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=13)
 
 #
 # import matplotlib.pyplot as plt
