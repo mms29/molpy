@@ -1,5 +1,5 @@
-# import mkl
-# mkl.set_num_threads(1)
+import mkl
+mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
@@ -32,7 +32,7 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=s
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 
 params ={
-    "initial_biasing_factor" : 50,
+    "biasing_factor" : 0.21,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"],
     "cutoffpl":10.0,
@@ -58,4 +58,4 @@ fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local","global"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix = "results/ATPase/fita")
 
-fits = multiple_fitting(models=[fitx, fita,], n_chain=n_chain, n_proc=8)
+fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=10)

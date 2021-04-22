@@ -186,7 +186,6 @@ class FlexibleFitting:
             self._set_instant_temp()
             if FIT_VAR_LOCAL in self.vars:
                 self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
-
         # criterion update
             self._set_criterion()
             self.fit["L"][-1] +=1
