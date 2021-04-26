@@ -14,12 +14,13 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init =Molecule("data/AK/AK_PSF_min.pdb")
+init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
+init.get_energy()
 # init.allatoms2carbonalpha()
 # init.set_forcefield()
 
