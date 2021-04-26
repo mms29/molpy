@@ -472,9 +472,9 @@ class FlexibleFitting:
             cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
             # ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
             del cp
-            self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
+            # self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
             self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")
-            self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
+            # self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
 
     # ==========================================   HMC Others       ===============================================
 
