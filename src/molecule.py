@@ -213,9 +213,9 @@ class MoleculeForceField:
         self.b0 = np.zeros(self.n_bonds)
         self.KTheta = np.zeros(self.n_angles)
         self.Theta0 = np.zeros(self.n_angles)
-        self.Kchi = np.zeros(self.n_dihedrals)
-        self.n = np.zeros(self.n_dihedrals)
-        self.delta = np.zeros(self.n_dihedrals)
+        self.Kchi  = []
+        self.n     = []
+        self.delta = []
         self.Kpsi = np.zeros(self.n_impropers)
         self.psi0 = np.zeros(self.n_impropers)
         self.charge = np.array(psf["atomCharge"])
@@ -249,29 +249,40 @@ class MoleculeForceField:
             if not found:
                 raise RuntimeError("Enable to locale ANGLES item in the PRM file")
 
+
+        n=0
+        new_dihe = []
         for i in range(self.n_dihedrals):
-            comb = list(atom_type[self.dihedrals[i]])
+            dihe = list(atom_type[self.dihedrals[i]])
             found = False
-            for perm in permutations(comb):
-                dihedral = "-".join(perm)
-                if dihedral in prm["dihedrals"]:
-                    self.Kchi[i] = prm["dihedrals"][dihedral][0]
-                    self.n[i] = prm["dihedrals"][dihedral][1]
-                    self.delta[i] = prm["dihedrals"][dihedral][2]
-                    found = True
-                    break
-            if not found:
-                found = False
-                for perm in permutations(comb):
-                    dihedral = "-".join(['X'] + list(perm[1:3]) + ['X'])
-                    if dihedral in prm["dihedrals"]:
-                        self.Kchi[i] = prm["dihedrals"][dihedral][0]
-                        self.n[i] = prm["dihedrals"][dihedral][1]
-                        self.delta[i] = prm["dihedrals"][dihedral][2]
+            for j in prm["dihedrals"]:
+                if (j[0] == dihe[0] and j[1] == dihe[1] and j[2] == dihe[2] and j[3] == dihe[3]) or \
+                   (j[0] == dihe[3] and j[1] == dihe[2] and j[2] == dihe[1] and j[3] == dihe[0]):
+                    n+=1
+                    found=True
+                    new_dihe.append(self.dihedrals[i])
+                    self.Kchi.append(j[4])
+                    self.n.append(j[5])
+                    self.delta.append(j[6])
+            if found ==False:
+                for j in prm["dihedrals"]:
+                    if (j[0] == "X" and j[1] == dihe[1] and j[2] == dihe[2] and j[3] == "X") or \
+                            (j[0] == "X" and j[1] == dihe[2] and j[2] == dihe[1] and j[3] == "X"):
+                        n += 1
                         found = True
-                        break
-                if not found:
-                    raise RuntimeError("Enable to locale DIHEDRAL item in the PRM file")
+                        new_dihe.append(self.dihedrals[i])
+                        self.Kchi.append(j[4])
+                        self.n.append(j[5])
+                        self.delta.append(j[6])
+            if found == False:
+                raise RuntimeError("Enable to locale DIHEDRAL item in the PRM file")
+        self.dihedrals = np.array(new_dihe)
+        self.Kchi = np.array(self.Kchi)
+        self.n = np.array(self.n)
+        self.delta = np.array(self.delta)
+        print(self.dihedrals.shape)
+
+
 
         for i in range(self.n_impropers):
             comb = list(atom_type[self.impropers[i]])

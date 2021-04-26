@@ -1118,10 +1118,22 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_",
     target=Molecule("/home/guest/Workspace/Paper_Frontiers/AKsynth/AK_synth_min.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
-cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k5000_",
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_",
     target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_",
+    target=Molecule("data/P97/5ftm_synth_min.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
+
+
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/P97synth/fita_chain0.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/P97synth/fitx_chain0.pkl")
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/P97synth/fitq_chain0.pkl")
+fit_a.fit = [fit_a.fit]
+fit_q.fit = [fit_q.fit]
+fit_x.fit = [fit_x.fit]
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_rmsd.npy")
 
 fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pkl")
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_x_output.pkl")
@@ -1129,38 +1141,47 @@ fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5f
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitabf50s_output.pkl")
-fit_a.fit = [fit_a.fit[1]]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
-fit_x.fit = [fit_x.fit[0]]
-fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/ak21ake_rmsd.npy")
-
 
 fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitabf50s_output.pkl")
 fit_a.fit = [fit_a.fit[1]]
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
 fit_x.fit = [fit_x.fit[0]]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_rmsd.npy")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_rmsd.npy")
 
 
-fig, ax = plt.subplots(2,1)
-ax[0].plot(np.arange(len(cc))*100,cc, label="Genesis", c="tab:orange")
-ax[1].plot(np.arange(len(cc))*100,rmsd, label="Genesis", c="tab:orange")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fita_output.pkl")
+fit_a.fit = [fit_a.fit[0]]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fitx_output.pkl")
+fit_x.fit = [fit_x.fit[1]]
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fitq_output.pkl")
+fit_q.fit = [fit_q.fit[1]]
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_rmsd.npy")
+
+
+fig, ax = plt.subplots(1,2, figsize = (10,3))
+cc_init =np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0)[0]
+rmsd_init =np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0)[0]
+ax[0].plot(np.arange(len(cc)+1)*100,[cc_init] + list(cc), label="Genesis", c="tab:orange")
+ax[1].plot(np.arange(len(cc)+1)*100,[rmsd_init] + list(rmsd), label="Genesis", c="tab:orange")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
 ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
-# ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-# ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
-# ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
 ax[0].set_xlabel("MD step")
 ax[0].set_ylabel("CC")
+ax[0].set_title("Cross correlation")
+ax[0].legend(loc='lower right')
 ax[1].set_xlabel("MD step")
 ax[1].set_ylabel("RMSD (A)")
-plt.legend()
+ax[1].set_title("Root Mean Square Deviation")
+N=1000
+ax[0].set_xlim(-N/10,N + N/10)
+ax[1].set_xlim(-N/10,N + N/10)
 fig.tight_layout()
 
 
@@ -1200,3 +1221,19 @@ ax.set_xlabel("MD step")
 # ax[1].set_xscale('log')
 plt.legend()
 fig.tight_layout()
+
+
+
+from RamachanDraw import fetch, phi_psi, plot
+
+# PDB id to be downloaded
+PDB_id = '1MBN'
+
+# Drawing the Ramachandran plot
+plot("data/P97/5ftm_psf.pdb")
+plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pdb")
+plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
+
+plot("data/AK/AK_PSF.pdb")
+plot("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_dt2_chain0_min.pdb")
+plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")

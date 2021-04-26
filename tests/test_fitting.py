@@ -16,7 +16,7 @@ class TestFittingAK(unittest.TestCase):
         ak.set_forcefield()
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
-        params = { "initial_biasing_factor": 100 , "local_dt":2*1e-15}
+        params = { "initial_biasing_factor": 100 , "local_dt":2*1e-15, "n_iter":50, "n_warmup":40}
         fit = FlexibleFitting(init=ak, target=target, vars=["local"], params=params, n_chain=4, verbose=0)
         fit.HMC()
 
