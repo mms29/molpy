@@ -57,6 +57,7 @@ params ={
     "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey","vdw", "elec"],
     "target_coords":target.coords,
+    "limit" : 100
 }
 n_chain=4
 verbose =2
