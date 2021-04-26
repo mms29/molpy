@@ -14,7 +14,7 @@ from src.constants import *
 ########################################################################################################
 
 # import PDB
-init =Molecule("data/AK/AK_PSF.pdb")
+init =Molecule("data/AK/AK_PSF_min.pdb")
 init.center()
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
@@ -59,19 +59,13 @@ params ={
 }
 n_chain=4
 verbose =2
-fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf50md")
-params["initial_biasing_factor"]=10
-fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf10md")
-params["local_dt"]=1e-15
-fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf10dt1md")
-params["initial_biasing_factor"]=50
-fit4  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitxbf50dt1md")
+fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_a")
+fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fit_x")
 
-fits=  multiple_fitting(models=[fit1, fit2, fit3, fit4],
+
+fits=  multiple_fitting(models=[fit1, fit2],
                         n_chain=n_chain, n_proc =25)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
