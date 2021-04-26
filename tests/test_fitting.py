@@ -17,7 +17,7 @@ class TestFittingAK(unittest.TestCase):
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = { "initial_biasing_factor": 100 , "local_dt":2*1e-15, "n_iter":50, "n_warmup":40}
-        fit = FlexibleFitting(init=ak, target=target, vars=["local"], params=params, n_chain=4, verbose=0)
+        fit = FlexibleFitting(init=ak, target=target, vars=["local"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
         ground_truth = Molecule("tests_data/input/AK/ak_nma_carbonalpha.pdb")
@@ -35,7 +35,7 @@ class TestFittingAK(unittest.TestCase):
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "global_dt": 0.05}
-        fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=0)
+        fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
         ground_truth = Molecule("tests_data/input/AK/ak_nma_carbonalpha.pdb")
@@ -54,7 +54,7 @@ class TestFittingAK(unittest.TestCase):
 
         target = Volume.from_file(file="tests_data/input/AK/ak_rotation_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "rotation_dt": 0.0001}
-        fit = FlexibleFitting(init=ak, target=target, vars=["rotation"], params=params, n_chain=4, verbose=0)
+        fit = FlexibleFitting(init=ak, target=target, vars=["rotation"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
         ground_truth = Molecule("tests_data/input/AK/ak_rotation_carbonalpha.pdb")
@@ -70,7 +70,7 @@ class TestFittingAK(unittest.TestCase):
 
         target = Volume.from_file(file="tests_data/input/AK/ak_shift_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
         params = {"initial_biasing_factor": 100, "shift_dt": 0.001}
-        fit = FlexibleFitting(init=ak, target=target, vars=["shift"], params=params, n_chain=4, verbose=0)
+        fit = FlexibleFitting(init=ak, target=target, vars=["shift"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
         ground_truth = Molecule("tests_data/input/AK/ak_shift_carbonalpha.pdb")
@@ -95,7 +95,7 @@ class TestFittingAK(unittest.TestCase):
             "n_iter": 30,
             "n_warmup": 20,
         }
-        fit = FlexibleFitting(init=ak, target=target, vars=["local", "global", "rotation", "shift"], params=params, n_chain=4, verbose=0)
+        fit = FlexibleFitting(init=ak, target=target, vars=["local", "global", "rotation", "shift"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
         ground_truth = Molecule("tests_data/input/AK/ak_all_carbonalpha.pdb")

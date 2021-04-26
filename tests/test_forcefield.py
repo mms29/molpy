@@ -25,7 +25,7 @@ class TestEnergy(unittest.TestCase):
         ak = Molecule("tests_data/input/AK/AK_PSF.pdb")
         ak.set_forcefield(psf_file="tests_data/input/AK/AK.psf",prm_file="tests_data/input/par_all36_prot.prm")
         U = get_energy_dihedrals(coord = ak.coords, forcefield=ak.forcefield)
-        self.assertAlmostEqual(U,1941.0364872278988)
+        self.assertAlmostEqual(U,1892.0702225707882)
 
 class TestGradientPotential(unittest.TestCase):
     def test_autograd(self):

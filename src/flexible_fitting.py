@@ -13,7 +13,7 @@ import src.density
 import src.forcefield
 import src.functions
 import src.molecule
-from src.viewers import fit_viewer, chimera_fit_viewer
+from src.viewers import fit_viewer, chimera_fit_viewer, fit_potentials_viewer
 
 #################################################################################################################
 #                          Flexible Fitting
@@ -219,6 +219,9 @@ class FlexibleFitting:
         """
         chimera_fit_viewer(self.res["mol"], self.target)
 
+    def show_forcefield(self, save=None):
+        fit_potentials_viewer(self, save)
+
     def save(self, file):
         with open(file, 'wb') as f:
             pickle.dump(file=f, obj=self)
@@ -341,7 +344,7 @@ class FlexibleFitting:
 
         dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
                                                      expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
-        dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
+        dU_potential, F_abs = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
                                                    potentials=self.params["potentials"], pairlist=self._get("pairlist"))
 
         for i in self.vars:
@@ -356,6 +359,8 @@ class FlexibleFitting:
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)
         if self.verbose >= 3: self._write("Gradient=" + str(time.time() - t))
+        for i in F_abs:
+            self._add("F_"+i, F_abs[i])
 
     def _set_kinetic(self):
         """
@@ -467,6 +472,7 @@ class FlexibleFitting:
             del cp
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
             self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")
+            self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
 
     # ==========================================   HMC Others       ===============================================
 

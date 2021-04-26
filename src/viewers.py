@@ -125,16 +125,19 @@ def fit_viewer(fit, save=None):
         fig.savefig(save)
         plt.close(fig)
 
-def fit_potentials_viewer(fit):
+def fit_potentials_viewer(fit, save=None):
     if isinstance(fit.fit, list):
         fits = fit.fit[0]
     else:
         fits = fit.fit
-    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
+    fig, ax = plt.subplots(2, 1, figsize=(7, 5))
     for i in fit.params["potentials"]:
-        ax.plot(fits["U_"+i], label=i)
-    ax.plot(fits["U_potential"], label="total")
+        ax[0].plot(fits["U_"+i], label=i)
+        ax[1].plot(fits["F_"+i], label=i)
     plt.legend()
+    if save is not None:
+        fig.savefig(save)
+        plt.close(fig)
 
 
 def chimera_fit_viewer(mol, target):

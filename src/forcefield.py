@@ -72,6 +72,60 @@ def get_energy(coords, forcefield, **kwargs):
 
     return U
 
+# def get_autograd(params, mol, **kwargs):
+#     """
+#     Compute the gradient of the potential energy by automatic differentiation
+#     :param params: dictionary with keys are the name of the parameters and values their values
+#     :param mol: initial Molecule
+#     :return: gradient for each parameter  (kcal * mol-1 * A)
+#     """
+#     def get_energy_autograd(params, mol, **kwargs):
+#         """
+#         Energy function for automatic differentiation
+#         """
+#         coord = npg.array(mol.coords)
+#         if FIT_VAR_LOCAL in params:
+#             coord += params[FIT_VAR_LOCAL]
+#         if FIT_VAR_GLOBAL in params:
+#             coord += npg.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
+#         if FIT_VAR_ROTATION in params:
+#             coord = npg.dot(src.functions.generate_euler_matrix(params[FIT_VAR_ROTATION]), coord.T).T
+#         if FIT_VAR_SHIFT in params:
+#             coord += params[FIT_VAR_SHIFT]
+#
+#         U=0
+#
+#         if "bonds" in kwargs["potentials"]:
+#             U += get_energy_bonds(coord, mol.forcefield)
+#         if "angles" in kwargs["potentials"]:
+#             U += get_energy_angles(coord, mol.forcefield)
+#         if "dihedrals" in kwargs["potentials"]:
+#             U += get_energy_dihedrals(coord, mol.forcefield)
+#         if "impropers" in kwargs["potentials"]:
+#             U += get_energy_impropers(coord, mol.forcefield)
+#         if "vdw" in kwargs["potentials"] or "elec" in kwargs["potentials"]:
+#             invdist = get_invdist(coord, kwargs["pairlist"])
+#             if "vdw" in kwargs["potentials"]:
+#                 U += get_energy_vdw(invdist, kwargs["pairlist"], mol.forcefield)
+#             if "elec" in kwargs["potentials"]:
+#                 U += get_energy_elec(invdist, kwargs["pairlist"], mol.forcefield)
+#
+#         return U
+#     grad = elementwise_grad(get_energy_autograd, 0)
+#
+#     F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
+#
+#     # EDIT TODO
+#     # if "elec" in kwargs["potentials"]:
+#     #     if "local" in F:
+#     #         limit = 1000
+#     #         Fabs = np.linalg.norm(F["local"], axis=1)
+#     #         idx= np.where(Fabs > limit)[0]
+#     #         if idx.shape[0]>0:
+#     #             print(" ===============  LIMITER ACTIVATED  =================  ")
+#     #             F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+#     return F
+
 def get_autograd(params, mol, **kwargs):
     """
     Compute the gradient of the potential energy by automatic differentiation
@@ -79,10 +133,22 @@ def get_autograd(params, mol, **kwargs):
     :param mol: initial Molecule
     :return: gradient for each parameter  (kcal * mol-1 * A)
     """
-    def get_energy_autograd(params, mol, **kwargs):
-        """
-        Energy function for automatic differentiation
-        """
+    def update_force(F, F_p):
+        for i in F_p:
+            if i in F: F[i] += F_p[i]
+            else: F[i] = F_p[i]
+    def check_force(F, potential):
+        if "local" in F:
+            limit = 100
+            Fabs = np.linalg.norm(F["local"], axis=1)
+            idx= np.where(Fabs > limit)[0]
+            if idx.shape[0]>0:
+                print(" LIMITER ACTIVATED : "+str(idx.shape[0])+" "+potential)
+                F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+        else:
+            Fabs = 0
+        return F, np.mean(Fabs)
+    def forward_model(params, mol,**kwargs):
         coord = npg.array(mol.coords)
         if FIT_VAR_LOCAL in params:
             coord += params[FIT_VAR_LOCAL]
@@ -92,39 +158,67 @@ def get_autograd(params, mol, **kwargs):
             coord = npg.dot(src.functions.generate_euler_matrix(params[FIT_VAR_ROTATION]), coord.T).T
         if FIT_VAR_SHIFT in params:
             coord += params[FIT_VAR_SHIFT]
+        return coord
 
-        U=0
+    F = {}
+    F_abs = {}
+    if "bonds" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
+            return get_energy_bonds(coord, mol.forcefield)
+        F_bonds = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_bonds, F_abs_bonds = check_force(F_bonds, "F_bonds")
+        update_force(F, F_bonds)
+        F_abs["bonds"] = F_abs_bonds
 
-        if "bonds" in kwargs["potentials"]:
-            U += get_energy_bonds(coord, mol.forcefield)
-        if "angles" in kwargs["potentials"]:
-            U += get_energy_angles(coord, mol.forcefield)
-        if "dihedrals" in kwargs["potentials"]:
-            U += get_energy_dihedrals(coord, mol.forcefield)
-        if "impropers" in kwargs["potentials"]:
-            U += get_energy_impropers(coord, mol.forcefield)
-        if "vdw" in kwargs["potentials"] or "elec" in kwargs["potentials"]:
+    if "angles" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
+            return get_energy_angles(coord, mol.forcefield)
+        F_angles = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_angles, F_abs_angles = check_force(F_angles, "F_angles")
+        update_force(F, F_angles)
+        F_abs["angles"] = F_abs_angles
+
+    if "dihedrals" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
+            return get_energy_dihedrals(coord, mol.forcefield)
+        F_dihedrals = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_dihedrals, F_abs_dihedrals = check_force(F_dihedrals, "F_dihedrals")
+        update_force(F, F_dihedrals)
+        F_abs["dihedrals"] = F_abs_dihedrals
+
+    if "impropers" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
+            return get_energy_impropers(coord, mol.forcefield)
+        F_impropers = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_impropers, F_abs_impropers = check_force(F_impropers, "F_impropers")
+        update_force(F, F_impropers)
+        F_abs["impropers"] = F_abs_impropers
+
+    if "vdw" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
             invdist = get_invdist(coord, kwargs["pairlist"])
-            if "vdw" in kwargs["potentials"]:
-                U += get_energy_vdw(invdist, kwargs["pairlist"], mol.forcefield)
-            if "elec" in kwargs["potentials"]:
-                U += get_energy_elec(invdist, kwargs["pairlist"], mol.forcefield)
+            return get_energy_vdw(invdist,kwargs["pairlist"], mol.forcefield)
+        F_vdw = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_vdw, F_abs_vdw = check_force(F_vdw, "F_vdw")
+        update_force(F, F_vdw)
+        F_abs["vdw"] = F_abs_vdw
 
-        return U
-    grad = elementwise_grad(get_energy_autograd, 0)
+    if "elec" in kwargs["potentials"]:
+        def get_energy_autograd(params, mol, **kwargs):
+            coord = forward_model(params, mol, **kwargs)
+            invdist = get_invdist(coord, kwargs["pairlist"])
+            return get_energy_elec(invdist,kwargs["pairlist"], mol.forcefield)
+        F_elec = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_elec, F_abs_elec = check_force(F_elec, "F_elec")
+        update_force(F, F_elec)
+        F_abs["elec"] = F_abs_elec
 
-    F = grad(params, mol, **kwargs) # Get the derivative of the potential energy
-
-    # EDIT TODO
-    # if "elec" in kwargs["potentials"]:
-    #     if "local" in F:
-    #         limit = 1000
-    #         Fabs = np.linalg.norm(F["local"], axis=1)
-    #         idx= np.where(Fabs > limit)[0]
-    #         if idx.shape[0]>0:
-    #             print(" ===============  LIMITER ACTIVATED  =================  ")
-    #             F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
-    return F
+    return F, F_abs
 
 def get_energy_bonds(coord, forcefield):
     """

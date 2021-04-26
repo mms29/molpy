@@ -60,12 +60,12 @@ class TestMoleculeForceField(unittest.TestCase):
         ak.set_forcefield(psf_file="tests_data/input/AK/AK.psf", prm_file="tests_data/input/par_all36_prot.prm")
         self.assertEqual(len(ak.forcefield.bonds),3365)
         self.assertEqual(len(ak.forcefield.angles),6123)
-        self.assertEqual(len(ak.forcefield.dihedrals),8921)
+        self.assertEqual(len(ak.forcefield.dihedrals),10508)
         self.assertTrue(ak.forcefield.mass[4]- CARBON_MASS< 0.1)
         self.assertEqual(len(ak.forcefield.b0),3365)
         self.assertEqual(len(ak.forcefield.Theta0),6123)
-        self.assertEqual(len(ak.forcefield.delta),8921)
-        self.assertAlmostEqual(ak.get_energy(potentials=["bonds", "angles", "dihedrals"])["total"], 2751.138252615212)
+        self.assertEqual(len(ak.forcefield.delta),10508)
+        self.assertAlmostEqual(ak.get_energy(potentials=["bonds", "angles", "dihedrals"])["total"],2702.1719879581015)
 
     def test_forcefield_backbone(self):
         ak = Molecule("tests_data/input/AK/AK_PSF.pdb")
@@ -73,11 +73,11 @@ class TestMoleculeForceField(unittest.TestCase):
         ak.allatoms2backbone()
         self.assertEqual(len(ak.forcefield.bonds),1680)
         self.assertEqual(len(ak.forcefield.angles),2264)
-        self.assertEqual(len(ak.forcefield.dihedrals),2638)
+        self.assertEqual(len(ak.forcefield.dihedrals),4149)
         self.assertEqual(len(ak.forcefield.b0),1680)
         self.assertEqual(len(ak.forcefield.Theta0),2264)
-        self.assertEqual(len(ak.forcefield.delta),2638)
-        self.assertAlmostEqual(ak.get_energy(potentials=["bonds", "angles", "dihedrals"])["total"], 2356.9999160968127)
+        self.assertEqual(len(ak.forcefield.delta),4149)
+        self.assertAlmostEqual(ak.get_energy(potentials=["bonds", "angles", "dihedrals"])["total"],2274.347090119103)
 
 
 
