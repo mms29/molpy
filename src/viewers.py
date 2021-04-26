@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-
+import RamachanDraw
 import src.constants
 import src.io
 
@@ -150,3 +150,9 @@ def chimera_fit_viewer(mol, target):
     target.save_mrc("vol.mrc")
     cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; open vol.mrc ; volume #2 level 0.7 ; volume #2 transparency 0.7 ; hide atoms ; show cartoons\""
     os.system(cmd)
+
+def ramachandran_viewer(file, save=None):
+    if save is not None:
+        RamachanDraw.plot(file, show=False, save=True, out=save)
+    else:
+        RamachanDraw.plot(file)

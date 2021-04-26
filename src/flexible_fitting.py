@@ -13,7 +13,7 @@ import src.density
 import src.forcefield
 import src.functions
 import src.molecule
-from src.viewers import fit_viewer, chimera_fit_viewer, fit_potentials_viewer
+from src.viewers import fit_viewer, chimera_fit_viewer, fit_potentials_viewer, ramachandran_viewer
 
 #################################################################################################################
 #                          Flexible Fitting
@@ -470,6 +470,7 @@ class FlexibleFitting:
             cp = self.init.copy()
             cp.coords = self._get("coord_t")
             cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
+            # ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
             del cp
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
             self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")

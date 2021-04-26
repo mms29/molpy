@@ -1235,13 +1235,13 @@ fig.tight_layout()
 
 
 
-from RamachanDraw import fetch, phi_psi, plot
+from src.viewers import ramachandran_viewer
 
 # PDB id to be downloaded
 PDB_id = '1MBN'
 
 # Drawing the Ramachandran plot
-plot("data/P97/5ftm_psf.pdb")
+a = plot("data/P97/5ftm_psf.pdb")
 plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pdb")
 plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
 
