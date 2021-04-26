@@ -783,17 +783,20 @@ CONSTANT_TEMP = (ELEMENTARY_CHARGE) ** 2 * AVOGADRO_CONST / \
 mol = Molecule("data/AK/AK_PSF.pdb")
 mol.set_forcefield(psf_file="data/AK/AK.psf", prm_file="data/toppar/par_all36_prot.prm")
 mol.get_energy(verbose=True, cutoff=8.0)
-#
-# mol = Molecule("data/P97/5ftm_psf.pdb")
-# mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
+
+psf =src.io.read_psf("data/AK/AK.psf")
+prm =src.io.read_prm("data/toppar/par_all36_prot.prm")
+
+mol = Molecule("data/P97/5ftm_psf.pdb")
+mol.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
 
 ep = get_excluded_pairs(forcefield=mol.forcefield)
 pl = get_pairlist(coord=mol.coords, excluded_pairs=ep, cutoff=4.0, verbose=True)
 invdist = get_invdist(coord=mol.coords,pairlist=pl)
 
 t = time.time()
-F, F_abs = get_autograd(params={"local": np.zeros(mol.coords.shape)}, mol=mol, potentials=["bonds", "angles", "dihedrals",
-            "impropers", "vdw", "elec"], pairlist = pl)["local"]
+F, F_abs = get_autograd(params={"local": np.zeros(mol.coords.shape)}, mol=mol, potentials=["bonds", "angles", "dihedrals", "urey",
+            "impropers", "vdw", "elec"], pairlist = pl, limit=500)
 print(time.time()-t)
 t = time.time()
 F2 = get_autograd2(params={"local": np.zeros(mol.coords.shape)}, mol=mol, potentials=["bonds", "angles", "dihedrals",
@@ -1244,4 +1247,6 @@ plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb"
 
 plot("data/AK/AK_PSF.pdb")
 plot("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_dt2_chain0_min.pdb")
+plot("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_chain2.pdb")
+
 plot("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")

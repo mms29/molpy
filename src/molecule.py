@@ -207,7 +207,6 @@ class MoleculeForceField:
         self.n_angles = len(self.angles)
         self.n_dihedrals = len(self.dihedrals)
         self.n_impropers = len(self.impropers)
-        self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
 
         self.Kb = np.zeros(self.n_bonds)
         self.b0 = np.zeros(self.n_bonds)
@@ -236,6 +235,9 @@ class MoleculeForceField:
             if not found:
                 raise RuntimeError("Enable to locale BONDS item in the PRM file")
 
+        self.urey = []
+        self.Kub = []
+        self.S0 = []
         for i in range(self.n_angles):
             comb = atom_type[self.angles[i]]
             found = False
@@ -244,10 +246,17 @@ class MoleculeForceField:
                 if angle in prm["angles"]:
                     self.KTheta[i] = prm["angles"][angle][0]
                     self.Theta0[i] = prm["angles"][angle][1]
+                    if len(prm["angles"][angle])>2:
+                        self.urey.append(self.angles[i])
+                        self.Kub.append(prm["angles"][angle][2])
+                        self.S0.append(prm["angles"][angle][3])
                     found = True
                     break
             if not found:
                 raise RuntimeError("Enable to locale ANGLES item in the PRM file")
+        self.urey = np.array(self.urey)
+        self.Kub = np.array(self.Kub)
+        self.S0 = np.array(self.S0)
 
 
         n=0
@@ -276,6 +285,9 @@ class MoleculeForceField:
                         self.delta.append(j[6])
             if found == False:
                 raise RuntimeError("Enable to locale DIHEDRAL item in the PRM file")
+
+        self.dihedral_angles = self.dihedrals
+        self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
         self.dihedrals = np.array(new_dihe)
         self.Kchi = np.array(self.Kchi)
         self.n = np.array(self.n)
@@ -339,6 +351,7 @@ class MoleculeForceField:
         self.bonds = np.array(bonds).T
         self.angles = np.array(angles).T
         self.dihedrals = np.array(dihedrals).T
+        self.dihedral_angles = np.array(dihedrals).T
         self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
         self.Kb = np.ones(self.bonds.shape[0]) * K_BONDS
         self.b0 = np.ones(self.bonds.shape[0]) * R0_BONDS

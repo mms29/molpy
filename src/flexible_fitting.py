@@ -345,7 +345,8 @@ class FlexibleFitting:
         dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
                                                      expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
         dU_potential, F_abs = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
-                                                   potentials=self.params["potentials"], pairlist=self._get("pairlist"))
+                                                   potentials=self.params["potentials"], pairlist=self._get("pairlist"),
+                                                          limit=self.params["limit"])
 
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
@@ -354,7 +355,7 @@ class FlexibleFitting:
                 F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
                 F *= ANGSTROM_TO_METER**-2  # kg * m2 * s-2 -> kg * A2 * s-2
             if i+"_factor" in self.params:
-                F+=  - 2* self._get(i+"_t") * self.params[i+"_factor"]
+                F+= - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)

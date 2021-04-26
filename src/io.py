@@ -275,10 +275,12 @@ def read_prm(file):
                     if curr == "BONDS":
                         dic["bonds"][split_line[0]+"-"+split_line[1]] = [float(split_line[2]), float(split_line[3])]
                     if curr == "ANGLES":
-                        if len(split_line ) <5 :
+                        if len(split_line ) > 5:
                             if not split_line[5].startswith("!") :
                                 dic["angles"][split_line[0] + "-" + split_line[1] + "-" + split_line[2]] = [
-                                    float(split_line[3]), float(split_line[5]), float(split_line[6])]
+                                    float(split_line[3]), float(split_line[4]), float(split_line[5]), float(split_line[6])]
+                            else:
+                                dic["angles"][split_line[0]+"-"+split_line[1]+"-"+split_line[2]] = [float(split_line[3]), float(split_line[4])]
                         else:
                             dic["angles"][split_line[0]+"-"+split_line[1]+"-"+split_line[2]] = [float(split_line[3]), float(split_line[4])]
                     if curr == "DIHEDRALS":

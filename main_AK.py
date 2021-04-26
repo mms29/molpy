@@ -55,7 +55,7 @@ params ={
     "n_step": 5000,
     "n_iter":1,
     "n_warmup":0,
-    "potentials" : ["bonds", "angles", "dihedrals", "impropers","vdw", "elec"],
+    "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey","vdw", "elec"],
     "target_coords":target.coords,
 }
 n_chain=4

@@ -46,7 +46,7 @@ target.center()
 params ={
     "initial_biasing_factor" : 50,
     "potential_factor" : 1,
-    "potentials":["bonds", "angles", "dihedrals", "impropers", "vdw", "elec"],
+    "potentials":["bonds", "angles", "dihedrals", "impropers", "urey","vdw", "elec"],
     "cutoffpl": 10,
     "cutoffnb" : 7.0,
 
@@ -60,17 +60,18 @@ params ={
     "n_warmup":18,
     "n_step": 1000,
     "criterion": False,
-    "target_coords" : target.coords
+    "target_coords" : target.coords,
+    "limit" :1000
 }
 n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fitxsnb")
+                       prefix="results/P97/fitx_all")
 # fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
 #                        prefix="results/P97/fitqs")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fitasnb")
+                       prefix="results/P97/fita_all")
 
 fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=13)
 
