@@ -183,7 +183,7 @@ def get_energy_impropers(coord,forcefield):
 def get_excluded_pairs(forcefield):
     excluded_pairs = {}
     pairs = np.concatenate((forcefield.bonds, forcefield.angles[:,[0,2]]))
-    # pairs = np.concatenate((pairs, forcefield.dihedrals[:,[0,3]]))
+    pairs = np.concatenate((pairs, forcefield.dihedrals[:,[0,3]]))
     for i in pairs:
         if i[0] in excluded_pairs:
             excluded_pairs[i[0]].append(i[1])
