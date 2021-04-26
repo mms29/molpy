@@ -66,7 +66,6 @@ fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL,
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fit_x")
 
-src.viewers.fit_potentials_viewer(fit2)
 fits=  multiple_fitting(models=[fit1, fit2],
                         n_chain=n_chain, n_proc =25)
 # fit.HMC()
