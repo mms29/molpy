@@ -89,19 +89,22 @@ def get_autograd(params, mol, **kwargs):
             else: F[i] = F_p[i]
 
     def check_force(F, potential, **kwargs):
-        if "local" in F:
-            if "limit" in kwargs :
-                limit = kwargs["limit"]
+        if kwargs["limit"] is not None:
+            if "local" in F:
+                if "limit" in kwargs :
+                    limit = kwargs["limit"]
+                else:
+                    limit = 100
+                Fabs = np.linalg.norm(F["local"], axis=1)
+                idx= np.where(Fabs > limit)[0]
+                if idx.shape[0]>0:
+                    print(" LIMITER ACTIVATED : "+str(idx.shape[0])+" "+potential)
+                    F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
             else:
-                limit = 100
-            Fabs = np.linalg.norm(F["local"], axis=1)
-            idx= np.where(Fabs > limit)[0]
-            if idx.shape[0]>0:
-                print(" LIMITER ACTIVATED : "+str(idx.shape[0])+" "+potential)
-                F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+                Fabs = 0
+            return F, np.mean(Fabs)
         else:
-            Fabs = 0
-        return F, np.mean(Fabs)
+            return F, 0
 
     def forward_model(params, mol,**kwargs):
         coord = npg.array(mol.coords)

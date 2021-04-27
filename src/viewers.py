@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+plt.style.use("bmh")
 import numpy as np
 import RamachanDraw
 import src.constants
@@ -107,7 +108,7 @@ def fit_viewer(fit, save=None):
         ax[1, 0].plot(np.array(fits[i]['K']) + np.array(fits[i]['U']))
         ax[1, 0].plot(fits[i]['U'])
         ax[1, 0].plot(fits[i]['K'])
-        ax[1, 1].plot(fits[i]['accept'], "o")
+        ax[1, 1].plot(fits[i]['C'])
         ax[1, 2].plot(fits[i]['CC'])
         ax[0, 3].plot(fits[i]['T'])
         if 'RMSD' in fits[i]:
@@ -116,7 +117,7 @@ def fit_viewer(fit, save=None):
     ax[0, 1].set_title('U_potential')
     ax[0, 2].set_title('U_biased')
     ax[1, 0].set_title('H=U+K')
-    ax[1, 1].set_title('acceptation')
+    ax[1, 1].set_title('Criterion')
     ax[1, 2].set_title('CC')
     ax[0, 3].set_title('Temperature')
     ax[1, 3].set_title('RMSD')

@@ -58,6 +58,7 @@ DEFAULT_FIT_PARAMS ={
     "output_update":10,
 
     "limit" : 1000,
+    "nb_update": 20,
 
     FIT_VAR_LOCAL+"_dt" : 1e-15,
     "temperature" : 300,

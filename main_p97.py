@@ -45,9 +45,9 @@ target_density.resize(200)
 # target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 50,
+    "initial_factor" : 0.1,
     "potential_factor" : 1,
-    "potentials":["bonds", "angles", "dihedrals", "impropers", "urey"],
+    "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 10,
     "cutoffnb" : 7.0,
 
@@ -57,22 +57,23 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":20,
-    "n_warmup":18,
-    "n_step": 1000,
+    "n_iter":50,
+    "n_warmup":45,
+    "n_step": 100,
     "criterion": False,
     "target_coords" : target.coords,
-    "limit" :5000
+    "limit" :1000,
+    "nb_update":20,
 }
 n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fitx_all_nonb")
+                       prefix="results/P97/fitx_all")
 # fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
 #                        prefix="results/P97/fitqs")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fita_all_nonb")
+                       prefix="results/P97/fita_all")
 
 fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=13)
 

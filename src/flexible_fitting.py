@@ -91,45 +91,40 @@ class FlexibleFitting:
             self._set(i ,[self.params[i+"_init"]])
 
         # HMC Loop
-        try :
-            for i in range(self.params["n_iter"]):
-                self._set("Iter", i)
+        for i in range(self.params["n_iter"]):
+            self._set("Iter", i)
+            try:
                 self.HMC_step()
+            except RuntimeError as rte:
+                self._write("Warning : Trajectory rejected because of the following error : "+str(rte.args[0]))
+                self._acceptation(1,1,True)
 
-        except RuntimeError as rte:
-            s = "Failed to run HMC chain : " + str(rte.args[0])
-            self._write(s)
-            self.res = {"mol" : self.init.copy()}
-            for i in self.vars:
-                self.res[i] = self._get(i)
+        # Generate results
+        self.res = {"mol": self.init.copy()}
+        self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
+        for i in self.vars:
+            self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
 
-        else:
-            # Generate results
-            self.res = {"mol": self.init.copy()}
-            self.res["mol"].coords = np.mean(np.array(self.fit["coord"][self.params["n_warmup"] + 1:]), axis=0)
-            for i in self.vars:
-                self.res[i] = np.mean(np.array(self.fit[i][self.params["n_warmup"]+1:]), axis=0)
+        # End
+        if self.verbose >0 :
+            self._write("############### HMC FINISHED ##########################")
+            self._write("### Total execution time : "+str(time.time()-t)+" s")
+            self._write("### Initial CC value : "+str(self.fit["CC"][0]))
+            self._write("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
+            self._write("#######################################################")
 
-            # End
-            if self.verbose >0 :
-                self._write("############### HMC FINISHED ##########################")
-                self._write("### Total execution time : "+str(time.time()-t)+" s")
-                self._write("### Initial CC value : "+str(self.fit["CC"][0]))
-                self._write("### Mean CC value : "+str(np.mean(self.fit["CC"][self.params["n_warmup"]:])))
-                self._write("#######################################################")
-
-            # Cleaning
-            # for i in range(len(self.fit["coord"])):
-            #     if i%10 != 0:
-            #         del (self.fit["coord"])[i]
-            del self.fit["coord_t"]
-            del self.fit["psim"]
-            del self.fit["expnt"]
-            for i in self.vars:
-                del self.fit[i]
-                del self.fit[i+"_v"]
-                del self.fit[i+"_t"]
-                del self.fit[i+"_Ft"]
+        # Cleaning
+        # for i in range(len(self.fit["coord"])):
+        #     if i%10 != 0:
+        #         del (self.fit["coord"])[i]
+        del self.fit["coord_t"]
+        del self.fit["psim"]
+        del self.fit["expnt"]
+        for i in self.vars:
+            del self.fit[i]
+            del self.fit[i+"_v"]
+            del self.fit[i+"_t"]
+            del self.fit[i+"_Ft"]
 
         return self
 
@@ -137,6 +132,9 @@ class FlexibleFitting:
         """
         Run HMC iteration
         """
+    # Init vars
+        self._add("C", 0)
+        self._add("L", 0)
     # Initial coordinates
         self._initialize()
     # Compute Forward model
@@ -156,9 +154,6 @@ class FlexibleFitting:
         self._set_instant_temp()
     # Initial Hamiltonian
         H_init = self._get_hamiltonian()
-    # Init vars
-        self._add("C",0)
-        self._add("L", 0)
     # MD loop
         while (self._get("C") >= 0 and self._get("L")< self.params["n_step"]):
             tt = time.time()
@@ -458,6 +453,7 @@ class FlexibleFitting:
                 s.append("U_"+i)
         for i in self.params["potentials"]:
             s.append("U_"+i)
+        s.append("C")
 
         print_values = [self.chain_id, self._get("Iter"),self._get("L")] + [self._get(i) for i in s]
         print_values_str = " ".join(["%6i"%i if isinstance(i,int) else "%12.2f"%i for i in print_values])
@@ -472,9 +468,9 @@ class FlexibleFitting:
             cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
             # ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
             del cp
-            # self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
+            self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
             self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")
-            # self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
+            self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
 
     # ==========================================   HMC Others       ===============================================
 
@@ -483,6 +479,9 @@ class FlexibleFitting:
         Generate Non-bonded pairlist based on cutoff parameters
         """
         if "vdw" in self.params["potentials"] or "elec" in self.params["potentials"]:
+            if self.params["nb_update"] is not None:
+                if self._get("L") % self.params["nb_update"] == 0 and self._get("L") != 0:
+                    return
             if not "coord_pl" in self.fit:
                 self._set("coord_pl", self._get("coord_t"))
             dx_max =np.max(np.linalg.norm(self._get("coord_pl")-self._get("coord_t"), axis=1))/2
@@ -504,7 +503,10 @@ class FlexibleFitting:
 
         U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
         factor = np.abs(init_factor/(U_biased/U_potential))
-        if self.verbose > 0 : self._write("optimal initial factor : "+str(factor))
+        if self.verbose > 0 :
+            self._write("Initial U_biased : "+str(U_biased))
+            self._write("Initial U_potential : "+str(U_potential))
+            self._write("Optimal initial factor : "+str(factor))
         return factor
 
     def _set_criterion(self):
@@ -514,12 +516,12 @@ class FlexibleFitting:
         C = 0
         if self.params["criterion"]:
             for i in self.vars:
-                C += np.dot((self._get(i+"_t").flatten() - self._get(i).flatten()), self._get(i+"_v").flatten())
+                C += self.params[i+"_dt"]*np.dot((self._get(i+"_t").flatten() - self._get(i).flatten()), self._get(i+"_v").flatten())
             self._add("C",C)
         else:
             self._add("C", 0)
 
-    def _acceptation(self,H, H_init):
+    def _acceptation(self,H, H_init, force_reject=False):
         """
         Perform Metropolis Acceptation step
         :param H: Current Hamiltonian
@@ -529,7 +531,7 @@ class FlexibleFitting:
         self._add("accept",  np.min([1, H_init/H]) )
 
         # Update variables
-        if self._get("accept") > np.random.rand() :
+        if self._get("accept") > np.random.rand() or force_reject:
             suffix = "_t"
             if self.verbose > 2 : self._write("ACCEPTED " + str(self._get("accept")))
         else:
