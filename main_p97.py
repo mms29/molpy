@@ -45,7 +45,7 @@ target_density.resize(200)
 # target_density.resize(200)
 
 params ={
-    "initial_factor" : 0.1,
+    "biasing_factor" : 0.1,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 10,
@@ -62,7 +62,7 @@ params ={
     "n_step": 100,
     "criterion": False,
     "target_coords" : target.coords,
-    "limit" :1000,
+    "limit" :100,
     "nb_update":20,
 }
 n_chain=4

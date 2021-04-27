@@ -447,13 +447,17 @@ class FlexibleFitting:
         """
         Print step information
         """
-        s=["CC", "Time", "K", "T", "U_biased", "U_potential",]
+        s=[]
+        if "RMSD" in self.fit:
+            s.append("RMSD")
+        s+=["CC", "Time", "K", "T", "U_biased", "U_potential",]
         for i in self.vars :
             if i+"_factor" in self.params:
                 s.append("U_"+i)
         for i in self.params["potentials"]:
             s.append("U_"+i)
-        s.append("C")
+        if self.params["criterion"]:
+            s.append("C")
 
         print_values = [self.chain_id, self._get("Iter"),self._get("L")] + [self._get(i) for i in s]
         print_values_str = " ".join(["%6i"%i if isinstance(i,int) else "%12.2f"%i for i in print_values])
