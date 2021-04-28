@@ -74,7 +74,7 @@ params["n_step"]=10
 params["n_iter"]=500
 params["n_warmup"]=450
 params["potentials"]=["bonds", "angles", "dihedrals"]
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/P97/fitq_final")
 fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
 
