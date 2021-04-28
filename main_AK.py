@@ -27,8 +27,7 @@ init.get_energy()
 target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
 target.center()
 target.save_pdb("data/1AKE/1ake_center.pdb")
-# target.coords += np.array([1.5,-2.0,-0.5])
-# target.rotate([0.17,-0.13,0.23])
+
 
 size=100
 sampling_rate=2.0
@@ -36,11 +35,7 @@ cutoff= 6.0
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
-# target_density.show()
-# target_density.save_mrc(file="tests/tests_data/input/AK/ak_all_carbonalpha.mrc")
-# target.save_pdb(file="tests/tests_data/input/AK/ak_all_carbonalpha.pdb")
 
-# chimera_fit_viewer(init,target_density)
 
 ########################################################################################################
 #               HMC
@@ -56,7 +51,7 @@ params ={
     "n_iter":50,
     "n_warmup":45,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
-    "target_coords":target.coords,
+    "target":target,
     "limit" : 100,
     "nb_update":20,
     "criterion":False
@@ -67,8 +62,7 @@ fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL,
                        prefix="results/AK/fit_a")
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fit_x")
-fits=  multiple_fitting(models=[fit1, fit2],
-                        n_chain=n_chain, n_proc =25)
+fits=  multiple_fitting(models=[fit1, fit2], n_chain=n_chain, n_proc =25)
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
 # fit.show()
