@@ -34,7 +34,7 @@ class TestGradientPotential(unittest.TestCase):
         ak.set_normalModeVec(fnModes)
         ak.allatoms2carbonalpha()
         ak.set_forcefield()
-        grad = get_autograd(params = {
+        grad,_ = get_autograd(params = {
             FIT_VAR_LOCAL : np.zeros(ak.coords.shape),
             FIT_VAR_GLOBAL : np.zeros(ak.normalModeVec.shape[1]),
             FIT_VAR_ROTATION : np.zeros(3),

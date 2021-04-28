@@ -1146,18 +1146,19 @@ fit_x.fit = [fit_x.fit]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/fita_all_nonb_chain0.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all_chain2.pkl")
 fit_a.fit = [fit_a.fit]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_x_output.pkl")
-fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_q_output.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fitx_all2_chain1.pkl")
+fit_x.fit = [fit_x.fit]
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/5ftm25ftn_noR_q_output.pkl")
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__rmsd.npy")
 
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitabf50s_output.pkl")
-fit_a.fit = [fit_a.fit[1]]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fitxbf50s_output.pkl")
-fit_x.fit = [fit_x.fit[0]]
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_a_chain0.pkl")
+fit_a.fit = [fit_a.fit]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_x_chain0.pkl")
+fit_x.fit = [fit_x.fit]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_rmsd.npy")
@@ -1167,6 +1168,15 @@ fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fita
 fit_a.fit = [fit_a.fit[0]]
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fitx_output.pkl")
 fit_x.fit = [fit_x.fit[1]]
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fitq_output.pkl")
+fit_q.fit = [fit_q.fit[1]]
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_rmsd.npy")
+
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/ATPase/fita_chain3.pkl")
+fit_a.fit = [fit_a.fit]
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/ATPase/fitx_chain3.pkl")
+fit_x.fit = [fit_x.fit]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fitq_output.pkl")
 fit_q.fit = [fit_q.fit[1]]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_cc.npy")
@@ -1182,7 +1192,7 @@ with plt.style.context("bmh"):
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+    # ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[0].set_xlabel("MD step")
     ax[0].set_ylabel("CC")
@@ -1239,8 +1249,9 @@ fig.tight_layout()
 from src.viewers import ramachandran_viewer
 
 ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pdb")
-ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/fita_all_nonb_chain0.pdb")
-ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftn.pdb")
+ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all_chain2.pdb")
+ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
+ramachandran_viewer("data/P97/5ftm_psf.pdb")
 
 ramachandran_viewer("data/AK/AK_PSF.pdb")
 ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_a_dt2_chain0_min.pdb")

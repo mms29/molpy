@@ -89,17 +89,16 @@ def get_autograd(params, mol, **kwargs):
             else: F[i] = F_p[i]
 
     def check_force(F, potential, **kwargs):
-        if kwargs["limit"] is not None:
+        if "limit" in kwargs and kwargs["limit"] is not None:
             if "local" in F:
-                if "limit" in kwargs :
-                    limit = kwargs["limit"]
-                else:
-                    limit = 100
                 Fabs = np.linalg.norm(F["local"], axis=1)
-                idx= np.where(Fabs > limit)[0]
+                idx= np.where(Fabs > kwargs["limit"])[0]
                 if idx.shape[0]>0:
                     print(" LIMITER ACTIVATED : "+str(idx.shape[0])+" "+potential)
-                    F["local"][idx] =  (F["local"][idx].T * limit/Fabs[idx]).T
+                    F["local"][idx] =  (F["local"][idx].T * kwargs["limit"]/Fabs[idx]).T
+                if np.isnan(np.sum(Fabs)):
+                    print("Warning : NaN values encountered in force vector")
+                    return np.zeros(F.shape), 0
             else:
                 Fabs = 0
             return F, np.mean(Fabs)
@@ -118,69 +117,59 @@ def get_autograd(params, mol, **kwargs):
             coord += params[FIT_VAR_SHIFT]
         return coord
 
+    def comp_force_bonded(fct, params, mol, **kwargs):
+        def get_energy_autograd(params):
+            coord = forward_model(params,mol, **kwargs)
+            return fct(coord, mol.forcefield)
+        return elementwise_grad(get_energy_autograd, 0)(params)
+
+    def comp_force_nonbonded(fct, params, mol, **kwargs):
+        def get_energy_autograd(params):
+            coord = forward_model(params, mol, **kwargs)
+            invdist = get_invdist(coord, kwargs["pairlist"])
+            return fct(invdist, kwargs["pairlist"], mol.forcefield)
+        return elementwise_grad(get_energy_autograd, 0)(params)
+
     F = {}
     F_abs = {}
     if "bonds" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            return get_energy_bonds(coord, mol.forcefield)
-        F_bonds = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_bonds = comp_force_bonded(get_energy_bonds, params, mol, **kwargs)
         F_bonds, F_abs_bonds = check_force(F_bonds, "F_bonds", **kwargs)
         update_force(F, F_bonds)
         F_abs["bonds"] = F_abs_bonds
 
     if "angles" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            return get_energy_angles(coord, mol.forcefield)
-        F_angles = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_angles = comp_force_bonded(get_energy_angles, params, mol, **kwargs)
         F_angles, F_abs_angles = check_force(F_angles, "F_angles", **kwargs)
         update_force(F, F_angles)
         F_abs["angles"] = F_abs_angles
 
     if "dihedrals" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            return get_energy_dihedrals(coord, mol.forcefield)
-        F_dihedrals = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_dihedrals = comp_force_bonded(get_energy_dihedrals,params, mol, **kwargs)
         F_dihedrals, F_abs_dihedrals = check_force(F_dihedrals, "F_dihedrals", **kwargs)
         update_force(F, F_dihedrals)
         F_abs["dihedrals"] = F_abs_dihedrals
 
     if "impropers" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            return get_energy_impropers(coord, mol.forcefield)
-        F_impropers = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_impropers = comp_force_bonded(get_energy_impropers, params, mol, **kwargs)
         F_impropers, F_abs_impropers = check_force(F_impropers, "F_impropers", **kwargs)
         update_force(F, F_impropers)
         F_abs["impropers"] = F_abs_impropers
 
     if "urey" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            return get_energy_ureybradley(coord, mol.forcefield)
-        F_urey = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_urey = comp_force_bonded(get_energy_ureybradley, params, mol, **kwargs)
         F_urey, F_abs_urey = check_force(F_urey, "F_urey", **kwargs)
         update_force(F, F_urey)
         F_abs["urey"] = F_abs_urey
 
     if "vdw" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            invdist = get_invdist(coord, kwargs["pairlist"])
-            return get_energy_vdw(invdist,kwargs["pairlist"], mol.forcefield)
-        F_vdw = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_vdw = comp_force_nonbonded(get_energy_vdw, params, mol, **kwargs)
         F_vdw, F_abs_vdw = check_force(F_vdw, "F_vdw", **kwargs)
         update_force(F, F_vdw)
         F_abs["vdw"] = F_abs_vdw
 
     if "elec" in kwargs["potentials"]:
-        def get_energy_autograd(params, mol, **kwargs):
-            coord = forward_model(params, mol, **kwargs)
-            invdist = get_invdist(coord, kwargs["pairlist"])
-            return get_energy_elec(invdist,kwargs["pairlist"], mol.forcefield)
-        F_elec = elementwise_grad(get_energy_autograd, 0)(params, mol, **kwargs)
+        F_elec = comp_force_nonbonded(get_energy_elec, params, mol, **kwargs)
         F_elec, F_abs_elec = check_force(F_elec, "F_elec", **kwargs)
         update_force(F, F_elec)
         F_abs["elec"] = F_abs_elec
