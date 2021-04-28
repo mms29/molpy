@@ -342,11 +342,16 @@ class FlexibleFitting:
         for i in self.vars:
             vals[i] = self._get(i+"_t")
 
-        dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp =self.target, params=vals,
-                                                     expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
+        if isinstance(self.target, src.density.Image):
+            dU_biased = src.forcefield.get_gradient_RMSD_img(mol=self.init, psim=self._get("psim"), pexp =self.target,
+                                params=vals, expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
+        else:
+            dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp=self.target,
+                                params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
+
         dU_potential, F_abs = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
-                                                   potentials=self.params["potentials"], pairlist=self._get("pairlist"),
-                                                          limit=self.params["limit"])
+                                               potentials=self.params["potentials"], pairlist=self._get("pairlist"),
+                                                      limit=self.params["limit"])
 
         for i in self.vars:
             F = -((self.params["biasing_factor"] * dU_biased[i]) + (self.params["potential_factor"] *  dU_potential[i]))
@@ -391,18 +396,17 @@ class FlexibleFitting:
         :return: Density object (Image or Volume)
         """
         t = time.time()
-        # if isinstance(self.target, src.density.Volume):
-        #     else:
-        #     psim = src.density.Image.from_coords(coord=self._get("coord_t"), size=self.target.size,
-        #                                          voxel_size=self.target.voxel_size,
-        #                                          sigma=self.target.sigma, cutoff=self.target.cutoff)
-        psim, expnt = src.functions.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
+        if isinstance(self.target, src.density.Image):
+            psim, expnt = src.functions.pdb2img(coord=self._get("coord_t"), size=self.target.size,
+                                                 voxel_size=self.target.voxel_size,
+                                                 sigma=self.target.sigma, cutoff=self.target.cutoff)
+        else:
+            psim, expnt = src.functions.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
                                   voxel_size=self.target.voxel_size,
                                   sigma=self.target.sigma, cutoff=self.target.cutoff)
-
-        if self.verbose >= 3: self._write("Density=" + str(time.time() - t))
         self._set("psim",psim)
         self._set("expnt",expnt)
+        if self.verbose >= 3: self._write("Density=" + str(time.time() - t))
 
     def _get_hamiltonian(self):
         return self._get("U") +  self._get("K")

@@ -142,6 +142,22 @@ def pdb2vol(coord, size, sigma, voxel_size, cutoff):
         vox[i, 2]:vox[i, 2] + n_vox] += expnt[i]
     return vol, expnt
 
+def pdb2img(coord, size, sigma, voxel_size, cutoff):
+    vox, n_pix = select_voxels(coord, size, voxel_size, cutoff)
+    pix = vox[:, :2]
+    n_atoms = coord.shape[0]
+    img = np.zeros((size, size))
+    expnt = np.zeros((n_atoms, n_pix, n_pix))
+    for i in range(n_atoms):
+        mu = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
+              pix[i, 1]:pix[i, 1] + n_pix] - size / 2) * voxel_size
+        x = np.repeat(coord[i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
+        expnt[i] = np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
+        img[pix[i, 0]:pix[i, 0] + n_pix,
+        pix[i, 1]:pix[i, 1] + n_pix] += expnt[i]
+
+    return img, expnt
+
 def select_idx(param, idx):
     new_param = []
     new_param_idx = []

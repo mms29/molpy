@@ -55,25 +55,28 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":50,
-    "n_warmup":45,
-    "n_step": 100,
+    "n_iter":5,
+    "n_warmup":4,
+    "n_step": 1000,
     "criterion": False,
     "target" : target,
     "limit" :100,
     "nb_update":20,
 }
-n_chain=4
+n_chain=8
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fitx_all2")
-# fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
-#                        prefix="results/P97/fitqs")
+                       prefix="results/P97/fitx_final")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97/fita_all2")
-
-fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=13)
+                       prefix="results/P97/fita_final")
+params["n_step"]=10
+params["n_iter"]=500
+params["n_warmup"]=450
+params["potentials"]=["bonds", "angles", "dihedrals"]
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global", "rotation","shift"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97/fitq_final")
+fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
 
 #
 # import matplotlib.pyplot as plt
