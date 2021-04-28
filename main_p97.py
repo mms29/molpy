@@ -59,7 +59,7 @@ params ={
     "n_warmup":45,
     "n_step": 100,
     "criterion": False,
-    "target_coords" : target.coords,
+    "target" : target,
     "limit" :100,
     "nb_update":20,
 }

@@ -178,6 +178,5 @@ def get_mol_conv(mol1,mol2):
         idx_tmp = np.where(id1[i] == id2)[0]
         if len(idx_tmp) == 1:
             idx.append([i, idx_tmp[0]])
-            print(idx[-1])
     return np.array(idx)
 

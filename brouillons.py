@@ -1086,15 +1086,13 @@ pdb_5ftm = Molecule("data/P97/5ftm_psf.pdb")
 pdb_5ftn = Molecule("data/P97/5ftn_PSF.pdb")
 
 
-res_bff = Molecule("/home/guest/ScipionUserData/projects/BayesianFlexibleFitting/Runs/001881_FlexProtGenesisMin/extra/output.pdb")
+res_bff = Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all_chain2.pdb")
 res_genesis = Molecule("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
-
-chimera_molecule_viewer([pdb_5ftm, pdb_5ftn, res_bff, res_genesis])
-
 pdb_5ftm.center()
 pdb_5ftn.center()
 res_bff.center()
 res_genesis.center()
+chimera_molecule_viewer([pdb_5ftm, pdb_5ftn, res_bff, res_genesis])
 
 # res_genesis.center()
 
@@ -1192,7 +1190,7 @@ with plt.style.context("bmh"):
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-    # ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[0].set_xlabel("MD step")
     ax[0].set_ylabel("CC")

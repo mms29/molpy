@@ -165,10 +165,10 @@ class FlexibleFitting:
             self._set_density()
         # CC update
             self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
-            if "target_coords" in self.params:
+            if "target" in self.params:
                 self._add("RMSD", src.functions.get_RMSD_coords(
-                    self._get("coord_t")[self.params["target_coords_idx"][:,0]],
-                    self.params["target_coords"][self.params["target_coords_idx"][:,1]]))
+                    self._get("coord_t")[self.params["target_idx"][:,0]],
+                    self.params["target"].coords[self.params["target_idx"][:,1]]))
         # Check pairlist
             self._set_pairlist()
         # Potential energy update
@@ -284,10 +284,8 @@ class FlexibleFitting:
         if "initial_biasing_factor" in default_params:
             default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
 
-        if "target_coords" in default_params:
-            cp = self.init.copy()
-            cp.coords = default_params["target_coords"]
-            default_params["target_coords_idx"] = src.functions.get_mol_conv(self.init, cp)
+        if "target" in default_params:
+            default_params["target_idx"] = src.functions.get_mol_conv(self.init, default_params["target"])
         self.params = default_params
 
     def _initialize(self):
