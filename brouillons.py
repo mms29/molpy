@@ -1108,16 +1108,19 @@ print(rmsd_f_genesis)
 print(rmsd_i_bff)
 print(rmsd_f_bff)
 
-def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma):
+def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1):
     target.center()
     target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
     rmsd=[]
     cc =[]
-    for i in range(N):
+    idx = None
+    for i in range(0,N,step):
         print(i)
         mol = Molecule(prefix+str(i)+".pdb")
+        if idx is None:
+            idx = src.functions.get_mol_conv(mol, target)
         mol.center()
-        rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+        rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
         vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
         cc.append(cross_correlation(vol.data,target_density.data))
         np.save(file=prefix+"cc.npy", arr=np.array(cc))
@@ -1133,6 +1136,9 @@ cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_",
     target=Molecule("data/P97/5ftm_synth_min.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
+cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_",
+    target=Molecule("data/P97/5ftn_PSF.pdb"), size=200, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1)
+
 
 
 fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/P97synth/fita_chain0.pkl")
@@ -1144,13 +1150,13 @@ fit_x.fit = [fit_x.fit]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all_chain2.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all2_chain3.pkl")
 fit_a.fit = [fit_a.fit]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fitx_all2_chain1.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fitx_all2_chain2.pkl")
 fit_x.fit = [fit_x.fit]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/5ftm25ftn_noR_q_output.pkl")
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn__rmsd.npy")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_rmsd.npy")
 
 
 fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_a_chain0.pkl")
@@ -1299,3 +1305,30 @@ with plt.style.context("bmh"):
     ax[0].set_xlim(-N/10,N + N/10)
     ax[1].set_xlim(-N/10,N + N/10)
     fig.tight_layout()
+
+
+
+
+
+
+
+
+
+#########################################################################
+# RF2
+######################################################################""
+
+
+from src.molecule import Molecule
+from src.viewers import *
+from src.functions import get_RMSD_coords, cross_correlation, get_mol_conv
+import matplotlib.pyplot as plt
+from src.flexible_fitting import FlexibleFitting
+from src.io import create_psf
+from src.density import Volume
+
+mol1 = Molecule("data/RF2/1n0u.pdb")
+mol2 = Molecule("data/RF2/1n0vC.pdb")
+
+
+chimera_molecule_viewer([mol1,mol2])

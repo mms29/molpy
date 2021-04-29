@@ -77,20 +77,3 @@ params["potentials"]=["bonds", "angles", "dihedrals"]
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/P97/fitq_final")
 fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
-
-#
-# import matplotlib.pyplot as plt
-# from src.functions import cross_correlation
-# from matplotlib.ticker import MaxNLocator
-# fig, ax = plt.subplots(1,1, figsize=(5,2))
-# ax.plot(np.mean([i["CC"] for i in fits[0].fit], axis=0), '-', color="tab:red", label="local")
-# ax.plot(np.mean([i["CC"] for i in fits[1].fit], axis=0), '-', color="tab:blue", label="global")
-# ax.plot(np.mean([i["CC"] for i in fits[2].fit], axis=0), '-', color="tab:green", label="local + global")
-# ax.set_ylabel("Correlation Coefficient")
-# ax.set_xlabel("HMC iteration")
-# ax.legend(loc="lower right", fontsize=9)
-# ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-# fig.savefig(prefix+ "_fits.png")
-
-
-

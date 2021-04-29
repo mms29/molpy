@@ -29,6 +29,9 @@ def read_pdb(file):
     chainName=[]
     resNum=[]
     coords = []
+    occ = []
+    temp = []
+    chainID = []
     elemName=[]
     print("Reading pdb file ...")
     with open(file, "r") as f :
@@ -37,7 +40,7 @@ def read_pdb(file):
             if len(spl) >0:
                 if (spl[0] == 'ATOM') or (spl[0] == 'HETATM'):
                     l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
-                         line[38:46], line[46:54], line[54:60], line[60:66], line[77:78]]
+                         line[38:46], line[46:54], line[54:60], line[60:66],line[66:77], line[77:78]]
                     l = [i.strip() for i in l]
                     atom.append(l[0])
                     atomNum.append(l[1])
@@ -46,7 +49,10 @@ def read_pdb(file):
                     chainName.append(l[4])
                     resNum.append(l[5])
                     coords.append([float(l[6]), float(l[7]), float(l[8])])
-                    elemName.append(l[11])
+                    occ.append(l[9])
+                    temp.append(l[10])
+                    chainID.append(l[11])
+                    elemName.append(l[12])
     print("Done")
 
     return {
@@ -57,6 +63,9 @@ def read_pdb(file):
         "chainName" : np.array(chainName),
         "resNum" : np.array(resNum).astype(int),
         "coords" : np.array(coords).astype(float),
+        "occ" : np.array(occ),
+        "temp" : np.array(temp),
+        "chainID" : np.array(chainID),
         "elemName" : np.array(elemName)
     }
 
@@ -78,8 +87,8 @@ def save_pdb(data, file):
             coordx= str('%8.3f' % (float(data["coords"][i][0]))).rjust(8)  # x
             coordy= str('%8.3f' % (float(data["coords"][i][1]))).rjust(8)  # y
             coordz= str('%8.3f' % (float(data["coords"][i][2]))).rjust(8)  # z\
-            occ= str().rjust(6)  # occ
-            temp= str().ljust(6)  # temp
+            occ= data["occ"][i].rjust(6)  # occ
+            temp= data["temp"][i].ljust(6)  # temp
             elemName= data["elemName"][i].rjust(12)  # elname
             file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
                                                               coordx, coordy, coordz, occ, temp, elemName))

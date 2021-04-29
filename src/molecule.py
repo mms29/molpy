@@ -29,7 +29,10 @@ class Molecule:
         self.resName = data["resName"]
         self.chainName = data["chainName"]
         self.resNum = data["resNum"]
+        self.occ = data["occ"]
+        self.temp = data["temp"]
         self.elemName = data["elemName"]
+        self.chainID = data["chainID"]
         self.normalModeVec=None
         self.forcefield = None
 
@@ -102,27 +105,62 @@ class Molecule:
             "chainName" : self.chainName,
             "resNum" : self.resNum,
             "coords" : self.coords,
+            "temp" : self.temp,
+            "occ" : self.occ,
             "elemName" : self.elemName
         }
         src.io.save_pdb(data = data, file=file)
 
-    def allatoms2carbonalpha(self):
-        carbonalpha_idx = np.where(self.atomName == "CA")[0]
-        self.coords = self.coords[carbonalpha_idx]
+    def select_atoms(self, idx):
+        self.coords = self.coords[idx]
         self.n_atoms = self.coords.shape[0]
+        self.atom = self.atom[idx]
+        self.atomNum = self.atomNum[idx]
+        self.atomName = self.atomName[idx]
+        self.resName = self.resName[idx]
+        self.chainName = self.chainName[idx]
+        self.resNum = self.resNum[idx]
+        self.elemName = self.elemName[idx]
+        self.occ = self.occ[idx]
+        self.temp = self.temp[idx]
+        self.chainID = self.chainID[idx]
 
         # Normal Modes
         if self.normalModeVec is not None:
-            self.normalModeVec = self.normalModeVec[carbonalpha_idx]
+            self.normalModeVec = self.normalModeVec[idx]
 
-        #PDB
-        self.atom = self.atom[carbonalpha_idx]
-        self.atomNum = self.atomNum[carbonalpha_idx]
-        self.atomName = self.atomName[carbonalpha_idx]
-        self.resName = self.resName[carbonalpha_idx]
-        self.chainName = self.chainName[carbonalpha_idx]
-        self.resNum = self.resNum[carbonalpha_idx]
-        self.elemName = self.elemName[carbonalpha_idx]
+        # Forcefield
+        if self.forcefield is not None:
+            self.forcefield.mass = self.forcefield.mass[idx]
+            self.forcefield.charge = self.forcefield.charge[idx]
+
+            self.forcefield.Rmin = self.forcefield.Rmin[idx]
+            self.forcefield.epsilon = self.forcefield.epsilon[idx]
+
+            new_bonds, bonds_idx = src.functions.select_idx(param=self.forcefield.bonds, idx=idx)
+            self.forcefield.bonds = new_bonds
+            self.forcefield.Kb = self.forcefield.Kb[bonds_idx]
+            self.forcefield.b0 = self.forcefield.b0[bonds_idx]
+
+            new_angles, angles_idx = src.functions.select_idx(param=self.forcefield.angles, idx=idx)
+            self.forcefield.angles = new_angles
+            self.forcefield.KTheta = self.forcefield.KTheta[angles_idx]
+            self.forcefield.Theta0 = self.forcefield.Theta0[angles_idx]
+
+            new_dihedrals, dihedrals_idx = src.functions.select_idx(param=self.forcefield.dihedrals, idx=idx)
+            self.forcefield.dihedrals = new_dihedrals
+            self.forcefield.Kchi = self.forcefield.Kchi[dihedrals_idx]
+            self.forcefield.delta = self.forcefield.delta[dihedrals_idx]
+            self.forcefield.n = self.forcefield.n[dihedrals_idx]
+
+            new_impropers, impropers_idx = src.functions.select_idx(param=self.forcefield.impropers, idx=idx)
+            self.forcefield.impropers = new_impropers
+            self.forcefield.Kpsi = self.forcefield.Kpsi[impropers_idx]
+            self.forcefield.psi0 = self.forcefield.psi0[impropers_idx]
+
+    def allatoms2carbonalpha(self):
+        carbonalpha_idx = np.where(self.atomName == "CA")[0]
+        self.select_atoms(carbonalpha_idx)
 
     def allatoms2backbone(self):
         backbone_idx = []
@@ -130,55 +168,12 @@ class Molecule:
             if not self.atomName[i].startswith("H"):
                 backbone_idx.append(i)
         backbone_idx = np.array(backbone_idx)
+        self.select_atoms(backbone_idx)
 
-        self.coords = self.coords[backbone_idx]
-        self.n_atoms = self.coords.shape[0]
+    def select_chain(self, chainName):
+        chainidx = np.where(self.chainName == chainName)
+        self.select_atoms(chainidx)
 
-        # Normal Modes
-        if self.normalModeVec is not None:
-            self.normalModeVec = self.normalModeVec[backbone_idx]
-
-        # Forcefield
-        self.forcefield.mass = self.forcefield.mass[backbone_idx]
-        self.forcefield.charge = self.forcefield.charge[backbone_idx]
-
-        # vdw
-        self.forcefield.Rmin = self.forcefield.Rmin[backbone_idx]
-        self.forcefield.epsilon = self.forcefield.epsilon[backbone_idx]
-
-        # Bonds
-        new_bonds, bonds_idx = src.functions.select_idx(param=self.forcefield.bonds, idx=backbone_idx)
-        self.forcefield.bonds = new_bonds
-        self.forcefield.Kb = self.forcefield.Kb[bonds_idx]
-        self.forcefield.b0 = self.forcefield.b0[bonds_idx]
-
-        # Angles
-        new_angles, angles_idx = src.functions.select_idx(param=self.forcefield.angles, idx=backbone_idx)
-        self.forcefield.angles = new_angles
-        self.forcefield.KTheta = self.forcefield.KTheta[angles_idx]
-        self.forcefield.Theta0 = self.forcefield.Theta0[angles_idx]
-
-        # Dihedrals
-        new_dihedrals, dihedrals_idx = src.functions.select_idx(param=self.forcefield.dihedrals, idx=backbone_idx)
-        self.forcefield.dihedrals = new_dihedrals
-        self.forcefield.Kchi = self.forcefield.Kchi[dihedrals_idx]
-        self.forcefield.delta = self.forcefield.delta[dihedrals_idx]
-        self.forcefield.n = self.forcefield.n[dihedrals_idx]
-
-        # Impropers
-        new_impropers, impropers_idx = src.functions.select_idx(param=self.forcefield.impropers, idx=backbone_idx)
-        self.forcefield.impropers = new_impropers
-        self.forcefield.Kpsi = self.forcefield.Kpsi[impropers_idx]
-        self.forcefield.psi0 = self.forcefield.psi0[impropers_idx]
-
-        #PDB
-        self.atom = self.atom[backbone_idx]
-        self.atomNum = self.atomNum[backbone_idx]
-        self.atomName = self.atomName[backbone_idx]
-        self.resName = self.resName[backbone_idx]
-        self.chainName = self.chainName[backbone_idx]
-        self.resNum = self.resNum[backbone_idx]
-        self.elemName = self.elemName[backbone_idx]
 
 class MoleculeForceField:
     """
@@ -187,7 +182,7 @@ class MoleculeForceField:
 
     def __init__(self, mol, **kwargs):
         if ("psf_file" in kwargs) and ("prm_file" in kwargs) :
-            self.set_forcefield_psf(mol, kwargs["psf_file"], kwargs["prm_file"])
+            self.chainID(mol, kwargs["psf_file"], kwargs["prm_file"])
         else:
             self.set_forcefield_default(mol)
 
