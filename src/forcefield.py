@@ -89,22 +89,25 @@ def get_autograd(params, mol, **kwargs):
             else: F[i] = F_p[i]
 
     def check_force(F, potential, **kwargs):
-        if "limit" in kwargs and kwargs["limit"] is not None:
-            if "local" in F:
-                Fabs = np.linalg.norm(F["local"], axis=1)
-                idx= np.where(Fabs > kwargs["limit"])[0]
+        F_abs_total= 0
+        for i in F:
+            # CHECK NAN
+            if np.isnan(np.sum(F[i])):
+                print("Warning : NaN values encountered in " + potential + "_" + i + " force vector")
+                idx_nan = np.where(np.isnan(F[i]))
+                F[i][idx_nan] = np.zeros(F[i][idx_nan].shape)
+
+            # LIMITER
+            if ("limit" in kwargs) and (kwargs["limit"] is not None) and (i == "local"):
+                Fabs = np.linalg.norm(F[i], axis=1)
+
+                idx = np.where(Fabs > kwargs["limit"])[0]
                 if idx.shape[0]>0:
-                    print(" LIMITER ACTIVATED : "+str(idx.shape[0])+" "+potential)
-                    F["local"][idx] =  (F["local"][idx].T * kwargs["limit"]/Fabs[idx]).T
-                if np.isnan(np.sum(Fabs)):
-                    print("Warning : NaN values encountered in force vector")
-                    F["local"] = np.zeros(F["local"].shape)
-                    Fabs = 0
-            else:
-                Fabs = 0
-            return F, np.mean(Fabs)
-        else:
-            return F, 0
+                    print(" Warning : Values beyond limit for force vector "+str(idx.shape[0])+" "+potential)
+                    F[i][idx] =  (F[i][idx].T * kwargs["limit"]/Fabs[idx]).T
+                F_abs_total +=np.mean(Fabs)
+
+        return F, F_abs_total
 
     def forward_model(params, mol,**kwargs):
         coord = npg.array(mol.coords)

@@ -1332,3 +1332,4 @@ mol2 = Molecule("data/RF2/1n0vC.pdb")
 
 
 chimera_molecule_viewer([mol1,mol2])
+

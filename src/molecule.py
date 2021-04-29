@@ -182,7 +182,7 @@ class MoleculeForceField:
 
     def __init__(self, mol, **kwargs):
         if ("psf_file" in kwargs) and ("prm_file" in kwargs) :
-            self.chainID(mol, kwargs["psf_file"], kwargs["prm_file"])
+            self.set_forcefield_psf(mol, kwargs["psf_file"], kwargs["prm_file"])
         else:
             self.set_forcefield_default(mol)
 
