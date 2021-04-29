@@ -98,7 +98,7 @@ def get_autograd(params, mol, **kwargs):
                     F["local"][idx] =  (F["local"][idx].T * kwargs["limit"]/Fabs[idx]).T
                 if np.isnan(np.sum(Fabs)):
                     print("Warning : NaN values encountered in force vector")
-                    return np.zeros(F.shape), 0
+                    return np.zeros(F["local"].shape), 0
             else:
                 Fabs = 0
             return F, np.mean(Fabs)
