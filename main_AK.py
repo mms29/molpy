@@ -63,8 +63,8 @@ fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL,
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fit_x")
 fits=  multiple_fitting(models=[fit1, fit2], n_chain=n_chain, n_proc =25)
-# fit.HMC()
-# src.viewers.fit_potentials_viewer(fit)
+# fit1.HMC_chain()
+# src.viewers.fit_potentials_viewer(fit1)
 # fit.show()
 # fit.show_3D()
 # # chimera_molecule_viewer([fit.res["mol"], init])

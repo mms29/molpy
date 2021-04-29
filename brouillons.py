@@ -1196,12 +1196,12 @@ with plt.style.context("bmh"):
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
+    # ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
     ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
     ax[0].set_xlabel("MD step")
     ax[0].set_ylabel("CC")
     ax[0].set_title("Cross correlation")
-    ax[0].legend(loc='lower right')
+    ax[1].legend(loc='lower right')
     ax[1].set_xlabel("MD step")
     ax[1].set_ylabel("RMSD (A)")
     ax[1].set_title("Root Mean Square Deviation")
@@ -1209,6 +1209,7 @@ with plt.style.context("bmh"):
     ax[0].set_xlim(-N/10,N + N/10)
     ax[1].set_xlim(-N/10,N + N/10)
     fig.tight_layout()
+    fig.savefig("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/cc_rmsd.png", dpi=300)
 
 
 
@@ -1333,3 +1334,8 @@ mol2 = Molecule("data/RF2/1n0vC.pdb")
 
 chimera_molecule_viewer([mol1,mol2])
 
+def check(F):
+    F["a"] = 2
+
+F = {"a":1}
+check(F)

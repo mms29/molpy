@@ -131,11 +131,11 @@ def fit_potentials_viewer(fit, save=None):
         fits = fit.fit[0]
     else:
         fits = fit.fit
-    fig, ax = plt.subplots(2, 1, figsize=(7, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
     for i in fit.params["potentials"]:
-        ax[0].plot(fits["U_"+i], label=i)
-        ax[1].plot(fits["F_"+i], label=i)
-    plt.legend()
+        if "U_"+i in fits:
+            ax.plot(fits["U_"+i], label=i)
+    ax.legend()
     if save is not None:
         fig.savefig(save)
         plt.close(fig)
