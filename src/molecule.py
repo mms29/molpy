@@ -14,12 +14,12 @@ class Molecule:
     Atomic structure of a molecule
     """
 
-    def __init__(self, pdb_file):
+    def __init__(self, pdb_file, hetatm=False):
         """
         Contructor
         :param pdb_file: PDB file
         """
-        data = src.io.read_pdb(pdb_file)
+        data = src.io.read_pdb(pdb_file, hetatm=hetatm)
 
         self.coords = data["coords"]
         self.n_atoms = data["coords"].shape[0]

@@ -117,7 +117,7 @@ class FlexibleFitting:
         # for i in range(len(self.fit["coord"])):
         #     if i%10 != 0:
         #         del (self.fit["coord"])[i]
-        del self.fit["coord_t"]
+        # del self.fit["coord_t"]
         del self.fit["psim"]
         del self.fit["expnt"]
         for i in self.vars:
