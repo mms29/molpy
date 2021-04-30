@@ -25,6 +25,7 @@ def get_energy(coords, forcefield, **kwargs):
     else:
         verbose=False
     U={}
+    t= time.time()
     if verbose:
         print("Computing Potential energy ...")
 
@@ -73,6 +74,7 @@ def get_energy(coords, forcefield, **kwargs):
     U["total"] = np.sum([U[i] for i in U])
     if verbose:
         print("|== TOTAL = " + str(round(U["total"], 2)))
+        print("\t Time = "+str(time.time()-t)+" s")
 
     return U
 

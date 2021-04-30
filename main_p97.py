@@ -15,7 +15,8 @@ init.center()
 fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(4)])
 init.set_normalModeVec(fnModes)
 init.set_forcefield(psf_file="data/P97/5ftm.psf", prm_file="data/toppar/par_all36_prot.prm")
-# init.get_energy(verbose=True)
+# init.allatoms2backbone()
+# init.get_energy(verbose=True, cutoff=2.0)
 # chimera_molecule_viewer([init])
 
 size=128
@@ -30,7 +31,6 @@ target.center()
 #                                     cutoff=cutoff)
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc',voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
-target_density.resize(200)
 
 # target_density.rescale(init_density, "opt")
 # target_density.compare_hist(init_density)
@@ -41,14 +41,14 @@ target_density.resize(200)
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
-# target_density.resize(200)
+target_density.resize(200)
 
 params ={
-    "initial_biasing_factor" : 0.05,
+    "biasing_factor" : 0.1,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
-    "cutoffpl": 10,
-    "cutoffnb" : 7.0,
+    "cutoffpl": 7.0,
+    "cutoffnb" : 5.0,
 
     "local_dt" : 2e-15,
     "temperature" : 300,
@@ -71,6 +71,7 @@ fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=
                        prefix="results/P97/fitx_exp")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/P97/fita_exp")
+# fita.HMC_chain()
 params["n_step"]=10
 params["n_iter"]=500
 params["n_warmup"]=450

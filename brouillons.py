@@ -1150,11 +1150,12 @@ fit_x.fit = [fit_x.fit]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all2_chain3.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_final_chain0.pkl")
 fit_a.fit = [fit_a.fit]
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fitx_all2_chain2.pkl")
 fit_x.fit = [fit_x.fit]
-fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/5ftm25ftn_noR_q_output.pkl")
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fitq_final_chain0.pkl")
+fit_q.fit = [fit_q.fit]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_rmsd.npy")
 
@@ -1187,27 +1188,27 @@ cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k5000
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_rmsd.npy")
 
 with plt.style.context("bmh"):
-    fig, ax = plt.subplots(1,2, figsize = (10,3))
+    fig, ax = plt.subplots(1,2, figsize = (10,2.7))
     cc_init =np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0)[0]
     rmsd_init =np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0)[0]
+    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
+    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
+    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
+    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
+    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0)[::2], label="Global", c="tab:blue")
+    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0)[::2], label="Global", c="tab:blue")
     ax[0].plot(np.arange(len(cc)+1)*100,[cc_init] + list(cc), label="Genesis", c="tab:orange")
     ax[1].plot(np.arange(len(cc)+1)*100,[rmsd_init] + list(rmsd), label="Genesis", c="tab:orange")
-    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
-    ax[0].plot(np.mean([np.array(i["CC"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
-    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_x.fit], axis=0), label="Local", c="tab:green")
-    # ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_q.fit], axis=0), label="Global", c="tab:blue")
-    ax[1].plot(np.mean([np.array(i["RMSD"]) for i in fit_a.fit], axis=0), label="Local+Global", c="tab:red")
-    ax[0].set_xlabel("MD step")
+    ax[0].set_xlabel("Iteration")
     ax[0].set_ylabel("CC")
     ax[0].set_title("Cross correlation")
     ax[1].legend(loc='lower right')
-    ax[1].set_xlabel("MD step")
+    ax[1].set_xlabel("Iteration")
     ax[1].set_ylabel("RMSD (A)")
     ax[1].set_title("Root Mean Square Deviation")
     N=1000
-    ax[0].set_xlim(-N/10,N + N/10)
-    ax[1].set_xlim(-N/10,N + N/10)
+    ax[0].set_xlim(-N/10,1000)
+    ax[1].set_xlim(-N/10,1000)
     fig.tight_layout()
     fig.savefig("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/cc_rmsd.png", dpi=300)
 

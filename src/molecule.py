@@ -131,32 +131,8 @@ class Molecule:
 
         # Forcefield
         if self.forcefield is not None:
-            self.forcefield.mass = self.forcefield.mass[idx]
-            self.forcefield.charge = self.forcefield.charge[idx]
+            self.forcefield.select_atoms(idx)
 
-            self.forcefield.Rmin = self.forcefield.Rmin[idx]
-            self.forcefield.epsilon = self.forcefield.epsilon[idx]
-
-            new_bonds, bonds_idx = src.functions.select_idx(param=self.forcefield.bonds, idx=idx)
-            self.forcefield.bonds = new_bonds
-            self.forcefield.Kb = self.forcefield.Kb[bonds_idx]
-            self.forcefield.b0 = self.forcefield.b0[bonds_idx]
-
-            new_angles, angles_idx = src.functions.select_idx(param=self.forcefield.angles, idx=idx)
-            self.forcefield.angles = new_angles
-            self.forcefield.KTheta = self.forcefield.KTheta[angles_idx]
-            self.forcefield.Theta0 = self.forcefield.Theta0[angles_idx]
-
-            new_dihedrals, dihedrals_idx = src.functions.select_idx(param=self.forcefield.dihedrals, idx=idx)
-            self.forcefield.dihedrals = new_dihedrals
-            self.forcefield.Kchi = self.forcefield.Kchi[dihedrals_idx]
-            self.forcefield.delta = self.forcefield.delta[dihedrals_idx]
-            self.forcefield.n = self.forcefield.n[dihedrals_idx]
-
-            new_impropers, impropers_idx = src.functions.select_idx(param=self.forcefield.impropers, idx=idx)
-            self.forcefield.impropers = new_impropers
-            self.forcefield.Kpsi = self.forcefield.Kpsi[impropers_idx]
-            self.forcefield.psi0 = self.forcefield.psi0[impropers_idx]
 
     def allatoms2carbonalpha(self):
         carbonalpha_idx = np.where(self.atomName == "CA")[0]
@@ -250,6 +226,7 @@ class MoleculeForceField:
             if not found:
                 raise RuntimeError("Enable to locale ANGLES item in the PRM file")
         self.urey = np.array(self.urey)
+        self.n_urey = len(self.urey)
         self.Kub = np.array(self.Kub)
         self.S0 = np.array(self.S0)
 
@@ -287,9 +264,6 @@ class MoleculeForceField:
         self.Kchi = np.array(self.Kchi)
         self.n = np.array(self.n)
         self.delta = np.array(self.delta)
-        print(self.dihedrals.shape)
-
-
 
         for i in range(self.n_impropers):
             comb = list(atom_type[self.impropers[i]])
@@ -357,3 +331,38 @@ class MoleculeForceField:
         self.delta = np.ones(self.dihedrals.shape[0]) * DELTA_TORSIONS
         self.charge = np.zeros(len(chainName))
         self.mass = np.ones(len(chainName)) * CARBON_MASS
+
+    def select_atoms(self, idx):
+        self.mass = self.mass[idx]
+        self.charge = self.charge[idx]
+
+        self.Rmin = self.Rmin[idx]
+        self.epsilon = self.epsilon[idx]
+
+        new_bonds, bonds_idx = src.functions.select_idx(param=self.bonds, idx=idx)
+        self.bonds = new_bonds
+        self.Kb = self.Kb[bonds_idx]
+        self.b0 = self.b0[bonds_idx]
+
+        new_angles, angles_idx = src.functions.select_idx(param=self.angles, idx=idx)
+        self.angles = new_angles
+        self.KTheta = self.KTheta[angles_idx]
+        self.Theta0 = self.Theta0[angles_idx]
+
+        new_dihedrals, dihedrals_idx = src.functions.select_idx(param=self.dihedrals, idx=idx)
+        self.dihedrals = new_dihedrals
+        self.Kchi = self.Kchi[dihedrals_idx]
+        self.delta = self.delta[dihedrals_idx]
+        self.n = self.n[dihedrals_idx]
+
+        new_impropers, impropers_idx = src.functions.select_idx(param=self.impropers, idx=idx)
+        self.impropers = new_impropers
+        self.Kpsi = self.Kpsi[impropers_idx]
+        self.psi0 = self.psi0[impropers_idx]
+
+        new_urey, urey_idx = src.functions.select_idx(param=self.urey, idx=idx)
+        self.urey = new_urey
+        self.S0 = self.S0[urey_idx]
+        self.Kub = self.Kub[urey_idx]
+
+        self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)

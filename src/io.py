@@ -304,3 +304,43 @@ def read_prm(file):
                         else:
                             dic["nonbonded"][split_line[0]] = [float(split_line[2]), float(split_line[3])]
     return dic
+
+def save_mol(file, mol):
+    with open(file, "w") as f:
+        f.write("#atoms "+str(mol.n_atoms)+"\n")
+        for i in range(mol.n_atoms):
+            f.write("%12i %12.3f %12.3f %12.3f %12.3f %12.3f %12.3f %12.3f\n" %
+                (mol.atomNum[i], mol.coords[i][0], mol.coords[i][1], mol.coords[i][2], mol.forcefield.mass[i],
+                 mol.forcefield.charge[i], mol.forcefield.Rmin[i], mol.forcefield.epsilon[i]))
+
+        f.write("#bonds " + str(mol.forcefield.n_bonds) + "\n")
+        for i in range(mol.forcefield.n_bonds):
+            f.write("%12i %12i %12.3f %12.3f\n" %
+                    (mol.forcefield.bonds[i][0], mol.forcefield.bonds[i][1],
+                     mol.forcefield.Kb[i], mol.forcefield.b0[i]))
+
+        f.write("#angles " + str(mol.forcefield.n_angles) + "\n")
+        for i in range(mol.forcefield.n_angles):
+            f.write("%12i %12i %12i %12.3f %12.3f\n" %
+                    (mol.forcefield.angles[i][0], mol.forcefield.angles[i][1], mol.forcefield.angles[i][2],
+                     mol.forcefield.KTheta[i], mol.forcefield.Theta0[i]))
+
+        f.write("#dihedrals " + str(mol.forcefield.n_dihedrals) + "\n")
+        for i in range(mol.forcefield.n_dihedrals):
+            f.write("%12i %12i %12i %12i %12.3f %12.3f %12.3f\n" %
+                    (mol.forcefield.dihedrals[i][0], mol.forcefield.dihedrals[i][1], mol.forcefield.dihedrals[i][2],
+                     mol.forcefield.dihedrals[i][2], mol.forcefield.Kchi[i], mol.forcefield.delta[i], mol.forcefield.n[i]))
+
+        f.write("#impropers " + str(mol.forcefield.n_impropers) + "\n")
+        for i in range(mol.forcefield.n_impropers):
+            f.write("%12i %12i %12i %12i %12.3f %12.3f\n" %
+                    (mol.forcefield.impropers[i][0], mol.forcefield.impropers[i][1], mol.forcefield.impropers[i][2],
+                     mol.forcefield.impropers[i][2], mol.forcefield.Kpsi[i], mol.forcefield.psi0[i]))
+
+        f.write("#urey " + str(mol.forcefield.n_urey) + "\n")
+        for i in range(mol.forcefield.n_urey):
+            f.write("%12i %12i %12i %12.3f %12.3f\n" %
+                    (mol.forcefield.urey[i][0], mol.forcefield.urey[i][1], mol.forcefield.urey[i][2],
+                     mol.forcefield.Kub[i], mol.forcefield.S0[i]))
+
+        f.write("#end\n")
