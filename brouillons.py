@@ -1076,7 +1076,7 @@ chimera_molecule_viewer([ak1,ak2 ])
 
 from src.molecule import Molecule
 from src.viewers import *
-from src.functions import get_RMSD_coords, cross_correlation, get_mol_conv
+from src.functions import get_RMSD_coords, get_mol_conv
 import matplotlib.pyplot as plt
 from src.flexible_fitting import FlexibleFitting
 from src.io import create_psf
@@ -1160,9 +1160,9 @@ cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_rmsd.npy")
 
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_a_chain0.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_a_cc_chain0.pkl")
 fit_a.fit = [fit_a.fit]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_x_chain0.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_x_cc_chain0.pkl")
 fit_x.fit = [fit_x.fit]
 fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_cc.npy")

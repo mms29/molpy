@@ -32,7 +32,8 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=s
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 50000,
+    "gradient": "CC",
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 10,
@@ -56,8 +57,8 @@ n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix = "results/ATPase/fitx")
+                       prefix = "results/ATPase/fitx_cc")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local","global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix = "results/ATPase/fita")
+                       prefix = "results/ATPase/fita_cc")
 
 fits = multiple_fitting(models=[fitx, fita], n_chain=n_chain, n_proc=10)

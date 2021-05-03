@@ -47,11 +47,12 @@ chimera_fit_viewer(mol=init, target=target_density)
 
 params ={
     # "initial_biasing_factor" : 0.5,
-    "biasing_factor" : 0.05,
+    "biasing_factor" : 10000,
+    "gradient":"CC",
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
-    "cutoffpl": 5.0,
-    "cutoffnb" : 2.0,
+    "cutoffpl": 7.0,
+    "cutoffnb" : 5.0,
 
     "local_dt" : 2e-15,
     "temperature" : 300,
@@ -59,9 +60,9 @@ params ={
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     # "shift_dt" : 0.0001,
-    "n_iter":50,
-    "n_warmup":45,
-    "n_step": 1000,
+    "n_iter":1,
+    "n_warmup":0,
+    "n_step": 10000,
     "criterion": False,
     "target" : target,
     "limit" :100,
@@ -71,14 +72,14 @@ n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/RF2/fitx")
+                       prefix="results/RF2/fitx_cc")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/RF2/fita")
+                       prefix="results/RF2/fita_cc")
 # fita.HMC_chain()
 params["n_step"]=10
 params["n_iter"]=5000
 params["n_warmup"]=4500
 params["potentials"]=["bonds", "angles", "dihedrals"]
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift", "rotation"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/RF2/fitq")
+                       prefix="results/RF2/fitq_cc")
 fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
