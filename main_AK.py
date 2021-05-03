@@ -42,19 +42,20 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 8000,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 100,
-    "n_iter":50,
-    "n_warmup":45,
+    "n_step": 10000,
+    "n_iter":1,
+    "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
     "target":target,
     "limit" : 100,
     "nb_update":20,
-    "criterion":False
+    "criterion":False,
+    "gradient": "CC"
 }
 n_chain=4
 verbose =2

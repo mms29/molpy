@@ -57,6 +57,8 @@ DEFAULT_FIT_PARAMS ={
 
     "output_update":10,
 
+    "gradient" : "LS",
+
     "limit" : 1000,
     "nb_update": 20,
 

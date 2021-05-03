@@ -1254,6 +1254,9 @@ fig.tight_layout()
 
 from src.viewers import ramachandran_viewer
 
+ramachandran_viewer("data/RF2/1gqe_PSF.pdb")
+ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/RF2/fita_chain0.pdb")
+
 ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/5ftm25ftn_noR_a_output.pdb")
 ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/fita_all_chain2.pdb")
 ramachandran_viewer("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_188.pdb")
@@ -1340,3 +1343,44 @@ def check(F):
 
 F = {"a":1}
 check(F)
+
+
+
+
+
+
+
+
+
+
+
+
+from src.flexible_fitting import *
+from src.molecule import Molecule
+from src.density import Volume
+from src.functions import get_RMSD_coords
+
+
+ak = Molecule("tests/tests_data/input/AK/AK.pdb")
+ak.center()
+ak.allatoms2carbonalpha()
+ak.set_forcefield()
+
+target = Volume.from_file(file="tests/tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
+params = {"biasing_factor": 8000,
+          "local_dt": 2 * 1e-15,
+          "n_iter": 50,
+          "n_warmup": 40,
+          "gradient":"CC"}
+fit = FlexibleFitting(init=ak, target=target, vars=["local"], params=params, n_chain=4, verbose=2)
+fit.HMC_chain()
+
+dx= np.random.normal(1,2,ak.coords.shape)
+init = Volume.from_coords(coord=ak.coords, size=64, voxel_size=1.5, sigma=2.0, cutoff=6.0)
+
+a = src.density.get_gradient_CC(mol=ak, psim= init.data, pexp=target, params={"local" : dx})["local"]
+b = src.density.get_gradient_LS(mol=ak, psim= init.data, pexp=target, params={"local" : dx})["local"]
+
+np.mean([np.dot(a[i].T, b[i])/(np.linalg.norm(a[i])*np.linalg.norm(b[i])) for i in range(len(a))])
+
+

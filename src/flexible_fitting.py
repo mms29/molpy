@@ -93,11 +93,11 @@ class FlexibleFitting:
         # HMC Loop
         for i in range(self.params["n_iter"]):
             self._set("Iter", i)
-            try:
-                self.HMC_step()
-            except RuntimeError as rte:
-                self._write("Warning : Trajectory rejected because of the following error : "+str(rte.args[0]))
-                self._acceptation(1,1,True)
+            # try:
+            self.HMC_step()
+            # except RuntimeError as rte:
+            #     self._write("Warning : Trajectory rejected because of the following error : "+str(rte.args[0]))
+            #     self._acceptation(1,1,True)
 
         # Generate results
         self.res = {"mol": self.init.copy()}
@@ -164,7 +164,7 @@ class FlexibleFitting:
         # Density update
             self._set_density()
         # CC update
-            self._add("CC", src.functions.cross_correlation(self._get("psim").data, self.target.data))
+            self._add("CC", src.density.get_CC(self._get("psim"), self.target.data))
             if "target" in self.params:
                 self._add("RMSD", src.functions.get_RMSD_coords(
                     self._get("coord_t")[self.params["target_idx"][:,0]],
@@ -306,7 +306,11 @@ class FlexibleFitting:
         t = time.time()
 
         # Biased Potential
-        U_biased = src.functions.get_RMSD(psim=self._get("psim").data, pexp=self.target.data) * self.params["biasing_factor"]
+        if self.params["gradient"]=="LS":
+            U_biased = src.density.get_LS(map1=self._get("psim"), map2=self.target.data)
+        else:
+            U_biased = 1 - src.density.get_CC(map1=self._get("psim"), map2=self.target.data)
+        U_biased *= self.params["biasing_factor"]
         self._add("U_biased", U_biased)
         U+= U_biased
 
@@ -343,11 +347,17 @@ class FlexibleFitting:
             vals[i] = self._get(i+"_t")
 
         if isinstance(self.target, src.density.Image):
-            dU_biased = src.forcefield.get_gradient_RMSD_img(mol=self.init, psim=self._get("psim"), pexp =self.target,
+            dU_biased = src.density.get_gradient_LS_img(mol=self.init, psim=self._get("psim"), pexp =self.target,
                                 params=vals, expnt = self._get("expnt"), normalModeVec=self.init.normalModeVec)
         else:
-            dU_biased = src.forcefield.get_gradient_RMSD(mol=self.init, psim=self._get("psim"), pexp=self.target,
-                                params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
+            if self.params["gradient"] == "LS":
+                dU_biased = src.density.get_gradient_LS(mol=self.init, psim=self._get("psim"), pexp=self.target,
+                                    params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
+            elif self.params["gradient"]  == "CC":
+                dU_biased = src.density.get_gradient_CC(mol=self.init, psim=self._get("psim"), pexp=self.target,
+                                    params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
+            else:
+                raise RuntimeError("Unkown gradient function")
 
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
                                                potentials=self.params["potentials"], pairlist=self._get("pairlist"),
@@ -395,11 +405,11 @@ class FlexibleFitting:
         """
         t = time.time()
         if isinstance(self.target, src.density.Image):
-            psim, expnt = src.functions.pdb2img(coord=self._get("coord_t"), size=self.target.size,
+            psim, expnt = src.density.pdb2img(coord=self._get("coord_t"), size=self.target.size,
                                                  voxel_size=self.target.voxel_size,
                                                  sigma=self.target.sigma, cutoff=self.target.cutoff)
         else:
-            psim, expnt = src.functions.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
+            psim, expnt = src.density.pdb2vol(coord=self._get("coord_t"), size=self.target.size,
                                   voxel_size=self.target.voxel_size,
                                   sigma=self.target.sigma, cutoff=self.target.cutoff)
         self._set("psim",psim)
@@ -510,7 +520,7 @@ class FlexibleFitting:
         psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
                                                  voxel_size=self.target.voxel_size,
                                                  sigma=self.target.sigma, cutoff=self.target.cutoff)
-        U_biased = src.functions.get_RMSD(psim=psim.data, pexp=self.target.data)
+        U_biased = src.density.get_LS(map1=psim.data, map2=self.target.data)
 
         U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
         factor = np.abs(init_factor/(U_biased/U_potential))

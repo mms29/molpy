@@ -4,10 +4,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-
-def get_RMSD(psim, pexp):
-    return np.linalg.norm(psim-pexp)**2
-
 def select_voxels(coord, size, voxel_size, cutoff):
     n_atoms = coord.shape[0]
     threshold = int(np.ceil(cutoff/voxel_size))
@@ -36,9 +32,6 @@ def to_matrix(vec, X,Y,Z):
             for z in range(Z):
                 arr[x, y, z] = vec[z + y * Z + x * Y * Z]
     return arr
-
-def cross_correlation(map1, map2):
-    return np.sum(map1*map2)/np.sqrt(np.sum(np.square(map1))*np.sum(np.square(map2)))
 
 def generate_euler_matrix(angles):
     a, b, c = angles
@@ -124,39 +117,6 @@ def show_rmsd_fit(mol, fit, save=None):
     ax.set_title("RMSD")
     if save is not None:
         fit.savefig(save)
-
-
-def pdb2vol(coord, size, sigma, voxel_size, cutoff):
-    vox, n_vox = select_voxels(coord, size, voxel_size, cutoff)
-    n_atoms = coord.shape[0]
-    vol = np.zeros((size, size, size))
-    expnt = np.zeros((n_atoms, n_vox, n_vox, n_vox))
-    for i in range(n_atoms):
-        mu = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
-              vox[i, 1]:vox[i, 1] + n_vox,
-              vox[i, 2]:vox[i, 2] + n_vox] - size / 2) * voxel_size
-        x = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
-        expnt[i] = np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
-        vol[vox[i, 0]:vox[i, 0] + n_vox,
-        vox[i, 1]:vox[i, 1] + n_vox,
-        vox[i, 2]:vox[i, 2] + n_vox] += expnt[i]
-    return vol, expnt
-
-def pdb2img(coord, size, sigma, voxel_size, cutoff):
-    vox, n_pix = select_voxels(coord, size, voxel_size, cutoff)
-    pix = vox[:, :2]
-    n_atoms = coord.shape[0]
-    img = np.zeros((size, size))
-    expnt = np.zeros((n_atoms, n_pix, n_pix))
-    for i in range(n_atoms):
-        mu = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
-              pix[i, 1]:pix[i, 1] + n_pix] - size / 2) * voxel_size
-        x = np.repeat(coord[i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
-        expnt[i] = np.exp(-np.square(np.linalg.norm(x - mu, axis=0)) / (2 * (sigma ** 2)))
-        img[pix[i, 0]:pix[i, 0] + n_pix,
-        pix[i, 1]:pix[i, 1] + n_pix] += expnt[i]
-
-    return img, expnt
 
 def select_idx(param, idx):
     new_param = []

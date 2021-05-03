@@ -50,8 +50,8 @@ params ={
     "biasing_factor" : 0.05,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
-    "cutoffpl": 7.0,
-    "cutoffnb" : 5.0,
+    "cutoffpl": 5.0,
+    "cutoffnb" : 2.0,
 
     "local_dt" : 2e-15,
     "temperature" : 300,
@@ -79,6 +79,6 @@ params["n_step"]=10
 params["n_iter"]=5000
 params["n_warmup"]=4500
 params["potentials"]=["bonds", "angles", "dihedrals"]
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
+fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift", "rotation"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/RF2/fitq")
 fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
