@@ -60,9 +60,9 @@ params ={
 n_chain=4
 verbose =2
 fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a")
+                       prefix="results/AK/fit_a_cc")
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_x")
+                       prefix="results/AK/fit_x_cc")
 fits=  multiple_fitting(models=[fit1, fit2], n_chain=n_chain, n_proc =25)
 # fit1.HMC_chain()
 # src.viewers.fit_potentials_viewer(fit1)
