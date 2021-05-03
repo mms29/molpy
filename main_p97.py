@@ -44,7 +44,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 100000,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 7.0,
@@ -63,6 +63,7 @@ params ={
     "target" : target,
     "limit" :100,
     "nb_update":20,
+    "gradient":"CC"
 }
 n_chain=4
 verbose=2
