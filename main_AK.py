@@ -47,9 +47,9 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 10000,
-    "n_iter":1,
-    "n_warmup":0,
+    "n_step": 100,
+    "n_iter":100,
+    "n_warmup":90,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
     "target":target,
     "limit" : 100,
@@ -60,9 +60,9 @@ params ={
 n_chain=4
 verbose =2
 fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a_cc")
+                       prefix="results/AK/fit_a_cc2")
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_x_cc")
+                       prefix="results/AK/fit_x_cc2")
 fits=  multiple_fitting(models=[fit1, fit2], n_chain=n_chain, n_proc =25)
 # fit1.HMC_chain()
 # src.viewers.fit_potentials_viewer(fit1)
