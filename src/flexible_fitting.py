@@ -90,6 +90,13 @@ class FlexibleFitting:
         for i in self.vars:
             self._set(i ,[self.params[i+"_init"]])
 
+        # initialize trajectory
+        if self.prefix is not None:
+            self.init.save_pdb(self.prefix+"_chain"+str(self.chain_id)+".pdb")
+            src.io.append_dcd(pdb_file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
+                              dcd_file=self.prefix+"_traj"+str(self.chain_id)+".dcd",
+                              first_frame=True)
+
         # HMC Loop
         for i in range(self.params["n_iter"]):
             self._set("Iter", i)
@@ -487,11 +494,13 @@ class FlexibleFitting:
             cp = self.init.copy()
             cp.coords = self._get("coord_t")
             cp.save_pdb(file=self.prefix+"_chain"+str(self.chain_id)+".pdb")
-            # ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
             del cp
             self.show(save=self.prefix+"_chain"+str(self.chain_id)+".png")
             self.save(file=self.prefix+"_chain"+str(self.chain_id)+".pkl")
             self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
+            src.io.append_dcd(pdb_file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
+                              dcd_file=self.prefix+"_chain"+str(self.chain_id)+".dcd")
+            ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
 
     # ==========================================   HMC Others       ===============================================
 

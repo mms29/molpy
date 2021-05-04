@@ -1384,3 +1384,12 @@ b = src.density.get_gradient_LS(mol=ak, psim= init.data, pexp=target, params={"l
 np.mean([np.dot(a[i].T, b[i])/(np.linalg.norm(a[i])*np.linalg.norm(b[i])) for i in range(len(a))])
 
 
+
+from src.flexible_fitting import FlexibleFitting
+from src.io import save_dcd,append_dcd
+
+fit = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/RF2/fita_cc_chain0.pkl")
+
+save_dcd(mol=fit.init, coords_list=fit.fit["coord"], prefix="/home/guest/Workspace/Paper_Frontiers/RF2/traj.dcd")
+
+

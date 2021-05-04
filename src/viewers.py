@@ -155,5 +155,6 @@ def chimera_fit_viewer(mol, target):
 def ramachandran_viewer(file, save=None):
     if save is not None:
         RamachanDraw.plot(file, show=False, save=True, out=save)
+        plt.close("all")
     else:
         RamachanDraw.plot(file)

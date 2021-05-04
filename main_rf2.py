@@ -35,7 +35,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 
 # target_density.rescale(init_density)
 # target_density.compare_hist(init_density)
-chimera_fit_viewer(mol=init, target=target_density)
+# chimera_fit_viewer(mol=init, target=target_density)
 # from src.simulation import nma_deform
 # target = nma_deform(init, [0,0,0,-1500])
 # target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
@@ -47,7 +47,7 @@ chimera_fit_viewer(mol=init, target=target_density)
 
 params ={
     # "initial_biasing_factor" : 0.5,
-    "biasing_factor" : 10000,
+    "biasing_factor" : 50000,
     "gradient":"CC",
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],

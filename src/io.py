@@ -345,3 +345,50 @@ def save_mol(file, mol):
                      mol.forcefield.Kub[i], mol.forcefield.S0[i]))
 
         f.write("#end\n")
+
+def save_dcd(mol, coords_list, prefix):
+    n_frames = len(coords_list)
+
+    # saving PDBs
+    mol = mol.copy()
+    for i in range(n_frames):
+        mol.coords = coords_list[i]
+        mol.save_pdb("%s_frame%i.pdb" % (prefix, i))
+
+    # VMD command
+    with open(prefix+"_cmd.tcl", "w") as f :
+        f.write("mol new %s_frame0.pdb\n" % prefix)
+        for i in range(1,n_frames):
+            f.write("mol addfile %s_frame%i.pdb\n" % (prefix, i))
+        f.write("animate write dcd %s_traj.dcd\n" % prefix)
+        f.write('exit')
+
+    # Running VMD
+    os.system("vmd -dispdev text -e %s_cmd.tcl" % prefix)
+
+    # Cleaning
+    print("Cleaning ...")
+    for i in range(n_frames):
+        os.system("rm -f %s_frame%i.pdb\n" % (prefix, i))
+    os.system("rm -f %s_cmd.tcl" % prefix)
+    print("Done")
+
+
+def append_dcd(pdb_file, dcd_file, first_frame=False):
+    # VMD command
+    with open(dcd_file+".tcl", "w") as f :
+        if first_frame:
+            f.write("mol new\n")
+        else:
+            f.write("mol load dcd %s\n" % dcd_file)
+        f.write("mol addfile %s\n" % pdb_file)
+        f.write("animate write dcd %s\n" % dcd_file)
+        f.write('exit')
+
+    # Running VMD
+    os.system("vmd -dispdev text -e %s.tcl > /dev/null" % dcd_file)
+
+    # Cleaning
+    print("Cleaning ...")
+    os.system("rm -f %s.tcl" % dcd_file)
+    print("Done")

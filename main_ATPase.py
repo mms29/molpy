@@ -32,7 +32,7 @@ target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=s
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 
 params ={
-    "biasing_factor" : 50000,
+    "biasing_factor" : 100000,
     "gradient": "CC",
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
