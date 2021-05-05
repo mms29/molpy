@@ -44,7 +44,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 100000,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 7.0,
@@ -69,14 +69,14 @@ n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fitx_exp_ls")
+                       prefix="results/P97_new/fitx_exp_cc")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fita_exp_ls")
+                       prefix="results/P97_new/fita_exp_cc")
 # fita.HMC_chain()
 params["n_step"]=10
 params["n_iter"]=500
 params["n_warmup"]=450
 params["potentials"]=["bonds", "angles", "dihedrals"]
 fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fitq_exp_ls")
+                       prefix="results/P97_new/fitq_exp_cc")
 fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)

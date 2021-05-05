@@ -168,6 +168,26 @@ def get_CC(map1, map2):
 def get_LS(map1, map2):
     return np.linalg.norm(map1-map2)**2
 
+def forward_model(coord, params, **kwargs):
+    model = {}
+    coord = copy.copy(coord)
+    if FIT_VAR_LOCAL in params:
+        model[FIT_VAR_LOCAL] = np.zeros(coord.shape)
+        coord += params[FIT_VAR_LOCAL]
+    if FIT_VAR_GLOBAL in params:
+        model[FIT_VAR_GLOBAL] = np.zeros(kwargs["normalModeVec"].shape[1])
+        coord += np.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
+    if FIT_VAR_ROTATION in params:
+        model[FIT_VAR_ROTATION] = np.zeros(3)
+        model["R"] = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
+        model["coordR"] = coord
+        coord = np.dot(model["R"], coord.T).T
+    if FIT_VAR_SHIFT in params:
+        model[FIT_VAR_SHIFT] = np.zeros(3)
+        coord += params[FIT_VAR_SHIFT]
+    model["coord"] =coord
+    return model
+
 def get_gradient_LS(mol, psim, pexp, params, **kwargs):
     """
     Compute the gradient of the lest squares between the density and a simultaed denisty
@@ -177,59 +197,47 @@ def get_gradient_LS(mol, psim, pexp, params, **kwargs):
     :param params: dictionnary of parameters to get the gradient (key= param name, value = param current value)
     :return: gradient of least squares for each parameters
     """
-    coord = copy.copy(mol.coords)
-    pdiff = psim - pexp.data
 
-
-    # Forward model
-    res = {}
-    if FIT_VAR_LOCAL in params:
-        res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
-        coord += params[FIT_VAR_LOCAL]
-    if FIT_VAR_GLOBAL in params:
-        res[FIT_VAR_GLOBAL] = np.zeros(kwargs["normalModeVec"].shape[1])
-        coord += np.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
-    if FIT_VAR_ROTATION in params:
-        res[FIT_VAR_ROTATION] = np.zeros(3)
-        R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
-        coord0 = coord
-        coord = np.dot(R, coord.T).T
-    if FIT_VAR_SHIFT in params:
-        res[FIT_VAR_SHIFT] = np.zeros(3)
-        coord += params[FIT_VAR_SHIFT]
+    # Get forward model
+    model = forward_model(coord=mol.coords, params=params, **kwargs)
 
     # Select impacted voxels
-    vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.cutoff)
+    vox, n_vox = src.functions.select_voxels(model["coord"], pexp.size, pexp.voxel_size, pexp.cutoff)
+    pdiff = psim - pexp.data
 
     # perform gradient computation of all atoms
     for i in range(mol.n_atoms):
+
+        # Get dpsim/d(param)
         mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
-              vox[i, 1]:vox[i, 1] + n_vox,
-              vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
-        coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
-        if "expnt" in kwargs: # use a past
+                   vox[i, 1]:vox[i, 1] + n_vox,
+                   vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
+        coord_grid = np.repeat(model["coord"][i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        if "expnt" in kwargs:  # use a past
             expnt = kwargs["expnt"][i]
         else:
-            expnt=np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
-        expnt *= -(1 / (pexp.sigma ** 2)) * 2
-        tmp = pdiff[vox[i, 0]:vox[i, 0] + n_vox,
-                  vox[i, 1]:vox[i, 1] + n_vox,
-                  vox[i, 2]:vox[i, 2] + n_vox] * expnt
-        dpsim = np.sum((coord_grid - mu_grid) * np.array([tmp, tmp, tmp]), axis=(1, 2, 3))
+            expnt = -(1 / (pexp.sigma ** 2)) * np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) \
+                                                      / (2 * (pexp.sigma ** 2)))
+        dpsim = (coord_grid - mu_grid) * np.array([expnt, expnt, expnt])
 
-        # apply to parameters
-        if FIT_VAR_ROTATION in params:
-            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
-            res[FIT_VAR_ROTATION] += np.dot(dR, dpsim)
-            dpsim *= (R[0] + R[1]+ R[2])
-        if FIT_VAR_LOCAL in params:
-            res[FIT_VAR_LOCAL][i] = dpsim
-        if FIT_VAR_GLOBAL in params:
-            res[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i], dpsim)
+        #Get dls/d(param)
+        dls = 2* np.sum(pdiff[vox[i, 0]:vox[i, 0] + n_vox,
+                                vox[i, 1]:vox[i, 1] + n_vox,
+                                vox[i, 2]:vox[i, 2] + n_vox] *dpsim, axis=(1, 2, 3))
+
+        # apply dls/d(param) to (param)
         if FIT_VAR_SHIFT in params:
-            res[FIT_VAR_SHIFT] += dpsim
+            model[FIT_VAR_SHIFT] += dls
+        if FIT_VAR_ROTATION in params:
+            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], model["coordR"][i])
+            model[FIT_VAR_ROTATION] += np.dot(dR, dls)
+            dls *= (model["R"][0] + model["R"][1] + model["R"][2])
+        if FIT_VAR_GLOBAL in params:
+            model[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i], dls)
+        if FIT_VAR_LOCAL in params:
+            model[FIT_VAR_LOCAL][i] = dls
 
-    return res
+    return model
 
 def get_gradient_LS_img(mol, psim, pexp, params, **kwargs):
     """
@@ -240,56 +248,44 @@ def get_gradient_LS_img(mol, psim, pexp, params, **kwargs):
     :param params: dictionnary of parameters to get the gradient (key= param name, value = param current value)
     :return: gradient of LS for each parameters
     """
-    coord = copy.copy(mol.coords)
-    pdiff = psim - pexp.data
-
-    # Forward model
-    res = {}
-    if FIT_VAR_LOCAL in params:
-        res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
-        coord += params[FIT_VAR_LOCAL]
-    if FIT_VAR_GLOBAL in params:
-        res[FIT_VAR_GLOBAL] = np.zeros(kwargs["normalModeVec"].shape[1])
-        coord += np.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
-    if FIT_VAR_ROTATION in params:
-        res[FIT_VAR_ROTATION] = np.zeros(3)
-        R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
-        coord0 = coord
-        coord = np.dot(R, coord.T).T
-    if FIT_VAR_SHIFT in params:
-        res[FIT_VAR_SHIFT] = np.zeros(3)
-        coord += params[FIT_VAR_SHIFT]
+    # Get forward model
+    model = forward_model(coord=mol.coords, params=params, **kwargs)
 
     # Select impacted voxels
-    vox, n_pix = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.cutoff)
-    pix = vox[:, :2]
+    pix, n_pix = src.functions.select_voxels(model["coord"], pexp.size, pexp.voxel_size, pexp.cutoff)
+    pdiff = psim - pexp.data
 
     # perform gradient computation of all atoms
     for i in range(mol.n_atoms):
+
+        # Get dpsim/d(param)
         mu_grid = (np.mgrid[pix[i, 0]:pix[i, 0] + n_pix,
                 pix[i, 1]:pix[i, 1] + n_pix] - pexp.size / 2) * pexp.voxel_size
-        coord_grid = np.repeat(coord[i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
+        coord_grid = np.repeat(model["coord"][i, :2], n_pix ** 2).reshape(2, n_pix, n_pix)
         if "expnt" in kwargs:  # use a past
             expnt = kwargs["expnt"][i]
         else:
-            expnt = np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
-        tmp = 2 * pdiff[pix[i, 0]:pix[i, 0] + n_pix,
-                      pix[i, 1]:pix[i, 1] + n_pix] * expnt
-        dpsim = np.sum(-(1 / (pexp.sigma ** 2)) * (coord_grid - mu_grid) * np.array([tmp, tmp]), axis=(1, 2))
+            expnt = -(1 / (pexp.sigma ** 2)) * np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) \
+                                                      / (2 * (pexp.sigma ** 2)))
+        dpsim = (coord_grid - mu_grid) * np.array([expnt, expnt])
 
-        # apply to parameters
+        #Get dls/d(param)
+        dls = 2 * np.sum(pdiff[pix[i, 0]:pix[i, 0] + n_pix,
+                         pix[i, 1]:pix[i, 1] + n_pix] * dpsim, axis=(1, 2))
+
+        # apply dls/d(param) to (param)
         if FIT_VAR_SHIFT in params:
-            res[FIT_VAR_SHIFT][:2] += dpsim
+            model[FIT_VAR_SHIFT][:2] += dls
         if FIT_VAR_ROTATION in params:
-            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
-            res[FIT_VAR_ROTATION] += np.dot(dR[:, :2], dpsim)
-            dpsim *= (R[0] + R[1] + R[2])[:2]
-        if FIT_VAR_LOCAL in params:
-            res[FIT_VAR_LOCAL][i][:2] = dpsim
+            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], model["coordR"][i])
+            model[FIT_VAR_ROTATION] += np.dot(dR[:, :2], dls)
+            dls *= (model["R"][0] + model["R"][1] + model["R"][2])[:2]
         if FIT_VAR_GLOBAL in params:
-            res[FIT_VAR_GLOBAL] += np.dot(mol.normalModeVec[i, :, :2], dpsim)
+            model[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i, :, :2], dls)
+        if FIT_VAR_LOCAL in params:
+            model[FIT_VAR_LOCAL][i][:2] = dls
 
-    return res
+    return model
 
 
 def get_gradient_CC(mol, psim, pexp, params, **kwargs):
@@ -301,27 +297,12 @@ def get_gradient_CC(mol, psim, pexp, params, **kwargs):
     :param params: dictionnary of parameters to get the gradient (key= param name, value = param current value)
     :return: gradient of CC for each parameters
     """
-    coord = copy.copy(mol.coords)
 
-    # Forward model
-    res = {}
-    if FIT_VAR_LOCAL in params:
-        res[FIT_VAR_LOCAL] = np.zeros(coord.shape)
-        coord += params[FIT_VAR_LOCAL]
-    if FIT_VAR_GLOBAL in params:
-        res[FIT_VAR_GLOBAL] = np.zeros(kwargs["normalModeVec"].shape[1])
-        coord += np.dot(params[FIT_VAR_GLOBAL], kwargs["normalModeVec"])
-    if FIT_VAR_ROTATION in params:
-        res[FIT_VAR_ROTATION] = np.zeros(3)
-        R = src.functions.generate_euler_matrix(angles=params[FIT_VAR_ROTATION])
-        coord0 = coord
-        coord = np.dot(R, coord.T).T
-    if FIT_VAR_SHIFT in params:
-        res[FIT_VAR_SHIFT] = np.zeros(3)
-        coord += params[FIT_VAR_SHIFT]
+    # Get forward model
+    model = forward_model(coord=mol.coords, params=params, **kwargs)
 
     # Select impacted voxels
-    vox, n_vox = src.functions.select_voxels(coord, pexp.size, pexp.voxel_size, pexp.cutoff)
+    vox, n_vox = src.functions.select_voxels(model["coord"], pexp.size, pexp.voxel_size, pexp.cutoff)
 
     psim_arr =psim
     pexp_arr =pexp.data
@@ -335,36 +316,37 @@ def get_gradient_CC(mol, psim, pexp, params, **kwargs):
     # perform gradient computation of all atoms
     for i in range(mol.n_atoms):
 
+        # Get dpsim/d(param)
         mu_grid = (np.mgrid[vox[i, 0]:vox[i, 0] + n_vox,
-              vox[i, 1]:vox[i, 1] + n_vox,
-              vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
-        coord_grid = np.repeat(coord[i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
-        if "expnt" in kwargs: # use a past
+                   vox[i, 1]:vox[i, 1] + n_vox,
+                   vox[i, 2]:vox[i, 2] + n_vox] - pexp.size / 2) * pexp.voxel_size
+        coord_grid = np.repeat(model["coord"][i], n_vox ** 3).reshape(3, n_vox, n_vox, n_vox)
+        if "expnt" in kwargs:  # use a past
             expnt = kwargs["expnt"][i]
         else:
-            expnt= np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) / (2 * (pexp.sigma ** 2)))
-        expnt *= 2* -(1 / (pexp.sigma ** 2))
-
+            expnt = -(1 / (pexp.sigma ** 2)) * np.exp(-np.square(np.linalg.norm(coord_grid - mu_grid, axis=0)) \
+                                                      / (2 * (pexp.sigma ** 2)))
         dpsim = (coord_grid - mu_grid) * np.array([expnt, expnt, expnt])
 
-        term1 = psim_arr[vox[i, 0]:vox[i, 0] + n_vox,
+        #Get dcc/d(param)
+        term1 = pexp_arr[vox[i, 0]:vox[i, 0] + n_vox,
                     vox[i, 1]:vox[i, 1] + n_vox,
                     vox[i, 2]:vox[i, 2] + n_vox] * dpsim
-        term2 = pexp_arr[vox[i, 0]:vox[i, 0] + n_vox,
+        term2 = psim_arr[vox[i, 0]:vox[i, 0] + n_vox,
                     vox[i, 1]:vox[i, 1] + n_vox,
                     vox[i, 2]:vox[i, 2] + n_vox] * dpsim
-        dcc = np.sum(term1, axis=(1, 2, 3)) * const1 - np.sum(term2, axis=(1, 2, 3)) * const2
+        dcc = -((np.sum(term1, axis=(1, 2, 3)) * const1) - (np.sum(term2, axis=(1, 2, 3)) * const2))
 
-        # apply to parameters
-        if FIT_VAR_ROTATION in params:
-            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], coord0[i])
-            res[FIT_VAR_ROTATION] += np.dot(dR, dcc)
-            dcc *= (R[0] + R[1]+ R[2])
-        if FIT_VAR_LOCAL in params:
-            res[FIT_VAR_LOCAL][i] = dcc
-        if FIT_VAR_GLOBAL in params:
-            res[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i], dcc)
+        # apply dcc/d(param) to (param)
         if FIT_VAR_SHIFT in params:
-            res[FIT_VAR_SHIFT] += dcc
+            model[FIT_VAR_SHIFT] += dcc
+        if FIT_VAR_ROTATION in params:
+            dR = src.functions.get_euler_grad(params[FIT_VAR_ROTATION], model["coordR"][i])
+            model[FIT_VAR_ROTATION] += np.dot(dR, dcc)
+            dcc *= (model["R"][0] + model["R"][1] + model["R"][2])
+        if FIT_VAR_GLOBAL in params:
+            model[FIT_VAR_GLOBAL] += np.dot(kwargs["normalModeVec"][i], dcc)
+        if FIT_VAR_LOCAL in params:
+            model[FIT_VAR_LOCAL][i] = dcc
 
-    return res
+    return model
