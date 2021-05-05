@@ -68,7 +68,7 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params)["local"]
         F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
                                                   target.sigma, target.voxel_size, target.data)["local"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
     def test_grad_CC_global(self):
         # get test data
@@ -85,7 +85,7 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params,normalModeVec=ak.normalModeVec)["global"]
         F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
                         target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)["global"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
     def test_grad_CC_rotation(self):
         # get test data
@@ -102,9 +102,27 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params)["rotation"]
         F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
                         target.sigma, target.voxel_size, target.data)["rotation"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
     def test_grad_CC_shift(self):
+        # get test data
+        ak, init, target = get_TestDensityGrad_data()
+        params = {"shift":np.zeros(3)}
+
+        # Check if CC is == to auto cc
+        cc = 1 - get_CC(init.data, target.data)
+        cc_auto = get_auto_CC(params = params, mol=ak,size=target.size,
+                    sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data)
+        self.assertAlmostEqual(cc, cc_auto)
+
+        # Check if grad CC is == to autograd CC
+        F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params)["shift"]
+        F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
+                        target.sigma, target.voxel_size, target.data)["shift"]
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
+
+
+    def test_grad_CC_all(self):
         # get test data
         ak, init, target = get_TestDensityGrad_data()
         params = {"local":np.zeros(ak.coords.shape),
@@ -114,32 +132,15 @@ class TestDensityGrad(unittest.TestCase):
         # Check if CC is == to auto cc
         cc = 1 - get_CC(init.data, target.data)
         cc_auto = get_auto_CC(params = params, mol=ak,size=target.size,
-                    sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data)
-        self.assertAlmostEqual(cc, cc_auto)
-
-        # Check if grad CC is == to autograd CC
-        F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params)
-        F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
-                        target.sigma, target.voxel_size, target.data)
-        for i in F:
-            self.assertAlmostEqual(np.linalg.norm(F[i]-F_auto[i]), 0.0)
-
-    def test_grad_CC_all(self):
-        # get test data
-        ak, init, target = get_TestDensityGrad_data()
-        params = {"shift":np.zeros(3)}
-
-        # Check if CC is == to auto cc
-        cc = 1 - get_CC(init.data, target.data)
-        cc_auto = get_auto_CC(params = params, mol=ak,size=target.size,
                     sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data, normalModeVec=ak.normalModeVec)
         self.assertAlmostEqual(cc, cc_auto)
 
         # Check if grad CC is == to autograd CC
-        F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params, normalModeVec=ak.normalModeVec)["shift"]
+        F = get_gradient_CC(mol=ak, psim=init.data, pexp=target, params=params, normalModeVec=ak.normalModeVec)
         F_auto = elementwise_grad(get_auto_CC, 0)(params, ak, target.size,
-                        target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)["shift"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+                        target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)
+        for i in params:
+            self.assertAlmostEqual(np.linalg.norm(F[i]+F_auto[i]), 0.0)
 
     def test_grad_LS_local(self):
         # get test data
@@ -156,7 +157,7 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params)["local"]
         F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
                     target.sigma, target.voxel_size, target.data)["local"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
     def test_grad_LS_global(self):
         # get test data
@@ -173,7 +174,7 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params,normalModeVec=ak.normalModeVec)["global"]
         F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
                         target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)["global"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
 
     def test_grad_LS_rotation(self):
@@ -191,9 +192,26 @@ class TestDensityGrad(unittest.TestCase):
         F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params)["rotation"]
         F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
                         target.sigma, target.voxel_size, target.data)["rotation"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
 
     def test_grad_LS_shift(self):
+        # get test data
+        ak, init, target = get_TestDensityGrad_data()
+        params = {"shift":np.zeros(3)}
+
+        # Check if LS is == to auto LS
+        LS = get_LS(init.data, target.data)
+        LS_auto = get_auto_LS(params = params, mol=ak,size=target.size,
+                    sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data)
+        self.assertAlmostEqual(LS, LS_auto)
+
+        # Check if grad LS is == to autograd LS
+        F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params)["shift"]
+        F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
+                        target.sigma, target.voxel_size, target.data)["shift"]
+        self.assertAlmostEqual(np.linalg.norm(F+F_auto), 0.0)
+
+    def test_grad_LS_all(self):
         # get test data
         ak, init, target = get_TestDensityGrad_data()
         params = {"local":np.zeros(ak.coords.shape),
@@ -203,29 +221,12 @@ class TestDensityGrad(unittest.TestCase):
         # Check if LS is == to auto LS
         LS = get_LS(init.data, target.data)
         LS_auto = get_auto_LS(params = params, mol=ak,size=target.size,
-                    sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data)
-        self.assertAlmostEqual(LS, LS_auto)
-
-        # Check if grad LS is == to autograd LS
-        F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params)
-        F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
-                        target.sigma, target.voxel_size, target.data)
-        for i in F:
-            self.assertAlmostEqual(np.linalg.norm(F[i]-F_auto[i]), 0.0)
-
-    def test_grad_LS_all(self):
-        # get test data
-        ak, init, target = get_TestDensityGrad_data()
-        params = {"shift":np.zeros(3)}
-
-        # Check if LS is == to auto LS
-        LS = get_LS(init.data, target.data)
-        LS_auto = get_auto_LS(params = params, mol=ak,size=target.size,
                     sigma=target.sigma, voxel_size=target.voxel_size, pexp=target.data, normalModeVec=ak.normalModeVec)
         self.assertAlmostEqual(LS, LS_auto)
 
         # Check if grad LS is == to autograd LS
-        F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params, normalModeVec=ak.normalModeVec)["shift"]
+        F = get_gradient_LS(mol=ak, psim=init.data, pexp=target, params=params, normalModeVec=ak.normalModeVec)
         F_auto = elementwise_grad(get_auto_LS, 0)(params, ak, target.size,
-                        target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)["shift"]
-        self.assertAlmostEqual(np.linalg.norm(F-F_auto), 0.0)
+                        target.sigma, target.voxel_size, target.data, normalModeVec=ak.normalModeVec)
+        for i in params:
+            self.assertAlmostEqual(np.linalg.norm(F[i]+F_auto[i]), 0.0)

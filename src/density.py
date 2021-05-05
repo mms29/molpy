@@ -221,7 +221,7 @@ def get_gradient_LS(mol, psim, pexp, params, **kwargs):
         dpsim = (coord_grid - mu_grid) * np.array([expnt, expnt, expnt])
 
         #Get dls/d(param)
-        dls = 2* np.sum(pdiff[vox[i, 0]:vox[i, 0] + n_vox,
+        dls = -2* np.sum(pdiff[vox[i, 0]:vox[i, 0] + n_vox,
                                 vox[i, 1]:vox[i, 1] + n_vox,
                                 vox[i, 2]:vox[i, 2] + n_vox] *dpsim, axis=(1, 2, 3))
 
@@ -335,7 +335,7 @@ def get_gradient_CC(mol, psim, pexp, params, **kwargs):
         term2 = psim_arr[vox[i, 0]:vox[i, 0] + n_vox,
                     vox[i, 1]:vox[i, 1] + n_vox,
                     vox[i, 2]:vox[i, 2] + n_vox] * dpsim
-        dcc = -((np.sum(term1, axis=(1, 2, 3)) * const1) - (np.sum(term2, axis=(1, 2, 3)) * const2))
+        dcc = ((np.sum(term1, axis=(1, 2, 3)) * const1) - (np.sum(term2, axis=(1, 2, 3)) * const2))
 
         # apply dcc/d(param) to (param)
         if FIT_VAR_SHIFT in params:

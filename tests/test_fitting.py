@@ -128,9 +128,10 @@ class TestFittingAK(unittest.TestCase):
         ak.set_forcefield()
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
-        params = {"gradient":"CC","biasing_factor": 100000, "global_dt": 0.05}
+        params = {"gradient":"CC","biasing_factor": 100000, "n_iter":50, "n_warmup":40,  "global_dt": 0.05}
         fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=2)
         fit.HMC()
+        fit.show()
 
         ground_truth = Molecule("tests_data/input/AK/ak_nma_carbonalpha.pdb")
         rmsd = get_RMSD_coords(ground_truth.coords, fit.res["mol"].coords)
