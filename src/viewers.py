@@ -1,3 +1,10 @@
+# **************************************************************************
+# * Authors: Rémi Vuillemot             (remi.vuillemot@upmc.fr)
+# *
+# * IMPMC, UPMC Sorbonne University
+# *
+# **************************************************************************
+
 import os
 import matplotlib.pyplot as plt
 plt.style.use("bmh")

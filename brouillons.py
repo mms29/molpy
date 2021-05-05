@@ -1108,7 +1108,7 @@ print(rmsd_f_genesis)
 print(rmsd_i_bff)
 print(rmsd_f_bff)
 
-def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1):
+def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1, test_idx=False):
     target.center()
     target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
     rmsd=[]
@@ -1117,12 +1117,16 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1):
     for i in range(0,N,step):
         print(i)
         mol = Molecule(prefix+str(i)+".pdb")
-        if idx is None:
-            idx = src.functions.get_mol_conv(mol, target)
         mol.center()
-        rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
+
+        if test_idx:
+            if idx is None:
+                idx = src.functions.get_mol_conv(mol, target)
+            rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
+        else:
+            rmsd.append(get_RMSD_coords(mol.coords, target.coords))
         vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
-        cc.append(cross_correlation(vol.data,target_density.data))
+        cc.append(src.density.get_CC(vol.data,target_density.data))
         np.save(file=prefix+"cc.npy", arr=np.array(cc))
         np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
     return np.array(cc), np.array(rmsd)
@@ -1130,8 +1134,8 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1):
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_",
     target=Molecule("/home/guest/Workspace/Paper_Frontiers/AKsynth/AK_synth_min.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
 
-cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_",
-    target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0)
+cc, rmsd = get_cc_rmsd(N=100, prefix="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_",
+    target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0, test_idx=False)
 
 cc, rmsd = get_cc_rmsd(N=188, prefix="/home/guest/Workspace/Paper_Frontiers/P97synth/Genesis/p97sytnh_",
     target=Molecule("data/P97/5ftm_synth_min.pdb"), size=128, voxel_size=2.0, cutoff=6.0, sigma=2.0)
@@ -1160,13 +1164,15 @@ cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/Genesis/5ftm25ftn_rmsd.npy")
 
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_a_cc_chain0.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/complete/fita_cc3_chain0.pkl")
 fit_a.fit = [fit_a.fit]
-fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/BSF/fit_x_cc_chain0.pkl")
+fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/complete/fitx_cc3_chain0.pkl")
 fit_x.fit = [fit_x.fit]
-fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
-cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_cc.npy")
-rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_k50000_rmsd.npy")
+fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/complete/fitq_cc3_chain0.pkl")
+fit_q.fit = [fit_q.fit]
+# fit_q = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/fit_q_dt2_output.pkl")
+cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_K10000_cc.npy")
+rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AK21ake/Genesis/AK_K10000_rmsd.npy")
 
 
 fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AKsynth/fita_output.pkl")
@@ -1210,7 +1216,6 @@ with plt.style.context("bmh"):
     ax[0].set_xlim(-N/10,1000)
     ax[1].set_xlim(-N/10,1000)
     fig.tight_layout()
-    fig.savefig("/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/BSF/cc_rmsd.png", dpi=300)
 
 
 

@@ -3,7 +3,6 @@ mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
-from src.simulation import nma_deform
 from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
 from src.density import Volume
@@ -29,7 +28,7 @@ target.center()
 target.save_pdb("data/1AKE/1ake_center.pdb")
 
 
-size=100
+size=64
 sampling_rate=2.0
 cutoff= 6.0
 gaussian_sigma=2
@@ -42,14 +41,14 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "biasing_factor" : 8000,
+    "biasing_factor" : 10000,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 100,
-    "n_iter":100,
-    "n_warmup":90,
+    "n_step": 10000,
+    "n_iter":1,
+    "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
     "target":target,
     "limit" : 100,
@@ -57,14 +56,20 @@ params ={
     "criterion":False,
     "gradient": "CC"
 }
-n_chain=4
+n_chain=2
 verbose =2
 fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_a_cc2")
+                       prefix="results/AK/fita_cc3")
 fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fit_x_cc2")
-# fits=  multiple_fitting(models=[fit1, fit2], n_chain=n_chain, n_proc =25)
-fit1.HMC_chain()
+                       prefix="results/AK/fitx_cc3")
+params["n_step"]=10
+params["n_iter"]=1000
+params["n_warmup"]=990
+params["potentials"]=["bonds", "angles", "dihedrals"]
+fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitq_cc3")
+fits=  multiple_fitting(models=[fit1, fit2, fit3], n_chain=n_chain, n_proc =25)
+# fit1.HMC_chain()
 # src.viewers.fit_potentials_viewer(fit1)
 # fit.show()
 # fit.show_3D()

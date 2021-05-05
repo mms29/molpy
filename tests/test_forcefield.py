@@ -46,9 +46,4 @@ class TestGradientPotential(unittest.TestCase):
         self.assertAlmostEqual(grad[FIT_VAR_ROTATION][0],0)
         self.assertAlmostEqual(grad[FIT_VAR_SHIFT][0],0)
 
-class TestGradientBiased(unittest.TestCase):
-    def test_implement_vs_autograd(self):
-        #TODO
-        pass
-
 

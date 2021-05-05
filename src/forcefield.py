@@ -1,7 +1,13 @@
+# **************************************************************************
+# * Authors: Rémi Vuillemot             (remi.vuillemot@upmc.fr)
+# *
+# * IMPMC, UPMC Sorbonne University
+# *
+# **************************************************************************
+
 import autograd.numpy as npg
 from autograd import elementwise_grad
 import numpy as np
-import copy
 import sys
 import time
 

@@ -9,7 +9,6 @@ from src.density import Volume
 import numpy as np
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
-from src.simulation import nma_deform
 
 init = Molecule("data/P97/5ftm_psf.pdb")
 init.center()

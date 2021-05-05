@@ -1,3 +1,10 @@
+# **************************************************************************
+# * Authors: Rémi Vuillemot             (remi.vuillemot@upmc.fr)
+# *
+# * IMPMC, UPMC Sorbonne University
+# *
+# **************************************************************************
+
 import time
 import multiprocessing
 import multiprocessing.pool
@@ -238,6 +245,16 @@ class FlexibleFitting:
 
     # ==========================================     FlexibleFitting controls        ===============================================
 
+    def get_all(self, key):
+        if isinstance(self.fit, list):
+            fits = self.fit
+        else:
+            fits = [self.fit]
+        val = []
+        for i in fits:
+            val.append(i[key])
+        return np.mean(val, axis=0)
+
     def _get(self, key):
         if isinstance(self.fit[key], list):
             return self.fit[key][-1]
@@ -273,27 +290,26 @@ class FlexibleFitting:
         Set initial parameters of the fitting
         :param params: dict of parameters
         """
-        default_params = copy.deepcopy(src.constants.DEFAULT_FIT_PARAMS)
+        self.params = copy.deepcopy(src.constants.DEFAULT_FIT_PARAMS)
         if FIT_VAR_LOCAL in self.vars:
-            default_params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
+            self.params[FIT_VAR_LOCAL+"_init"] = np.zeros(self.init.coords.shape)
         if FIT_VAR_GLOBAL in self.vars:
-            default_params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.normalModeVec.shape[1])
+            self.params[FIT_VAR_GLOBAL+"_init"] = np.zeros(self.init.normalModeVec.shape[1])
         if FIT_VAR_ROTATION in self.vars:
-            default_params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
+            self.params[FIT_VAR_ROTATION+"_init"] = np.zeros(3)
         if FIT_VAR_SHIFT in self.vars:
-            default_params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
+            self.params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
 
-        default_params.update(params)
+        self.params.update(params)
         if (FIT_VAR_LOCAL in self.vars) and (not FIT_VAR_LOCAL + "_sigma" in params):
-            default_params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
-                                                    np.sqrt((K_BOLTZMANN * default_params["temperature"]) /
+            self.params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
+                                                    np.sqrt((K_BOLTZMANN * self.params["temperature"]) /
                                                             (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
-        if "initial_biasing_factor" in default_params:
-            default_params["biasing_factor"] = self._set_factor(default_params["initial_biasing_factor"], potentials=default_params["potentials"])
+        if "initial_biasing_factor" in self.params:
+            self.params["biasing_factor"] = self._set_factor(self.params["initial_biasing_factor"], potentials=self.params["potentials"])
 
-        if "target" in default_params:
-            default_params["target_idx"] = src.functions.get_mol_conv(self.init, default_params["target"])
-        self.params = default_params
+        if "target" in self.params:
+            self.params["target_idx"] = src.functions.get_mol_conv(self.init, self.params["target"])
 
     def _initialize(self):
         """
@@ -360,11 +376,9 @@ class FlexibleFitting:
             if self.params["gradient"] == "LS":
                 dU_biased = src.density.get_gradient_LS(mol=self.init, psim=self._get("psim"), pexp=self.target,
                                     params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
-            elif self.params["gradient"]  == "CC":
+            else:
                 dU_biased = src.density.get_gradient_CC(mol=self.init, psim=self._get("psim"), pexp=self.target,
                                     params=vals, expnt=self._get("expnt"), normalModeVec=self.init.normalModeVec)
-            else:
-                raise RuntimeError("Unkown gradient function")
 
         dU_potential = src.forcefield.get_autograd(params=vals, mol = self.init, normalModeVec=self.init.normalModeVec,
                                                potentials=self.params["potentials"], pairlist=self._get("pairlist"),
@@ -529,14 +543,12 @@ class FlexibleFitting:
         psim = src.density.Volume.from_coords(coord=self.init.coords, size=self.target.size,
                                                  voxel_size=self.target.voxel_size,
                                                  sigma=self.target.sigma, cutoff=self.target.cutoff)
-        U_biased = src.density.get_LS(map1=psim.data, map2=self.target.data)
-
-        U_potential = src.forcefield.get_energy(coords=self.init.coords, forcefield=self.init.forcefield, **kwargs)["total"]
-        factor = np.abs(init_factor/(U_biased/U_potential))
-        if self.verbose > 0 :
-            self._write("Initial U_biased : "+str(U_biased))
-            self._write("Initial U_potential : "+str(U_potential))
-            self._write("Optimal initial factor : "+str(factor))
+        if self.params["gradient"] == "LS":
+            U_biased = src.density.get_LS(map1=psim.data, map2=self.target.data)
+        else:
+            U_biased= 1 - src.density.get_CC(map1=psim.data, map2=self.target.data)
+        factor = np.abs(init_factor/U_biased)
+        self._write("Optimal initial factor : "+str(factor))
         return factor
 
     def _set_criterion(self):

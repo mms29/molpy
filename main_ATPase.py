@@ -3,7 +3,6 @@ mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
-from src.simulation import nma_deform
 from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
 from src.density import Volume

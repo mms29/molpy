@@ -3,7 +3,6 @@ mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
-from src.simulation import nma_deform
 from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
 from src.density import Image
@@ -31,7 +30,7 @@ init.get_energy(potentials=["bonds", "angles", "dihedrals"])
 # target=init.copy()
 # target.rotate([0.1,0.2,0.1])
 # target.coords += 2
-target = nma_deform(init, [300,-100,0])
+target = init.nma_deform([300,-100,0])
 
 
 size=64

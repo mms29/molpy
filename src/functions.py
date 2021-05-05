@@ -1,3 +1,10 @@
+# **************************************************************************
+# * Authors: Rémi Vuillemot             (remi.vuillemot@upmc.fr)
+# *
+# * IMPMC, UPMC Sorbonne University
+# *
+# **************************************************************************
+
 import autograd.numpy as npg
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D

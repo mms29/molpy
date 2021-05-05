@@ -3,7 +3,6 @@ mkl.set_num_threads(1)
 import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
-from src.simulation import nma_deform
 from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
 from src.density import Volume
@@ -23,7 +22,7 @@ init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_
 
 init.allatoms2carbonalpha()
 init.set_forcefield()
-target = nma_deform(init, [200,-100,0])
+target = init.nma_deform([200,-100,0])
 
 size=64
 sampling_rate=2.0

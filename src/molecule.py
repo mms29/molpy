@@ -1,3 +1,10 @@
+# **************************************************************************
+# * Authors: Rémi Vuillemot             (remi.vuillemot@upmc.fr)
+# *
+# * IMPMC, UPMC Sorbonne University
+# *
+# **************************************************************************
+
 import copy
 from itertools import permutations
 import numpy as np
@@ -149,6 +156,16 @@ class Molecule:
     def select_chain(self, chainName):
         chainidx = np.where(self.chainName == chainName)
         self.select_atoms(chainidx)
+
+    def nma_deform(self, q):
+        """
+        deform molecule using NMA
+        :param q: numpy array of M normal modes amplitudes
+        :return: deformed Molecule
+        """
+        new_mol = self.copy()
+        new_mol.coords += np.dot(q, self.normalModeVec)
+        return new_mol
 
 
 class MoleculeForceField:
@@ -322,13 +339,13 @@ class MoleculeForceField:
         self.dihedrals = np.array(dihedrals).T
         self.dihedral_angles = np.array(dihedrals).T
         self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
-        self.Kb = np.ones(self.bonds.shape[0]) * K_BONDS
-        self.b0 = np.ones(self.bonds.shape[0]) * R0_BONDS
-        self.KTheta = np.ones(self.angles.shape[0]) * K_ANGLES
-        self.Theta0 = np.ones(self.angles.shape[0]) * THETA0_ANGLES
-        self.Kchi = np.ones(self.dihedrals.shape[0]) * K_TORSIONS
-        self.n = np.ones(self.dihedrals.shape[0]) * N_TORSIONS
-        self.delta = np.ones(self.dihedrals.shape[0]) * DELTA_TORSIONS
+        self.Kb = np.ones(self.bonds.shape[0])          * DEFAULT_FORCEFIELD["K_BONDS"]
+        self.b0 = np.ones(self.bonds.shape[0])          * DEFAULT_FORCEFIELD["R0_BONDS"]
+        self.KTheta = np.ones(self.angles.shape[0])     * DEFAULT_FORCEFIELD["K_ANGLES"]
+        self.Theta0 = np.ones(self.angles.shape[0])     * DEFAULT_FORCEFIELD["THETA0_ANGLES"]
+        self.Kchi = np.ones(self.dihedrals.shape[0])    * DEFAULT_FORCEFIELD["K_TORSIONS"]
+        self.n = np.ones(self.dihedrals.shape[0])       * DEFAULT_FORCEFIELD["N_TORSIONS"]
+        self.delta = np.ones(self.dihedrals.shape[0])   * DEFAULT_FORCEFIELD["DELTA_TORSIONS"]
         self.charge = np.zeros(len(chainName))
         self.mass = np.ones(len(chainName)) * CARBON_MASS
 
