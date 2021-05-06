@@ -1184,7 +1184,7 @@ fit_q.fit = [fit_q.fit[1]]
 cc= np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_cc.npy")
 rmsd = np.load(file="/home/guest/Workspace/Paper_Frontiers/AKsynth/Genesis/AK_k50000_rmsd.npy")
 
-fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/ATPase/fita_chain3.pkl")
+fit_a = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/RF2/fita_cc_chain0.pkl")
 fit_a.fit = [fit_a.fit]
 fit_x = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/ATPase/fitx_chain3.pkl")
 fit_x.fit = [fit_x.fit]

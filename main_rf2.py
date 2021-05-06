@@ -18,7 +18,7 @@ fnModes = np.array(["data/RF2/modes/vec."+str(i+7) for i in range(4)])
 init.set_normalModeVec(fnModes)
 init.set_forcefield(psf_file="data/RF2/1gqe.psf", prm_file="data/toppar/par_all36_prot.prm")
 # init.allatoms2backbone()
-# init.get_energy(verbose=True, cutoff=2.0)
+# init.get_energy(verbose=True, cutoff=10.0)
 # chimera_molecule_viewer([init])
 
 
