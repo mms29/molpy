@@ -44,7 +44,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "biasing_factor" : 100000,
+    "biasing_factor" : 1000000,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 6.0,
@@ -69,9 +69,9 @@ n_chain=4
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fitx_exp_cc")
+                       prefix="results/P97_new/fitx_exp_cc2")
 fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fita_exp_cc")
+                       prefix="results/P97_new/fita_exp_cc2")
 # fita.HMC_chain()
 params["n_step"]=10
 params["n_iter"]=500
