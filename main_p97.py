@@ -44,7 +44,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "biasing_factor" : 0.1,
+    "biasing_factor" : 100000,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 6.0,
@@ -65,7 +65,7 @@ params ={
     "nb_update":20,
     "gradient":"LS"
 }
-n_chain=4
+n_chain=2
 verbose=2
 
 fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
