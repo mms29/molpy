@@ -13,6 +13,7 @@ import src.functions
 import src.io
 import src.viewers
 from src.constants import FIT_VAR_LOCAL,FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT
+from skimage.exposure import match_histograms
 
 
 
@@ -46,7 +47,7 @@ class Density:
         """
         pass
 
-    def rescale(self, density, method="normal"):
+    def rescale(self, density, method="match"):
         """
         Rescale the density to fit an other density
         :param density: The other density to fit the scale
@@ -60,6 +61,8 @@ class Density:
             max1 = density.data.max()
             max2 = self.data.max()
             self.data = ((self.data - (min2 + min1))*(max1 - min1) )/ (max2 - min2)
+        elif method == "match":
+            self.data = match_histograms(self.data, density.data)
         else:
             print("Undefined type")
 
@@ -71,13 +74,13 @@ class Density:
         h1  = np.histogram(self.data.flatten(),bins=100)
         h2  = np.histogram(density.data.flatten(),bins=100)
         plt.figure()
-        plt.hist(self.data.flatten(), 100,label="self")
-        plt.hist(density.data.flatten(), 100,label="compared")
+        plt.hist(self.data.flatten(), 100,label="source")
+        plt.hist(density.data.flatten(), 100,label="reference")
         plt.legend()
 
         plt.figure()
-        plt.plot(h1[1][:-1] , np.cumsum(h1[0]), label="self")
-        plt.plot(h2[1][:-1] , np.cumsum(h2[0]), label="compared")
+        plt.plot(h1[1][:-1] , np.cumsum(h1[0]), label="source")
+        plt.plot(h2[1][:-1] , np.cumsum(h2[0]), label="reference")
         plt.legend()
 
     def show(self):

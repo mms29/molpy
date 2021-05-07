@@ -1398,3 +1398,5 @@ fit = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/RF2/fita_cc_ch
 save_dcd(mol=fit.init, coords_list=fit.fit["coord"], prefix="/home/guest/Workspace/Paper_Frontiers/RF2/traj.dcd")
 
 
+
+

@@ -30,9 +30,10 @@ target.center()
 # target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma,
 #                                     cutoff=cutoff)
 target_density = Volume.from_file('data/P97/emd_3299_128_filtered.mrc',voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
-target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
+# target_density.data = (target_density.data / target_density.data.max())* init_density.data.max()
 
-# target_density.rescale(init_density, "opt")
+
+target_density.rescale(init_density, "match")
 # target_density.compare_hist(init_density)
 
 # from src.simulation import nma_deform
@@ -44,7 +45,7 @@ target_density.data = (target_density.data / target_density.data.max())* init_de
 target_density.resize(200)
 
 params ={
-    "biasing_factor" : 1000000,
+    "biasing_factor" : 100000,
     "potential_factor" : 1,
     "potentials":["bonds", "angles", "dihedrals", "impropers", "urey", "vdw","elec"],
     "cutoffpl": 6.0,
@@ -65,18 +66,18 @@ params ={
     "nb_update":20,
     "gradient":"CC"
 }
-n_chain=2
+n_chain=4
 verbose=2
 
-fitx  =FlexibleFitting(init=init, target=target_density, vars=["local"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fitx_exp_cc3")
-fita  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fita_exp_cc3")
-# fita.HMC_chain()
-params["n_step"]=10
-params["n_iter"]=500
-params["n_warmup"]=450
-params["potentials"]=["bonds", "angles", "dihedrals"]
-fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fitq_exp_cc3")
-fits = multiple_fitting(models=[fitx, fita, fitq], n_chain=n_chain, n_proc=25)
+fit1  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97_new/fita_exp_opt")
+
+
+fit1.HMC()
+# params["n_step"]=10
+# params["n_iter"]=500
+# params["n_warmup"]=450
+# params["potentials"]=["bonds", "angles", "dihedrals"]
+# fitq  =FlexibleFitting(init=init, target=target_density, vars=["global","shift"], params=params, n_chain=n_chain, verbose=verbose,
+#                        prefix="results/P97_new/fitq_exp_cc4")
+# fits = multiple_fitting(models=[fit1, fit2, fit3, fit4], n_chain=n_chain, n_proc=25)
