@@ -10,6 +10,9 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+import contextlib
+import io
+import sys
 
 def select_voxels(coord, size, voxel_size, cutoff):
     n_atoms = coord.shape[0]
@@ -183,3 +186,9 @@ def get_mol_conv(mol1,mol2):
     print("Done")
     return np.array(idx)
 
+@contextlib.contextmanager
+def nostdout():
+    save_stdout = sys.stdout
+    sys.stdout = io.BytesIO()
+    yield
+    sys.stdout = save_stdout

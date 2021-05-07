@@ -12,6 +12,7 @@ import numpy as np
 import RamachanDraw
 import src.constants
 import src.io
+import warnings
 
 
 def molecule_viewer(mol, names=None):
@@ -160,8 +161,13 @@ def chimera_fit_viewer(mol, target):
     os.system(cmd)
 
 def ramachandran_viewer(file, save=None):
+
     if save is not None:
-        RamachanDraw.plot(file, show=False, save=True, out=save)
-        plt.close("all")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            RamachanDraw.plot(file, show=False, save=True, out=save)
+            plt.close("all")
     else:
-        RamachanDraw.plot(file)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            RamachanDraw.plot(file)

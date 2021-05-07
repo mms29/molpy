@@ -101,7 +101,7 @@ class FlexibleFitting:
         if self.prefix is not None:
             self.init.save_pdb(self.prefix+"_chain"+str(self.chain_id)+".pdb")
             src.io.append_dcd(pdb_file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
-                              dcd_file=self.prefix+"_traj"+str(self.chain_id)+".dcd",
+                              dcd_file=self.prefix+"_chain"+str(self.chain_id)+".dcd",
                               first_frame=True)
 
         # HMC Loop
