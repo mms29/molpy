@@ -58,37 +58,37 @@ params ={
 n_chain=1
 verbose =2
 fits=[]
+params["biasing_factor"] = 100
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc0"))
+params["biasing_factor"] = 200
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc1"))
+params["biasing_factor"] = 300
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc2"))
+params["biasing_factor"] = 400
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc3"))
+params["biasing_factor"] = 500
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc4"))
+params["biasing_factor"] = 600
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc5"))
+params["biasing_factor"] = 700
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc6"))
+params["biasing_factor"] = 800
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc7"))
+params["biasing_factor"] = 900
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc8"))
 params["biasing_factor"] = 1000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc0_modes"))
-params["biasing_factor"] = 5000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc1_modes"))
-params["biasing_factor"] = 10000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc3_modes"))
-params["biasing_factor"] = 50000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc4_modes"))
-params["biasing_factor"] = 100000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc5_modes"))
-params["gradient"] = "LS"
-params["biasing_factor"] = 0.01
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls0_modes"))
-params["biasing_factor"] = 0.03
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls1_modes"))
-params["biasing_factor"] = 0.6
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls3_modes"))
-params["biasing_factor"] = 0.1
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls4_modes"))
-params["biasing_factor"] = 0.2
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls5"))
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx_cc9"))
+
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 
 # fit1.HMC_chain()
