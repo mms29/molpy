@@ -149,15 +149,23 @@ def select_idx(param, idx):
     return new_param, new_param_idx
 
 def get_mol_conv(mol1,mol2):
-    print("Converting molecule coordinates ...")
+    print("> Converting molecule coordinates ...")
     id1 = []
-    for i in range(mol1.n_atoms):
-        id1.append(mol1.chainName[i] + str(mol1.resNum[i]) + mol1.atomName[i])
-    id1 = np.array(id1)
-
     id2 = []
-    for i in range(mol2.n_atoms):
-        id2.append(mol2.chainName[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+
+    if mol1.chainName[0] in mol2.chainName:
+        for i in range(mol1.n_atoms):
+            id1.append(mol1.chainName[i] + str(mol1.resNum[i]) + mol1.atomName[i])
+        for i in range(mol2.n_atoms):
+            id2.append(mol2.chainName[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+    elif mol1.chainID[0] in mol2.chainID:
+        for i in range(mol1.n_atoms):
+            id1.append(mol1.chainID[i] + str(mol1.resNum[i]) + mol1.atomName[i])
+        for i in range(mol2.n_atoms):
+            id2.append(mol2.chainID[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+    else:
+        print("\t Warning : No matching coordinates")
+    id1 = np.array(id1)
     id2 = np.array(id2)
 
     idx = []
@@ -167,23 +175,9 @@ def get_mol_conv(mol1,mol2):
             idx.append([i, idx_tmp[0]])
 
     if len(idx)==0:
-        print("Warning : No matching coordinates")
-        id1 = []
-        for i in range(mol1.n_atoms):
-            id1.append(mol1.chainID[i] + str(mol1.resNum[i]) + mol1.atomName[i])
-        id1 = np.array(id1)
+        print("\t Warning : No matching coordinates")
+    print("\t Done")
 
-        id2 = []
-        for i in range(mol2.n_atoms):
-            id2.append(mol2.chainID[i] + str(mol2.resNum[i]) + mol2.atomName[i])
-        id2 = np.array(id2)
-
-        idx = []
-        for i in range(len(id1)):
-            idx_tmp = np.where(id1[i] == id2)[0]
-            if len(idx_tmp) == 1:
-                idx.append([i, idx_tmp[0]])
-    print("Done")
     return np.array(idx)
 
 @contextlib.contextmanager
@@ -192,3 +186,28 @@ def nostdout():
     sys.stdout = io.BytesIO()
     yield
     sys.stdout = save_stdout
+
+def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1, test_idx=False):
+    from src.density import Volume, get_CC
+    from src.molecule import Molecule
+    target.center()
+    target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
+    rmsd=[]
+    cc =[]
+    idx = None
+    for i in range(0,N,step):
+        print(i)
+        mol = Molecule(prefix+str(i)+".pdb")
+        mol.center()
+
+        if test_idx:
+            if idx is None:
+                idx = get_mol_conv(mol, target)
+            rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
+        else:
+            rmsd.append(get_RMSD_coords(mol.coords, target.coords))
+        vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)
+        cc.append(get_CC(vol.data,target_density.data))
+        np.save(file=prefix+"cc.npy", arr=np.array(cc))
+        np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
+    return np.array(cc), np.array(rmsd)

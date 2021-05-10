@@ -61,6 +61,8 @@ class FlexibleFitting:
         Run HMC fitting with the specified number of chain in parallel
         :return: FlexibleFitting
         """
+        print("> Bayesian Flexible Fitting method ...")
+
         with Pool(self.n_chain) as p:
             # launch n_chain times HMC_chain()
             fits = p.starmap(FlexibleFitting.HMC_chain, [(self,i) for i in range(self.n_chain)])
@@ -77,6 +79,7 @@ class FlexibleFitting:
             self.res["mol"].save_pdb(file=self.prefix+"_output.pdb")
             self.save(file=self.prefix+"_output.pkl")
 
+        print("\t Done \n")
         return self
 
     def HMC_chain(self, chain_id=0):
@@ -310,6 +313,7 @@ class FlexibleFitting:
 
         if "target" in self.params:
             self.params["target_idx"] = src.functions.get_mol_conv(self.init, self.params["target"])
+
 
     def _initialize(self):
         """

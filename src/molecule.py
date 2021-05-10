@@ -185,31 +185,17 @@ class MoleculeForceField:
         psf = src.io.read_psf(psf_file)
         prm = src.io.read_prm(prm_file)
 
-        self.bonds=psf["bonds"]
-        self.angles=psf["angles"]
-        self.dihedrals=psf["dihedrals"]
-        self.impropers=psf["impropers"]
+        print("> Setting up forcefield ...")
+
         atom_type = np.array(psf["atomNameRes"])
 
+        #####################################
+        # Bonds
+        #####################################
+        self.bonds=psf["bonds"]
         self.n_bonds = len(self.bonds)
-        self.n_angles = len(self.angles)
-        self.n_dihedrals = len(self.dihedrals)
-        self.n_impropers = len(self.impropers)
-
         self.Kb = np.zeros(self.n_bonds)
         self.b0 = np.zeros(self.n_bonds)
-        self.KTheta = np.zeros(self.n_angles)
-        self.Theta0 = np.zeros(self.n_angles)
-        self.Kchi  = []
-        self.n     = []
-        self.delta = []
-        self.Kpsi = np.zeros(self.n_impropers)
-        self.psi0 = np.zeros(self.n_impropers)
-        self.charge = np.array(psf["atomCharge"])
-        self.mass = np.array(psf["atomMass"])
-        self.epsilon = np.zeros(mol.n_atoms)
-        self.Rmin = np.zeros(mol.n_atoms)
-
         for i in range(self.n_bonds):
             comb = atom_type[self.bonds[i]]
             found = False
@@ -222,7 +208,15 @@ class MoleculeForceField:
                     break
             if not found:
                 raise RuntimeError("Enable to locale BONDS item in the PRM file")
+        print("\t Number of %-12s %12i"%("bonds", self.n_bonds))
 
+        #####################################
+        # Angles / Urey Bradley
+        #####################################
+        self.angles=psf["angles"]
+        self.n_angles = len(self.angles)
+        self.KTheta = np.zeros(self.n_angles)
+        self.Theta0 = np.zeros(self.n_angles)
         self.urey = []
         self.Kub = []
         self.S0 = []
@@ -247,7 +241,17 @@ class MoleculeForceField:
         self.Kub = np.array(self.Kub)
         self.S0 = np.array(self.S0)
 
+        print("\t Number of %-12s %12i" % ("angles", self.n_angles))
+        print("\t Number of %-12s %12i" % ("urey-bradley", self.n_urey))
 
+        #####################################
+        # Dihedrals
+        #####################################
+        self.dihedrals=psf["dihedrals"]
+        self.n_dihedrals = len(self.dihedrals)
+        self.Kchi  = []
+        self.n     = []
+        self.delta = []
         n=0
         new_dihe = []
         for i in range(self.n_dihedrals):
@@ -274,14 +278,21 @@ class MoleculeForceField:
                         self.delta.append(j[6])
             if found == False:
                 raise RuntimeError("Enable to locale DIHEDRAL item in the PRM file")
-
         self.dihedral_angles = self.dihedrals
         self.excluded_pairs = src.forcefield.get_excluded_pairs(forcefield=self)
         self.dihedrals = np.array(new_dihe)
         self.Kchi = np.array(self.Kchi)
         self.n = np.array(self.n)
         self.delta = np.array(self.delta)
+        print("\t Number of %-12s %12i" % ("dihedrals", self.n_dihedrals))
 
+        #####################################
+        # Impropers
+        #####################################
+        self.impropers=psf["impropers"]
+        self.n_impropers = len(self.impropers)
+        self.Kpsi = np.zeros(self.n_impropers)
+        self.psi0 = np.zeros(self.n_impropers)
         for i in range(self.n_impropers):
             comb = list(atom_type[self.impropers[i]])
             found = False
@@ -303,6 +314,15 @@ class MoleculeForceField:
                         break
                 if not found:
                     raise RuntimeError("Enable to locale IMPROPER item in the PRM file")
+        print("\t Number of %-12s %12i" % ("impropers", self.n_impropers))
+
+        #####################################
+        # Non-Bonded
+        #####################################
+        self.charge = np.array(psf["atomCharge"])
+        self.mass = np.array(psf["atomMass"])
+        self.epsilon = np.zeros(mol.n_atoms)
+        self.Rmin = np.zeros(mol.n_atoms)
 
         for i in range(mol.n_atoms):
             if atom_type[i] in prm["nonbonded"]:
@@ -310,6 +330,8 @@ class MoleculeForceField:
                 self.Rmin[i] = prm["nonbonded"][atom_type[i]][1]
             else:
                 raise RuntimeError("Enable to locale NONBONDED item in the PRM file")
+
+        print("\t Done \n")
 
     def set_forcefield_default(self, mol):
 

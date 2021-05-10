@@ -1391,11 +1391,62 @@ np.mean([np.dot(a[i].T, b[i])/(np.linalg.norm(a[i])*np.linalg.norm(b[i])) for i 
 
 
 from src.flexible_fitting import FlexibleFitting
-from src.io import save_dcd,append_dcd
+import matplotlib.pyplot as plt
+import numpy as np
+from src.molecule import Molecule
+from src.density import Volume
+from src.functions import *
+import src.functions
+import matplotlib.pylab as pl
 
-fit = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/RF2/fita_cc_chain0.pkl")
+ccs=[]
+ccs.append(FlexibleFitting.load("results/AK/fita_cc0_chain0.pkl"))
+ccs.append(FlexibleFitting.load("results/AK/fita_cc1_chain0.pkl"))
+# ccs.append(FlexibleFitting.load("results/AK/fita_cc2_chain0.pkl"))
+ccs.append(FlexibleFitting.load("results/AK/fita_cc3_chain0.pkl"))
+ccs.append(FlexibleFitting.load("results/AK/fita_cc4_chain0.pkl"))
+ccs.append(FlexibleFitting.load("results/AK/fita_cc5_chain0.pkl"))
 
-save_dcd(mol=fit.init, coords_list=fit.fit["coord"], prefix="/home/guest/Workspace/Paper_Frontiers/RF2/traj.dcd")
+lss=[]
+lss.append(FlexibleFitting.load("results/AK/fita_ls0_chain0.pkl"))
+lss.append(FlexibleFitting.load("results/AK/fita_ls1_chain0.pkl"))
+# lss.append(FlexibleFitting.load("results/AK/fita_ls2_chain0.pkl"))
+lss.append(FlexibleFitting.load("results/AK/fita_ls3_chain0.pkl"))
+lss.append(FlexibleFitting.load("results/AK/fita_ls4_chain0.pkl"))
+lss.append(FlexibleFitting.load("results/AK/fita_ls5_chain0.pkl"))
+
+prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001170_FlexProtGenesisFit/extra/run",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001209_FlexProtGenesisFit/extra/run"]
+cc=[]
+rmsd= []
+for i in prefix :
+    cc.append(np.load(file=i + "cc.npy"))
+    rmsd.append(np.load(file=i + "rmsd.npy"))
+
+# file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_"
+# cc, rmsd = get_cc_rmsd(N=100, prefix=file,
+#     target=Molecule("data/1AKE/1ake_center.pdb"), size=64, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1, test_idx=False)
+#
+cccs = pl.cm.Reds(np.linspace(0.5,1,len(ccs)))
+clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
+cgen = pl.cm.Greens(np.linspace(0.5,1,len(cc)))
+
+
+fig, ax = plt.subplots(2,1)
+for i in range(len(ccs)):
+    ax[0].plot(ccs[i].fit["CC"], label=ccs[i].params["biasing_factor"], c=cccs[i])
+    ax[1].plot(ccs[i].fit["RMSD"],c=cccs[i])
+for i in range(len(lss)):
+    ax[0].plot(lss[i].fit["CC"], label=lss[i].params["biasing_factor"], c=clss[i])
+    ax[1].plot(lss[i].fit["RMSD"],c=clss[i])
+for i in range(len(prefix)):
+    ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label="genesis", c=cgen[i])
+    ax[1].plot((np.arange(len(rmsd[i]))+1)*100, rmsd[i], label="genesis", c=cgen[i])
+N=10000
+ax[0].set_xlim(-N/10,N + N/10)
+ax[1].set_xlim(-N/10,N + N/10)
+ax[0].legend()
 
 
 

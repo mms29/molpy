@@ -40,7 +40,7 @@ def read_pdb(file, hetatm=False):
     temp = []
     chainID = []
     elemName=[]
-    print("Reading pdb file ...")
+    print("> Reading pdb file ...")
     with open(file, "r") as f :
         for line in f:
             spl = line.split()
@@ -60,7 +60,7 @@ def read_pdb(file, hetatm=False):
                     temp.append(l[10])
                     chainID.append(l[11])
                     elemName.append(l[12])
-    print("Done")
+    print("\t Done \n")
 
     return {
         "atom" : np.array(atom),
@@ -82,7 +82,7 @@ def save_pdb(data, file):
     :param data: dictionary with pdb data
     :param file: PDB file
     """
-    print("Saving pdb file ...")
+    print("> Saving pdb file ...")
     with open(file, "w") as file:
         for i in range(len(data["atom"])):
             atom= data["atom"][i].ljust(6)  # atom#6s
@@ -99,7 +99,7 @@ def save_pdb(data, file):
             elemName= data["elemName"][i].rjust(12)  # elname
             file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
                                                               coordx, coordy, coordz, occ, temp, elemName))
-    print("Done")
+    print("\t Done \n")
 
 def read_mrc(file):
     """
@@ -119,7 +119,7 @@ def save_mrc(data, file, voxel_size=1):
     :param file: the mrc file name for the output
     :param voxel_size: voxel size
     """
-    print("Saving mrc file ...")
+    print("> Saving mrc file ...")
     data = data.astype('float32')
     with mrcfile.new(file, overwrite=True) as mrc:
         mrc.set_data(data.T)
@@ -130,7 +130,7 @@ def save_mrc(data, file, voxel_size=1):
         mrc.header['origin']['z'] = origin
         mrc.update_header_from_data()
         mrc.update_header_stats()
-    print("Done")
+    print("\t Done \n")
 
 def read_xmd(file):
     """
@@ -208,6 +208,7 @@ def read_psf(file):
     :param file: PSF file
     :return: dic containing structure data (bonds, angles, dihedrals etc.)
     """
+    print("> Reading PSF file ... ")
     with open(file) as psf_file:
         dic = {}
         section = {
@@ -250,6 +251,8 @@ def read_psf(file):
                         dic["atomMass"].append(float(split_line[7]))
                         n_curr += 1
 
+    print( "\t Done \n")
+
     return dic
 
 def read_prm(file):
@@ -258,6 +261,7 @@ def read_prm(file):
     :param file: PRM file
     :return: dic containing parameters data (bonds, angles, dihedrals etc.)
     """
+    print("> Reading CHARMM parameter file ...")
     dic ={
         "bonds" : {},
         "angles" : {},
@@ -311,6 +315,8 @@ def read_prm(file):
                         except ValueError: pass
                         else:
                             dic["nonbonded"][split_line[0]] = [float(split_line[2]), float(split_line[3])]
+
+    print("\t Done \n")
     return dic
 
 def save_mol(file, mol):
@@ -374,11 +380,11 @@ def save_dcd(mol, coords_list, prefix):
     os.system("vmd -dispdev text -e %s_cmd.tcl" % prefix)
 
     # Cleaning
-    print("Cleaning ...")
+    print("> Cleaning ...")
     for i in range(n_frames):
         os.system("rm -f %s_frame%i.pdb\n" % (prefix, i))
     os.system("rm -f %s_cmd.tcl" % prefix)
-    print("Done")
+    print("\t Done \n")
 
 
 def append_dcd(pdb_file, dcd_file, first_frame=False):
@@ -396,6 +402,6 @@ def append_dcd(pdb_file, dcd_file, first_frame=False):
     os.system("vmd -dispdev text -e %s.tcl > /dev/null" % dcd_file)
 
     # Cleaning
-    print("Cleaning ...")
+    print("> Cleaning ...")
     os.system("rm -f %s.tcl" % dcd_file)
-    print("Done")
+    print("\t Done \n")

@@ -18,7 +18,7 @@ fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
-init.get_energy()
+init.get_energy(verbose=True)
 # init.allatoms2carbonalpha()
 # init.set_forcefield()
 
@@ -55,19 +55,42 @@ params ={
     "criterion":False,
     "gradient": "CC"
 }
-n_chain=2
+n_chain=1
 verbose =2
-fit1  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc3")
-fit2  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc3")
-params["n_step"]=10
-params["n_iter"]=1000
-params["n_warmup"]=990
-params["potentials"]=["bonds", "angles", "dihedrals"]
-fit3  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL, FIT_VAR_ROTATION, FIT_VAR_SHIFT], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitq_cc3")
-fits=  multiple_fitting(models=[fit1, fit2, fit3], n_chain=n_chain, n_proc =25)
+fits=[]
+params["biasing_factor"] = 1000
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_cc0"))
+params["biasing_factor"] = 5000
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_cc1"))
+params["biasing_factor"] = 10000
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_cc3"))
+params["biasing_factor"] = 50000
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_cc4"))
+params["biasing_factor"] = 100000
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_cc5"))
+params["gradient"] = "LS"
+params["biasing_factor"] = 0.01
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_ls0"))
+params["biasing_factor"] = 0.03
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_ls1"))
+params["biasing_factor"] = 0.6
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_ls3"))
+params["biasing_factor"] = 0.1
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_ls4"))
+params["biasing_factor"] = 0.2
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_ls5"))
+fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
+
 # fit1.HMC_chain()
 # src.viewers.fit_potentials_viewer(fit1)
 # fit.show()

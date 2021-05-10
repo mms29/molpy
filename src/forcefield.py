@@ -33,7 +33,7 @@ def get_energy(coords, forcefield, **kwargs):
     U={}
     t= time.time()
     if verbose:
-        print("Computing Potential energy ...")
+        print("> Computing Potential energy ...")
 
     # Bonds energy
     if "bonds" in potentials:
@@ -73,14 +73,12 @@ def get_energy(coords, forcefield, **kwargs):
         if "elec" in potentials:
             U["elec"] = get_energy_elec(invdist, pairlist, forcefield)
 
-    if verbose:
-        for i in U:
-            print("|-- "+i+" = " + str(round(U[i], 2)))
-
     U["total"] = np.sum([U[i] for i in U])
     if verbose:
-        print("|== TOTAL = " + str(round(U["total"], 2)))
-        print("\t Time = "+str(time.time()-t)+" s")
+        for i in U:
+            print("\t %-12s %12.2f " % (i, U[i]))
+        print("\t %-12s %12.2f " % ("time (s)", time.time()-t))
+        print("\t Done \n")
 
     return U
 
