@@ -70,7 +70,12 @@ n_chain=4
 verbose=2
 
 fit1  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/P97_new/fita_exp_opt")
+                       prefix="results/P97_new/fita_modes")
+
+fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(2)])
+init.set_normalModeVec(fnModes)
+fit2  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/P97_new/fita_nomodes")
 
 
 fit1.HMC()

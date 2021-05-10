@@ -399,6 +399,8 @@ class FlexibleFitting:
 
             if not i+"_F" in self.fit: self._set(i+"_F", F)
             else: self._set(i+"_Ft", F)
+
+            self._set(i+"_Fabs", np.mean(np.linalg.norm(F, axis=1)))
         if self.verbose >= 3: self._write("Gradient=" + str(time.time() - t))
 
     def _set_kinetic(self):

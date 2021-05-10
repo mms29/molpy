@@ -14,7 +14,7 @@ from src.constants import *
 # import PDB
 init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
@@ -40,7 +40,7 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "biasing_factor" : 10000,
+    "biasing_factor" : 5000,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
@@ -55,39 +55,16 @@ params ={
     "criterion":False,
     "gradient": "CC"
 }
-n_chain=1
+n_chain=4
 verbose =2
 fits=[]
-params["biasing_factor"] = 100
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc0"))
-params["biasing_factor"] = 200
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc1"))
-params["biasing_factor"] = 300
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc2"))
-params["biasing_factor"] = 400
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc3"))
-params["biasing_factor"] = 500
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc4"))
-params["biasing_factor"] = 600
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc5"))
-params["biasing_factor"] = 700
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc6"))
-params["biasing_factor"] = 800
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc7"))
-params["biasing_factor"] = 900
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc8"))
-params["biasing_factor"] = 1000
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx_cc9"))
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_modes"))
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
+init.set_normalModeVec(fnModes)
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fita_nomodes"))
+
 
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 
