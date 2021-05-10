@@ -1415,19 +1415,24 @@ lss.append(FlexibleFitting.load("results/AK/fita_ls3_chain0.pkl"))
 lss.append(FlexibleFitting.load("results/AK/fita_ls4_chain0.pkl"))
 lss.append(FlexibleFitting.load("results/AK/fita_ls5_chain0.pkl"))
 
-prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_",
-          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001170_FlexProtGenesisFit/extra/run",
+prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001170_FlexProtGenesisFit/extra/run",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001296_FlexProtGenesisFit/extra/run",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001338_FlexProtGenesisFit/extra/run",
+          "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001254_FlexProtGenesisFit/extra/run",
           "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001209_FlexProtGenesisFit/extra/run"]
 cc=[]
 rmsd= []
 for i in prefix :
     cc.append(np.load(file=i + "cc.npy"))
     rmsd.append(np.load(file=i + "rmsd.npy"))
+lgen=["5000", "7500", "10000", "17500", "25000","50000"]
 
-# file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000185_FlexProtGenesisFit/extra/AK_K10000_"
+
+# file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001338_FlexProtGenesisFit/extra/run"
 # cc, rmsd = get_cc_rmsd(N=100, prefix=file,
 #     target=Molecule("data/1AKE/1ake_center.pdb"), size=64, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1, test_idx=False)
-#
+
 cccs = pl.cm.Reds(np.linspace(0.5,1,len(ccs)))
 clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
 cgen = pl.cm.Greens(np.linspace(0.5,1,len(cc)))
@@ -1441,13 +1446,37 @@ for i in range(len(lss)):
     ax[0].plot(lss[i].fit["CC"], label=lss[i].params["biasing_factor"], c=clss[i])
     ax[1].plot(lss[i].fit["RMSD"],c=clss[i])
 for i in range(len(prefix)):
-    ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label="genesis", c=cgen[i])
-    ax[1].plot((np.arange(len(rmsd[i]))+1)*100, rmsd[i], label="genesis", c=cgen[i])
-N=10000
+    ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label=lgen[i], c=cgen[i])
+    ax[1].plot((np.arange(len(rmsd[i]))+1)*100, rmsd[i], c=cgen[i])
+N=1000
 ax[0].set_xlim(-N/10,N + N/10)
 ax[1].set_xlim(-N/10,N + N/10)
-ax[0].legend()
+fig.legend()
+
+
+######## ATPase
 
 
 
 
+from src.flexible_fitting import FlexibleFitting
+import matplotlib.pyplot as plt
+import numpy as np
+from src.molecule import Molecule
+from src.density import Volume
+from src.functions import *
+import src.functions
+import matplotlib.pylab as pl
+
+file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000729_FlexProtGenesisFit/extra/run"
+cc, rmsd = get_cc_rmsd(N=200, prefix=file,
+    target=Molecule("data/ATPase/1iwo_fitted_PSF.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1, test_idx=False)
+
+prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000729_FlexProtGenesisFit/extra/run"]
+cc=[]
+rmsd= []
+for i in prefix :
+    cc.append(np.load(file=i + "cc.npy"))
+    rmsd.append(np.load(file=i + "rmsd.npy"))
+
+plt.plot(cc)

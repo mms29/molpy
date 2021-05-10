@@ -14,7 +14,7 @@ from src.constants import *
 # import PDB
 init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
@@ -60,32 +60,32 @@ verbose =2
 fits=[]
 params["biasing_factor"] = 1000
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc0"))
+                       prefix="results/AK/fita_cc0_modes"))
 params["biasing_factor"] = 5000
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc1"))
+                       prefix="results/AK/fita_cc1_modes"))
 params["biasing_factor"] = 10000
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc3"))
+                       prefix="results/AK/fita_cc3_modes"))
 params["biasing_factor"] = 50000
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc4"))
+                       prefix="results/AK/fita_cc4_modes"))
 params["biasing_factor"] = 100000
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_cc5"))
+                       prefix="results/AK/fita_cc5_modes"))
 params["gradient"] = "LS"
 params["biasing_factor"] = 0.01
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls0"))
+                       prefix="results/AK/fita_ls0_modes"))
 params["biasing_factor"] = 0.03
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls1"))
+                       prefix="results/AK/fita_ls1_modes"))
 params["biasing_factor"] = 0.6
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls3"))
+                       prefix="results/AK/fita_ls3_modes"))
 params["biasing_factor"] = 0.1
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_ls4"))
+                       prefix="results/AK/fita_ls4_modes"))
 params["biasing_factor"] = 0.2
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fita_ls5"))
