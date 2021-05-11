@@ -55,7 +55,7 @@ DEFAULT_FIT_PARAMS ={
 
     FIT_VAR_LOCAL+"_dt" : 1e-15,
     "temperature" : 300,
-    FIT_VAR_GLOBAL+"_dt" : 0.01,
+    FIT_VAR_GLOBAL+"_dt" : 10e-15,
     FIT_VAR_GLOBAL+"_sigma" : 1,
     FIT_VAR_ROTATION+"_dt": 0.00001,
     FIT_VAR_ROTATION+"_sigma": 1,

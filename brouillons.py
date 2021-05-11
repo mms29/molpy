@@ -1600,5 +1600,45 @@ fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/
 fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_Fabs_chain0.pkl"))
 fig, ax = plt.subplots(2,1)
 for i in range(len(fits)):
-    ax[0].plot(np.abs(fits[i].fit["local_Fabs"]) *(fits[i].params["local_dt"]**2))
-    ax[1].plot(np.abs(fits[i].fit["global_Fabs"])*(fits[i].params["global_dt"]**2))
+    ax[0].plot(np.abs(fits[i].fit["local_Fabs2"]) *(fits[i].params["local_dt"]**2))
+    ax[1].plot(np.abs(fits[i].fit["global_Fabs2"])*(fits[i].params["global_dt"]**2))
+
+
+
+temperature = 300
+local_sigma = (np.ones((3, init.n_atoms)) *  np.sqrt((K_BOLTZMANN * temperature) /
+                    (init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
+local_v = np.random.normal(0, local_sigma, init.coords.shape) # A*s-1
+local_v = local_v
+
+local_v = np.random.normal(0, local_sigma, init.coords.shape) # A*s-1
+global_v = np.zeros(4)
+for i in range(init.n_atoms):
+    global_v += np.dot(init.normalModeVec[i], local_v[i] )
+
+
+K = 1 / 2 * np.sum((init.forcefield.mass * ATOMIC_MASS_UNIT) * np.square(local_v + np.dot(global_v, init.normalModeVec)).T)
+K *= ANGSTROM_TO_METER ** 2 * (AVOGADRO_CONST / KCAL_TO_JOULE)  # kg * A2 * s-2 -> kcal * mol-1
+T = 2 * K*(KCAL_TO_JOULE/AVOGADRO_CONST ) / (K_BOLTZMANN * 3 * init.n_atoms)
+
+local_v *= temperature/T
+
+dU_biased = src.density.get_gradient_CC(mol=init, psim=init_density.data, pexp=target_density,
+                                    params={"local": np.zeros(init.coords.shape), "global" : np.zeros(4)},
+                                        normalModeVec=init.normalModeVec)
+F_local = -(dU_biased["local"])
+F_global = -(dU_biased["global"])
+np.dot(F_global, init.normalModeVec)
+
+F_local = (F_local.T * (1 / (init.forcefield.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+F_local *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
+F_local *= ANGSTROM_TO_METER ** -2  # kg * m2 * s-2 -> kg * A2 * s-2
+
+
+mq = np.zeros(4)
+for i in range(init.n_atoms):
+    mq += np.linalg.norm(init.normalModeVec[i], axis=1) * init.forcefield.mass[i]
+
+F_global = (F_global.T * (1 / (mq * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+F_global *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
+F_global *= ANGSTROM_TO_METER ** -2  # kg * m2 * s-2 -> kg * A2 * s-2

@@ -34,7 +34,7 @@ class TestFittingAK(unittest.TestCase):
         ak.set_forcefield()
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
-        params = {"biasing_factor": 10, "global_dt": 0.05}
+        params = {"biasing_factor": 10, "global_dt": 10e-15}
         fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=2)
         fit.HMC()
 
@@ -89,7 +89,7 @@ class TestFittingAK(unittest.TestCase):
         params = {
             "biasing_factor": 10,
             "local_dt": 2 * 1e-15,
-            "global_dt": 0.05,
+            "global_dt": 10e-15,
             "rotation_dt": 0.0001,
             "shift_dt": 0.001,
             "n_iter": 30,
@@ -128,7 +128,7 @@ class TestFittingAK(unittest.TestCase):
         ak.set_forcefield()
 
         target = Volume.from_file(file="tests_data/input/AK/ak_nma_carbonalpha.mrc", voxel_size=1.5, sigma=2, cutoff=6)
-        params = {"gradient":"CC","biasing_factor": 100000, "n_iter":50, "n_warmup":40,  "global_dt": 0.05}
+        params = {"gradient":"CC","biasing_factor": 100000, "n_iter":50, "n_warmup":40,  "global_dt": 10e-15}
         fit = FlexibleFitting(init=ak, target=target, vars=["global"], params=params, n_chain=4, verbose=2)
         fit.HMC()
         fit.show()
@@ -185,7 +185,7 @@ class TestFittingAK(unittest.TestCase):
             "gradient":"CC",
             "biasing_factor": 100000,
             "local_dt": 2 * 1e-15,
-            "global_dt": 0.05,
+            "global_dt": 10e-15,
             "rotation_dt": 0.0001,
             "shift_dt": 0.001,
             "n_iter": 30,

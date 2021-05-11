@@ -14,8 +14,12 @@ from src.constants import *
 # import PDB
 init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(4)])
 init.set_normalModeVec(fnModes)
+
+q = np.zeros(4)
+for i in range(init.n_atoms):
+    q += np.dot(init.normalModeVec[i], init.coords[i])
 
 init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
 init.get_energy(verbose=True)
@@ -42,7 +46,7 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 params ={
     "biasing_factor" : 50000,
     "local_dt" : 2e-15,
-    "global_dt": 0.1,
+    "global_dt": 10e-15,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
     "n_step": 10000,
@@ -66,10 +70,9 @@ cp.set_normalModeVec(fnModes)
 fits.append(FlexibleFitting(init = cp, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fita_nomodes_Fabs"))
 
-
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 
-# fit1.HMC_chain()
+# fits[0].HMC_chain()
 # src.viewers.fit_potentials_viewer(fit1)
 # fit.show()
 # fit.show_3D()

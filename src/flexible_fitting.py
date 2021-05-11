@@ -304,10 +304,15 @@ class FlexibleFitting:
             self.params[FIT_VAR_SHIFT+"_init"] = np.zeros(3)
 
         self.params.update(params)
-        if (FIT_VAR_LOCAL in self.vars) and (not FIT_VAR_LOCAL + "_sigma" in params):
-            self.params[FIT_VAR_LOCAL + "_sigma"] = (np.ones((3, self.init.n_atoms)) *
-                                                    np.sqrt((K_BOLTZMANN * self.params["temperature"]) /
-                                                            (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
+
+        self.params["local_sigma"] = (np.ones((3, self.init.n_atoms)) * np.sqrt((K_BOLTZMANN * self.params["temperature"]) /
+                        (self.init.forcefield.mass * ATOMIC_MASS_UNIT)) * ANGSTROM_TO_METER**-1).T
+
+        if FIT_VAR_GLOBAL in self.vars:
+            self.params["global_mass"] = np.zeros(self.init.normalModeVec.shape[1])
+            for i in range(self.init.n_atoms):
+                self.params["global_mass"] += np.linalg.norm(self.init.normalModeVec[i], axis=1) * self.init.forcefield.mass[i]
+
         if "initial_biasing_factor" in self.params:
             self.params["biasing_factor"] = self._set_factor(self.params["initial_biasing_factor"], potentials=self.params["potentials"])
 
@@ -320,8 +325,17 @@ class FlexibleFitting:
         Initialize all variables positions and velocities
         """
         for i in self.vars:
-            self._set(i+"_t", self._get(i))
-            self._set(i+"_v", np.random.normal(0, self.params[i+"_sigma"], self._get(i).shape))
+            self._set(i + "_t", self._get(i))
+            if i == FIT_VAR_GLOBAL:
+                vq = np.zeros(self._get("global").shape)
+                vx = np.random.normal(0, self.params["local_sigma"], self.init.coords.shape)
+                for i in range(self.init.n_atoms):
+                    vq += np.dot(self.init.normalModeVec[i], vx[i])
+                self._set("global_v", vq)
+                # self._set("local_v", vx)
+            else:
+                self._set(i + "_v", np.random.normal(0, self.params[i + "_sigma"], self._get(i).shape))
+
 
     # ==========================================   Forcefield       ===============================================
 
@@ -394,12 +408,12 @@ class FlexibleFitting:
                 F = (F.T * (1 / (self.init.forcefield.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
                 F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
                 F *= ANGSTROM_TO_METER**-2  # kg * m2 * s-2 -> kg * A2 * s-2
-                self._add(i+"_Fabs", np.mean(np.linalg.norm(F, axis=1)))
-                self._add(i+"_Fabs2", np.linalg.norm(F))
+
             elif i == FIT_VAR_GLOBAL:
-                Fq = np.dot(F, self.init.normalModeVec)
-                self._add(i + "_Fabs", np.mean(np.linalg.norm(Fq, axis=1)))
-                self._add(i + "_Fabs2", np.linalg.norm(Fq))
+                F = (F.T * (1 / (self.params["global_mass"] * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
+                F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
+                F *= ANGSTROM_TO_METER**-2  # kg * m2 * s-2 -> kg * A2 * s-2
+
             if i+"_factor" in self.params:
                 F+= - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
@@ -412,13 +426,17 @@ class FlexibleFitting:
         """
         Compute the Kinetic energy
         """
-        K=0
-        for i in self.vars:
-            if i == FIT_VAR_LOCAL:
-                K +=  1 / 2 * np.sum((self.init.forcefield.mass*ATOMIC_MASS_UNIT)*np.square(self._get(i+"_v")).T)
+        K = 0
+        if FIT_VAR_LOCAL in self.vars:
+            K_local=  1 / 2 * np.sum((self.init.forcefield.mass*ATOMIC_MASS_UNIT)*np.square(self._get(FIT_VAR_LOCAL+"_v")).T)
+            K+= K_local
+            self._add("K_local", K_local)
 
-            else:
-                K +=  1 / 2 * np.sum(np.square(self._get(i+"_v"))/self.params[i+"_sigma"])
+        if FIT_VAR_GLOBAL in self.vars:
+            K_global = 1 / 2 * np.sum((self.init.forcefield.mass * ATOMIC_MASS_UNIT) * np.square(
+                np.dot(self._get(FIT_VAR_GLOBAL + "_v"), self.init.normalModeVec)).T)
+            K+= K_global
+            self._add("K_global", K_global)
 
         K *= ANGSTROM_TO_METER**2 *(AVOGADRO_CONST /KCAL_TO_JOULE)# kg * A2 * s-2 -> kcal * mol-1
         self._add("K", K)
