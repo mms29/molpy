@@ -40,7 +40,7 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "biasing_factor" : 5000,
+    "biasing_factor" : 50000,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,

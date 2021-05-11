@@ -1409,7 +1409,7 @@ ccs.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/n
 lss=[]
 lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls0_chain0.pkl"))
 lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls1_chain0.pkl"))
-lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls3_chain0.pkl"))
+# lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls3_chain0.pkl"))
 lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls4_chain0.pkl"))
 lss.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_ls5_chain0.pkl"))
 
@@ -1446,11 +1446,18 @@ for i in range(len(lss)):
 for i in range(len(prefix)):
     ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label=lgen[i], c=cgen[i])
     ax[1].plot((np.arange(len(rmsd[i]))+1)*100, rmsd[i], c=cgen[i])
-N=700
-ax[0].set_xlim(-N/10,N + N/10)
-ax[1].set_xlim(-N/10,N + N/10)
+# N=700
+# ax[0].set_xlim(-N/10,N + N/10)
+# ax[1].set_xlim(-N/10,N + N/10)
 fig.legend()
-
+ax[0].set_xlabel("MD step")
+ax[0].set_ylabel("CC")
+ax[0].set_title("Cross correlation")
+# ax[0].legend(loc='lower right')
+ax[1].set_xlabel("MD step")
+ax[1].set_ylabel("RMSD (A)")
+ax[1].set_title("Root Mean Square Deviation")
+fig.tight_layout()
 
 ######## ATPase
 
@@ -1489,10 +1496,10 @@ plt.plot(rmsd[0])
 
 
 #AK
-fit1 = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_cc1_modes_chain0.pkl")
-fit2 = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_cc1_chain0.pkl")
-cc = (np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001209_FlexProtGenesisFit/extra/runcc.npy"))
-rmsd= (np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001209_FlexProtGenesisFit/extra/runrmsd.npy"))
+fit1 = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_cc3_modes_chain0.pkl")
+fit2 = FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_cc3_chain0.pkl")
+cc = (np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001254_FlexProtGenesisFit/extra/runcc.npy"))
+rmsd= (np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001254_FlexProtGenesisFit/extra/runrmsd.npy"))
 fig, ax = plt.subplots(2,1)
 ax[0].plot(fit1.fit["CC"], label="modes 7-10", color="tab:orange")
 ax[1].plot(fit1.fit["RMSD"], color="tab:orange")
@@ -1500,7 +1507,7 @@ ax[0].plot(fit2.fit["CC"], label="modes 10-13", color="tab:green")
 ax[1].plot(fit2.fit["RMSD"], color="tab:green")
 ax[0].plot((np.arange(len(cc)+1))*100, [fit1.fit["CC"][0]] + list(cc), label="genesis", color="tab:blue")
 ax[1].plot((np.arange(len(rmsd)+1))*100, [fit1.fit["RMSD"][0]] + list(rmsd), color="tab:blue")
-N=4000
+N=5000
 ax[0].set_xlim(-N/10,N + N/10)
 ax[1].set_xlim(-N/10,N + N/10)
 ax[0].set_xlabel("MD step")
