@@ -1573,15 +1573,32 @@ fig.legend()
 ############################" modes/no modes Fabs
 fits=[]
 fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_chain0.pkl"))
-fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_chain0.pkl"))
+# fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_chain0.pkl"))
 fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_hmc1_chain0.pkl"))
-fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc1_chain0.pkl"))
+# fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc1_chain0.pkl"))
 fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_hmc2_chain0.pkl"))
-fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc2_chain0.pkl"))
-
-
+# fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc2_chain0.pkl"))
+leg = ["1000 step","100 step", "10 step"]
 fig, ax = plt.subplots(2,1)
 for i in range(len(fits)):
-    ax[0].plot(fits[i].fit["CC"])
+    ax[0].plot(fits[i].fit["CC"], label = leg[i])
     ax[1].plot(fits[i].fit["RMSD"])
+N=1000
+ax[0].set_xlim(-N/10,N + N/10)
+ax[1].set_xlim(-N/10,N + N/10)
+ax[0].set_xlabel("MD step")
+ax[0].set_ylabel("CC")
+ax[0].set_title("Cross correlation")
+ax[0].legend(loc='lower right')
+ax[1].set_xlabel("MD step")
+ax[1].set_ylabel("RMSD (A)")
+ax[1].set_title("Root Mean Square Deviation")
+fig.tight_layout()
 
+fits=[]
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_Fabs_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_Fabs_chain0.pkl"))
+fig, ax = plt.subplots(2,1)
+for i in range(len(fits)):
+    ax[0].plot(np.abs(fits[i].fit["local_Fabs"]) *(fits[i].params["local_dt"]**2))
+    ax[1].plot(np.abs(fits[i].fit["global_Fabs"])*(fits[i].params["global_dt"]**2))
