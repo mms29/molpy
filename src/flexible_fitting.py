@@ -394,9 +394,9 @@ class FlexibleFitting:
                 F = (F.T * (1 / (self.init.forcefield.mass * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
                 F *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
                 F *= ANGSTROM_TO_METER**-2  # kg * m2 * s-2 -> kg * A2 * s-2
-                self._set(i+"_Fabs", np.mean(np.linalg.norm(F, axis=1)))
+                self._add(i+"_Fabs", np.mean(np.linalg.norm(F, axis=1)))
             else:
-                self._set(i + "_Fabs", np.mean(F))
+                self._add(i + "_Fabs", np.mean(F))
             if i+"_factor" in self.params:
                 F+= - 2* self._get(i+"_t") * self.params[i+"_factor"]
 

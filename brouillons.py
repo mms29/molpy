@@ -1559,3 +1559,29 @@ ax[0].set_xlim(-N/10,N + N/10)
 ax[1].set_xlim(-N/10,N + N/10)
 fig.legend()
 
+
+
+
+
+
+
+
+
+
+
+
+############################" modes/no modes Fabs
+fits=[]
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_hmc1_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc1_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_modes_hmc2_chain0.pkl"))
+fits.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fita_nomodes_hmc2_chain0.pkl"))
+
+
+fig, ax = plt.subplots(2,1)
+for i in range(len(fits)):
+    ax[0].plot(fits[i].fit["CC"])
+    ax[1].plot(fits[i].fit["RMSD"])
+
