@@ -61,8 +61,9 @@ fits=[]
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fita_modes"))
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
-init.set_normalModeVec(fnModes)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
+cp = init.copy()
+cp.set_normalModeVec(fnModes)
+fits.append(FlexibleFitting(init = cp, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fita_nomodes"))
 
 

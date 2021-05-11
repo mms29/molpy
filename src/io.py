@@ -360,6 +360,7 @@ def save_mol(file, mol):
         f.write("#end\n")
 
 def save_dcd(mol, coords_list, prefix):
+    print("> Saving DCD trajectory ...")
     n_frames = len(coords_list)
 
     # saving PDBs
@@ -380,7 +381,6 @@ def save_dcd(mol, coords_list, prefix):
     os.system("vmd -dispdev text -e %s_cmd.tcl" % prefix)
 
     # Cleaning
-    print("> Cleaning ...")
     for i in range(n_frames):
         os.system("rm -f %s_frame%i.pdb\n" % (prefix, i))
     os.system("rm -f %s_cmd.tcl" % prefix)

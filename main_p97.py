@@ -73,8 +73,9 @@ fit1  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"
                        prefix="results/P97_new/fita_modes")
 
 fnModes = np.array(["data/P97/modes_5ftm_psf/vec."+str(i+7) for i in range(2)])
-init.set_normalModeVec(fnModes)
-fit2  =FlexibleFitting(init=init, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
+cp = init.copy()
+cp.set_normalModeVec(fnModes)
+fit2  =FlexibleFitting(init=cp, target=target_density, vars=["local", "global"], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/P97_new/fita_nomodes")
 
 

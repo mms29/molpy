@@ -1427,7 +1427,7 @@ for i in prefix :
 lgen=["5000", "7500", "10000", "17500", "25000","50000"]
 
 
-# file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001338_FlexProtGenesisFit/extra/run"
+# file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001422_FlexProtGenesisFit/extra/run"
 # cc, rmsd = get_cc_rmsd(N=100, prefix=file,
 #     target=Molecule("data/1AKE/1ake_center.pdb"), size=64, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1, test_idx=False)
 
@@ -1528,13 +1528,12 @@ ccs.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/n
 ccs.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fitx_cc8_chain0.pkl"))
 ccs.append(FlexibleFitting.load("/home/guest/Workspace/Paper_Frontiers/AK21ake/new/fitx_cc9_chain0.pkl"))
 
-prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001170_FlexProtGenesisFit/extra/run",]
+prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001422_FlexProtGenesisFit/extra/run",]
 cc=[]
 rmsd= []
 for i in prefix :
     cc.append(np.load(file=i + "cc.npy"))
     rmsd.append(np.load(file=i + "rmsd.npy"))
-lgen=["5000", "7500", "10000", "17500", "25000","50000"]
 
 cccs = pl.cm.Reds(np.linspace(0.5,1,len(ccs)))
 clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
@@ -1546,9 +1545,9 @@ for i in range(len(ccs)):
     ax[0].plot(ccs[i].fit["CC"], label=ccs[i].params["biasing_factor"], c=cccs[i])
     ax[1].plot(ccs[i].fit["RMSD"],c=cccs[i])
 for i in range(len(prefix)):
-    ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label=lgen[i], c=cgen[i])
+    ax[0].plot((np.arange(len(cc[i]))+1)*100, cc[i], label="1000", c=cgen[i])
     ax[1].plot((np.arange(len(rmsd[i]))+1)*100, rmsd[i], c=cgen[i])
-N=700
+N=10000
 ax[0].set_xlim(-N/10,N + N/10)
 ax[1].set_xlim(-N/10,N + N/10)
 fig.legend()
