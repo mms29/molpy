@@ -45,8 +45,8 @@ params ={
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 10000,
-    "n_iter":1,
+    "n_step": 100,
+    "n_iter":10,
     "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
     "target":target,
@@ -59,12 +59,12 @@ n_chain=4
 verbose =2
 fits=[]
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_modes"))
+                       prefix="results/AK/fita_modes_hmc1"))
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
 cp = init.copy()
 cp.set_normalModeVec(fnModes)
 fits.append(FlexibleFitting(init = cp, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_nomodes"))
+                       prefix="results/AK/fita_nomodes_hmc1"))
 
 
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
