@@ -31,12 +31,12 @@ target.center()
 target.save_pdb("data/1AKE/1ake_center.pdb")
 
 
-size=64
-sampling_rate=2.0
-cutoff= 6.0
+size=128
+voxel_size=1.0
+cutoff= 20.0
 gaussian_sigma=2
-target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
-init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
+target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
+init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 
 
 ########################################################################################################
@@ -59,16 +59,11 @@ params ={
     "criterion":False,
     "gradient": "CC"
 }
-n_chain=4
+n_chain=1
 verbose =2
 fits=[]
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_modes_Fabs"))
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+10) for i in range(3)])
-cp = init.copy()
-cp.set_normalModeVec(fnModes)
-fits.append(FlexibleFitting(init = cp, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fita_nomodes_Fabs"))
+fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
+                       prefix="results/AK/fitx1"))
 
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 

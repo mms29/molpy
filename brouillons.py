@@ -1543,7 +1543,7 @@ for i in prefix :
     rmsd.append(np.load(file=i + "rmsd.npy"))
 
 cccs = pl.cm.Reds(np.linspace(0.5,1,len(ccs)))
-clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
+# clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
 cgen = pl.cm.Greens(np.linspace(0.5,1,len(cc)))
 
 
