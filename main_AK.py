@@ -63,7 +63,7 @@ n_chain=1
 verbose =2
 fits=[]
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx1"))
+                       prefix="results/AK/fitx2"))
 
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 
