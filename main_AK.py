@@ -31,8 +31,8 @@ target.center()
 target.save_pdb("data/1AKE/1ake_center.pdb")
 
 
-size=128
-voxel_size=1.0
+size=64
+voxel_size=2.0
 cutoff= 20.0
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
