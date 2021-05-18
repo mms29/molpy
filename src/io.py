@@ -388,6 +388,7 @@ def save_dcd(mol, coords_list, prefix):
 
 
 def append_dcd(pdb_file, dcd_file, first_frame=False):
+    print("> Saving DCD trajectory ...")
     # VMD command
     with open(dcd_file+".tcl", "w") as f :
         if first_frame:
@@ -402,6 +403,5 @@ def append_dcd(pdb_file, dcd_file, first_frame=False):
     os.system("vmd -dispdev text -e %s.tcl > /dev/null" % dcd_file)
 
     # Cleaning
-    print("> Cleaning ...")
     os.system("rm -f %s.tcl" % dcd_file)
     print("\t Done \n")

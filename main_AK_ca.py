@@ -18,11 +18,13 @@ init.center()
 fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(3)])
 init.set_normalModeVec(fnModes)
 
-init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
+# init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
 
 init.allatoms2carbonalpha()
 init.set_forcefield()
-target = init.nma_deform([200,-100,0])
+target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
+target.center()
+target.allatoms2carbonalpha()
 
 size=64
 sampling_rate=2.0
@@ -41,30 +43,31 @@ init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampl
 ########################################################################################################
 
 params ={
-    "initial_biasing_factor" : 50,
+    "biasing_factor" : 10000,
     # "biasing_factor" : 0.26,
     "local_dt" : 2e-15,
     "global_dt": 0.1,
     "rotation_dt": 0.0001,
     "shift_dt": 0.001,
-    "n_step": 100,
+    "n_step": 2000,
     "n_iter":1,
     "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals"],
     "target_coords":target.coords,
+    "gradient":"CC",
+    "output_update":100,
+    "target": target
 }
 n_chain=2
 verbose =2
-fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testx")
-fita  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL, FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testa")
-fitq  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_GLOBAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/testq")
+fitx  =FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,prefix="results/AK/testx")
 
-fits=  multiple_fitting(models=[fitx , fita , fitq ],n_chain=n_chain, n_proc =6)
-fits[0].show_3D()
-fits[2].show()
+fitx.HMC_chain()
+fitx.show()
+fitx.show_3D()
 # fit.HMC()
 # src.viewers.fit_potentials_viewer(fit)
-# fit.show()
+# fitx.show()
 # fit.show_3D()
 # # chimera_molecule_viewer([fit.res["mol"], init])
 

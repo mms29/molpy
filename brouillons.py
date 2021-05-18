@@ -1473,9 +1473,9 @@ from src.functions import *
 import src.functions
 import matplotlib.pylab as pl
 #
-file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001380_FlexProtGenesisFit/extra/run"
-cc, rmsd = get_cc_rmsd(N=2000, prefix=file,
-    target=Molecule("data/ATPase/1iwo_fitted_PSF.pdb"), size=100, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=10, test_idx=False)
+file = "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001464_FlexProtGenesisFit/extra/run"
+cc, rmsd = get_cc_rmsd(N=100, prefix=file,
+    target=Molecule("data/1AKE/1ake_center.pdb"), size=100, voxel_size=2.0, cutoff=10.0, sigma=2.0, step=2, test_idx=False)
 
 prefix = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001380_FlexProtGenesisFit/extra/run"]
 cc=[]
@@ -1484,8 +1484,8 @@ for i in prefix :
     cc.append(np.load(file=i + "cc.npy"))
     rmsd.append(np.load(file=i + "rmsd.npy"))
 
-plt.plot(cc[0])
-plt.plot(rmsd[0])
+plt.plot(cc)
+plt.plot(rmsd)
 
 
 
@@ -1642,3 +1642,98 @@ for i in range(init.n_atoms):
 F_global = (F_global.T * (1 / (mq * ATOMIC_MASS_UNIT))).T  # Force -> acceleration
 F_global *= (KCAL_TO_JOULE / AVOGADRO_CONST)  # kcal/mol -> Joule
 F_global *= ANGSTROM_TO_METER ** -2  # kg * m2 * s-2 -> kg * A2 * s-2
+
+
+
+
+
+
+from src.molecule import Molecule
+from src.density import Volume
+from src.density import get_gradient_CC
+import numpy as np
+import matplotlib.pyplot as plt
+from src.forcefield import get_autograd, get_pairlist
+
+# import PDB
+init =Molecule("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000079_FlexProtGenesisMin/extra/output.pdb")
+init.center()
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(4)])
+init.set_normalModeVec(fnModes)
+init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_prot.prm")
+target = Volume.from_file(file="data/1AKE/1ake_center.mrc", sigma=2.0, cutoff=30.0, voxel_size=2.0)
+init_density = Volume.from_coords(coord=init.coords, size=target.size, voxel_size=target.voxel_size, sigma=target.sigma, cutoff=target.cutoff)
+
+pl = get_pairlist(coord=init.coords, excluded_pairs=init.forcefield.excluded_pairs, cutoff=20.0)
+f1 = get_autograd(params={"local": np.zeros(init.coords.shape)}, mol=init, potentials=["elec"], pairlist=pl)["local"]
+f1[np.where(f1==0)] = 0.0001
+# f1 = src.density.get_gradient_CC(mol=init, psim=init_density.data, pexp=target, params={"local": np.zeros(init.coords.shape)})["local"]
+f= get_autograd(params={"local": np.zeros(init.coords.shape), "global": np.zeros(4)}, mol=init, potentials=["bonds", "angles", "dihedrals", "impropers", "urey", "vdw", "elec"],
+                  normalModeVec=init.normalModeVec, pairlist=pl)
+fq= f["global"]
+fx= f["local"]
+fq2 = np.zeros(fq.shape)
+for i in range(init.n_atoms):
+    fq2 += np.dot(init.normalModeVec[i], fx[i])
+print(fq-fq2)
+
+fq = src.density.get_gradient_CC(mol=init, psim=init_density.data, pexp=target, params={"local": np.zeros(init.coords.shape),
+                                 "global": np.zeros(4)}, normalModeVec = init.normalModeVec)["global"]
+# f1*=10000
+f2 = np.loadtxt("/opt/genesis-1.4.0/force.txt")[:f1.shape[0]]
+
+
+print(np.mean(np.linalg.norm(f1+f2, axis=1)))
+print(np.mean([np.dot(f1[i], f2[i])/(np.linalg.norm(f1[i])*np.linalg.norm(f2[i])) for i in range(f1.shape[0])]))
+
+Fabs1 = np.linalg.norm(f1, axis=1)
+Fabs2 = np.linalg.norm(f2, axis=1)
+plt.figure()
+plt.plot(Fabs1, label="1")
+plt.plot(Fabs2, label="2")
+plt.legend()
+
+
+
+
+from src.flexible_fitting import FlexibleFitting
+import matplotlib.pyplot as plt
+import numpy as np
+from src.molecule import Molecule
+from src.density import Volume
+from src.functions import *
+import src.functions
+
+
+def show_cc_rmsd(protocol_list, length, labels=None, step=100):
+    colors=["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:olive", "tab:cyan"]
+    if labels is None:
+        labels = ["#"+str(i) for i in range(len(protocol_list))]
+    fig, ax = plt.subplots(1, 2, figsize=(10,5))
+    for i in range(len(protocol_list)):
+        cc = []
+        rmsd = []
+        for j in range(length[i]):
+            cc.append(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy"))
+            rmsd.append(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy"))
+            t = np.arange(len(cc[-1])) * step
+            ax[0].plot(t, cc[-1],  color=colors[i], alpha=0.2)
+            ax[1].plot(t, rmsd[-1], color=colors[i], alpha=0.2)
+        ax[0].plot(t, np.mean(cc, axis=0), label=labels[i], color=colors[i])
+        ax[1].plot(t, np.mean(rmsd, axis=0), label=labels[i], color=colors[i])
+        ax[0].set_xlabel("MD step")
+        ax[0].set_ylabel("CC")
+        ax[0].set_title("Cross correlation")
+        ax[0].legend(loc='lower right')
+        ax[1].set_xlabel("MD step")
+        ax[1].set_ylabel("RMSD (A)")
+        ax[1].set_title("Root Mean Square Deviation")
+        fig.tight_layout()
+
+show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002301_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002079_FlexProtGenesisFit",
+              ],
+             length=[1,1], labels=["mode 7-9", "mode 10-13"], step=50)
+
+np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001878_FlexProtGenesisFit/extra/times.npy"))
+np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001926_FlexProtGenesisFit/extra/times.npy"))

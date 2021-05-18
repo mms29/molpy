@@ -141,7 +141,7 @@ class FlexibleFitting:
             del self.fit[i]
             del self.fit[i+"_v"]
             del self.fit[i+"_t"]
-            del self.fit[i+"_Ft"]
+            #EDIT del self.fit[i+"_Ft"]
 
         return self
 
@@ -158,7 +158,6 @@ class FlexibleFitting:
         self._forward_model()
     # initial density
         self._set_density()
-        self._set_density()
     # Check pairlist
         self._set_pairlist()
     # Initial Potential Energy
@@ -174,6 +173,8 @@ class FlexibleFitting:
     # MD loop
         while (self._get("C") >= 0 and self._get("L")< self.params["n_step"]):
             tt = time.time()
+        # velocities update
+            self._update_velocities()
         # Coordinate update
             self._update_positions()
         # Compute Forward model
@@ -192,14 +193,13 @@ class FlexibleFitting:
             self._set_energy()
         # Gradient Update
             self._set_gradient()
-        # velocities update
-            self._update_velocities()
+        #EDIT
         # Kinetic update
             self._set_kinetic()
         # Temperature update
             self._set_instant_temp()
-            if FIT_VAR_LOCAL in self.vars:
-                self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
+            # if FIT_VAR_LOCAL in self.vars:
+            #     self._set("local_v", self._get("local_v") * (self.params["temperature"]/self._get("T")))
         # criterion update
             self._set_criterion()
             self.fit["L"][-1] +=1
@@ -417,8 +417,11 @@ class FlexibleFitting:
             if i+"_factor" in self.params:
                 F+= - 2* self._get(i+"_t") * self.params[i+"_factor"]
 
-            if not i+"_F" in self.fit: self._set(i+"_F", F)
-            else: self._set(i+"_Ft", F)
+            self._set(i + "_F", F)
+
+            #EDIT
+            # if not i+"_F" in self.fit: self._set(i+"_F", F)
+            # else: self._set(i+"_Ft", F)
 
         if self.verbose >= 3: self._write("Gradient=" + str(time.time() - t))
 
@@ -480,18 +483,18 @@ class FlexibleFitting:
                                                self._get(i + "_F")))
 
     def _update_pstep(self, x, v, dx, F):
-        return x+ dx*v + dx**2 *(F/2)
+        return x+ dx*v #+ dx**2 *(F/2)
 
     def _update_velocities(self):
         """
         Update all variables velocities
         """
         for i in self.vars:
-            self._set(i+"_v", self._update_vstep(self._get(i+"_v") , self.params[i+"_dt"] , self._get(i+"_F") ,self._get(i+"_Ft")))
-            self._set(i+"_F" ,self._get(i+"_Ft"))
+            self._set(i+"_v", self._update_vstep(self._get(i+"_v") , self.params[i+"_dt"] , self._get(i+"_F") ))#EDIT,self._get(i+"_Ft")))
+            #EDIT self._set(i+"_F" ,self._get(i+"_Ft"))
 
-    def _update_vstep(self, v, dx, F, Ft):
-        return v + dx*((F+Ft)/2)
+    def _update_vstep(self, v, dx, F): #EDIT, Ft):
+        return v + 0.5*dx*F
 
     def _forward_model(self):
         """

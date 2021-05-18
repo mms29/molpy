@@ -28,15 +28,14 @@ init.get_energy(verbose=True)
 
 target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
 target.center()
-target.save_pdb("data/1AKE/1ake_center.pdb")
 
 
 size=100
 voxel_size=2.0
-cutoff= 40.0
+cutoff= 6.0
 gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
-# init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
+init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 
 
 ########################################################################################################
@@ -54,7 +53,7 @@ params ={
     "n_warmup":0,
     "potentials" : ["bonds", "angles", "dihedrals", "impropers","urey", "elec", "vdw"],
     "target":target,
-    "limit" : 100,
+    "limit" : 1000,
     "nb_update":20,
     "criterion":False,
     "gradient": "CC"
@@ -64,31 +63,11 @@ verbose =2
 fits=[]
 
 
-target_density = Volume.from_coords(coord=target.coords, size=64, voxel_size=2.0, sigma=2.0, cutoff=20.0)
+target_density = Volume.from_file(file="data/1AKE/1ake_center.mrc", voxel_size=2.0, sigma=2.0, cutoff=10.0)
 fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
                        prefix="results/AK/fitx1"))
 
-target_density = Volume.from_coords(coord=target.coords, size=100, voxel_size=2.0, sigma=2.0, cutoff=30.0)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx2"))
-
-target_density = Volume.from_coords(coord=target.coords, size=100, voxel_size=2.0, sigma=2.0, cutoff=40.0)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx3"))
-
-target_density = Volume.from_coords(coord=target.coords, size=150, voxel_size=1.0, sigma=2.0, cutoff=20.0)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx4"))
-
-target_density = Volume.from_coords(coord=target.coords, size=200, voxel_size=1.0, sigma=2.0, cutoff=30.0)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx5"))
-
-target_density = Volume.from_coords(coord=target.coords, size=100, voxel_size=1.0, sigma=1.0, cutoff=20.0)
-fits.append(FlexibleFitting(init = init, target= target_density, vars=[FIT_VAR_LOCAL], params=params, n_chain=n_chain, verbose=verbose,
-                       prefix="results/AK/fitx6"))
-
-
+fits[0].HMC_chain()
 fits=  multiple_fitting(models=fits, n_chain=n_chain, n_proc =25)
 
 # fits[0].HMC_chain()
