@@ -1730,10 +1730,11 @@ def show_cc_rmsd(protocol_list, length, labels=None, step=100):
         ax[1].set_title("Root Mean Square Deviation")
         fig.tight_layout()
 
-show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002301_FlexProtGenesisFit",
-              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002079_FlexProtGenesisFit",
+show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002079_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002466_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002571_FlexProtGenesisFit",
               ],
-             length=[1,1], labels=["mode 7-9", "mode 10-13"], step=50)
+             length=[5,5,5], labels=["mode 7-9", "mode 10-13", "local"], step=100)
 
 np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001878_FlexProtGenesisFit/extra/times.npy"))
 np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001926_FlexProtGenesisFit/extra/times.npy"))

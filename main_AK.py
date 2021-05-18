@@ -26,9 +26,10 @@ init.get_energy(verbose=True)
 # init.allatoms2carbonalpha()
 # init.set_forcefield()
 
-target = Molecule("data/1AKE/1ake_chainA_psf.pdb")
+target = Molecule("data/1AKE/1ake_good_PSF.pdb")
 target.center()
-
+target.save_pdb("data/1AKE/1ake_center.pdb")
+target
 
 size=100
 voxel_size=2.0

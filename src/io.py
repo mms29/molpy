@@ -87,18 +87,19 @@ def save_pdb(data, file):
         for i in range(len(data["atom"])):
             atom= data["atom"][i].ljust(6)  # atom#6s
             atomNum= str(data["atomNum"][i]).rjust(5)  # aomnum#5d
-            atomName= data["atomName"][i].center(4)  # atomname$#4s
+            atomName= data["atomName"][i].rjust(4)  # atomname$#4s
             resName= data["resName"][i].ljust(3)  # resname#1s
             chainName= data["chainName"][i].rjust(1)  # Astring
             resNum= str(data["resNum"][i]).rjust(4)  # resnum
             coordx= str('%8.3f' % (float(data["coords"][i][0]))).rjust(8)  # x
             coordy= str('%8.3f' % (float(data["coords"][i][1]))).rjust(8)  # y
             coordz= str('%8.3f' % (float(data["coords"][i][2]))).rjust(8)  # z\
-            occ= data["occ"][i].rjust(6)  # occ
-            temp= data["temp"][i].ljust(6)  # temp
-            elemName= data["elemName"][i].rjust(12)  # elname
-            file.write("%s%s %s %s %s%s    %s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
-                                                              coordx, coordy, coordz, occ, temp, elemName))
+            occ= str(data["occ"][i]).rjust(6)  # occ
+            temp= str(data["temp"][i]).rjust(6)  # temp
+            chainID= str(data["chainID"][i]).rjust(8)  # elname
+            elemName= str(data["elemName"][i]).rjust(4)  # elname
+            file.write("%s%s %s %s %s%s    %s%s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
+                                                              coordx, coordy, coordz, occ, temp, chainID, elemName))
     print("\t Done \n")
 
 def read_mrc(file):

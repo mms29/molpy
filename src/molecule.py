@@ -114,7 +114,8 @@ class Molecule:
             "coords" : self.coords,
             "temp" : self.temp,
             "occ" : self.occ,
-            "elemName" : self.elemName
+            "elemName" : self.elemName,
+            "chainID" : self.chainID,
         }
         src.io.save_pdb(data = data, file=file)
 
