@@ -1705,36 +1705,51 @@ from src.functions import *
 import src.functions
 
 
-def show_cc_rmsd(protocol_list, length, labels=None, step=100):
-    colors=["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:olive", "tab:cyan"]
+def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_cc=0.7, init_rmsd=10.0,
+                 fvar=10, capthick=10, capsize=10, elinewidth=1, figsize=(10,5), dt=0.002):
+    colors=["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
+    # colors = ["black" for i in range(10)]
+    fmts = ["o", "d", "v", "^", "x", "4", "8"]
     if labels is None:
         labels = ["#"+str(i) for i in range(len(protocol_list))]
-    fig, ax = plt.subplots(1, 2, figsize=(10,5))
+    fig, ax = plt.subplots(1, 2, figsize=figsize)
     for i in range(len(protocol_list)):
         cc = []
         rmsd = []
         for j in range(length[i]):
-            cc.append(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy"))
-            rmsd.append(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy"))
-            t = np.arange(len(cc[-1])) * step
-            ax[0].plot(t, cc[-1],  color=colors[i], alpha=0.2)
-            ax[1].plot(t, rmsd[-1], color=colors[i], alpha=0.2)
-        ax[0].plot(t, np.mean(cc, axis=0), label=labels[i], color=colors[i])
-        ax[1].plot(t, np.mean(rmsd, axis=0), label=labels[i], color=colors[i])
-        ax[0].set_xlabel("MD step")
+            cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
+            rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
+            t = np.arange(len(cc[-1])) * period * dt
+            # ax[0].plot(t, cc[-1],  color=colors[i], alpha=0.2)
+            # ax[1].plot(t, rmsd[-1], color=colors[i], alpha=0.2)
+        ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
+                       label=labels[i], color=colors[i], fmt=fmts[i],
+                       capthick=capthick, capsize=capsize,elinewidth=elinewidth)
+        ax[1].errorbar(x=t[::step], y=np.mean(rmsd, axis=0)[::step],yerr=np.var(rmsd, axis=0)[::step]*fvar,
+                       label=labels[i], color=colors[i], fmt=fmts[i],
+                       capthick=capthick, capsize=capsize,elinewidth=elinewidth)
+        ax[0].plot(t, np.mean(cc, axis=0), "--",color=colors[i])
+        ax[1].plot(t, np.mean(rmsd, axis=0), "--",color=colors[i])
+        ax[0].set_xlabel("Simulation Time (ps)")
         ax[0].set_ylabel("CC")
-        ax[0].set_title("Cross correlation")
+        ax[0].set_title("CC")
         ax[0].legend(loc='lower right')
-        ax[1].set_xlabel("MD step")
+        ax[1].set_xlabel("Simulation Time (ps)")
         ax[1].set_ylabel("RMSD (A)")
-        ax[1].set_title("Root Mean Square Deviation")
+        ax[1].set_title("RMSD")
         fig.tight_layout()
 
 show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002079_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002466_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002571_FlexProtGenesisFit",
               ],
-             length=[5,5,5], labels=["mode 7-9", "mode 10-13", "local"], step=100)
+             length=[5,10,10], labels=["Mode 7-9", "Mode 10-13", "Control"], step=5, period=100, init_cc=0.75,
+             init_rmsd=8.12, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+show_cc_rmsd(["/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000380_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000819_FlexProtGenesisFit",
+              ],
+             length=[1,1], labels=["Mode 7-9", "Mode 10-13", "Control"], step=200)
 
 np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001878_FlexProtGenesisFit/extra/times.npy"))
 np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001926_FlexProtGenesisFit/extra/times.npy"))

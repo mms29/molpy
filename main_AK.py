@@ -5,7 +5,8 @@ os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
 from src.flexible_fitting import *
 from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer, ramachandran_viewer
-from src.density import Volume
+from src.density import Volume, get_CC
+from src.functions import get_RMSD_coords
 from src.constants import *
 
 ########################################################################################################
@@ -28,8 +29,6 @@ init.get_energy(verbose=True)
 
 target = Molecule("data/1AKE/1ake_good_PSF.pdb")
 target.center()
-target.save_pdb("data/1AKE/1ake_center.pdb")
-target
 
 size=100
 voxel_size=2.0
@@ -38,7 +37,8 @@ gaussian_sigma=2
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 
-
+print(get_CC(target_density.data, init_density.data))
+print(get_RMSD_coords(target.coords, init.coords))
 ########################################################################################################
 #               HMC
 ########################################################################################################

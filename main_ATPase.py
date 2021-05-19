@@ -23,10 +23,10 @@ target = Molecule("data/ATPase/1iwo_fitted_PSF.pdb")
 target.rotate([-0.43815544 , 0.19210595 , 0.62026101])
 target.center()
 
-size=200
-sampling_rate=2.0
+size=128
+sampling_rate=1.5
 cutoff= 6.0
-gaussian_sigma=2
+gaussian_sigma=2.0
 target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=sampling_rate, sigma=gaussian_sigma, cutoff=cutoff)
 
