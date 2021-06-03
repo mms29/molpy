@@ -1431,9 +1431,6 @@ lgen=["5000", "7500", "10000", "17500", "25000","50000"]
 # cc, rmsd = get_cc_rmsd(N=100, prefix=file,
 #     target=Molecule("data/1AKE/1ake_center.pdb"), size=64, voxel_size=2.0, cutoff=6.0, sigma=2.0, step=1, test_idx=False)
 
-cccs = pl.cm.Reds(np.linspace(0.5,1,len(ccs)))
-clss = pl.cm.Blues(np.linspace(0.5,1,len(lss)))
-cgen = pl.cm.Greens(np.linspace(0.5,1,len(cc)))
 
 
 fig, ax = plt.subplots(2,1)
@@ -1703,13 +1700,22 @@ from src.molecule import Molecule
 from src.density import Volume
 from src.functions import *
 import src.functions
+from src.viewers import *
+import matplotlib.pylab as pl
 
+# cc, rmsd = get_cc_rmsd(N=1000, prefix="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003471_FlexProtGenesisFit/extra/run0_",
+#                        target=Molecule("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003631_FlexProtGeneratePSF/extra/output.pdb"),
+#                        size=128, voxel_size=1.5, cutoff=6.0, sigma=2.0, step=10, test_idx=True)
+# cc, rmsd = get_cc_rmsd(N=1000, prefix="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003670_FlexProtGenesisFit/extra/run0_",
+#                        target=Molecule("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003631_FlexProtGeneratePSF/extra/output.pdb"),
+#                        size=128, voxel_size=1.5, cutoff=6.0, sigma=2.0, step=10, test_idx=True)
+#
 
 def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_cc=0.7, init_rmsd=10.0,
-                 fvar=10, capthick=10, capsize=10, elinewidth=1, figsize=(10,5), dt=0.002):
-    colors=["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
-    # colors = ["black" for i in range(10)]
-    fmts = ["o", "d", "v", "^", "x", "4", "8"]
+                 fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
+                 colors=["tab:blue", "tab:red", "tab:green", "tab:orange",
+                         "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
+                 fmts = ["o", "d", "v", "^", "p", "*", "s","x"]):
     if labels is None:
         labels = ["#"+str(i) for i in range(len(protocol_list))]
     fig, ax = plt.subplots(1, 2, figsize=figsize)
@@ -1720,6 +1726,7 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
             cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
             rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
             t = np.arange(len(cc[-1])) * period * dt
+            print(cc[-1][:10])
             # ax[0].plot(t, cc[-1],  color=colors[i], alpha=0.2)
             # ax[1].plot(t, rmsd[-1], color=colors[i], alpha=0.2)
         ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
@@ -1728,8 +1735,8 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
         ax[1].errorbar(x=t[::step], y=np.mean(rmsd, axis=0)[::step],yerr=np.var(rmsd, axis=0)[::step]*fvar,
                        label=labels[i], color=colors[i], fmt=fmts[i],
                        capthick=capthick, capsize=capsize,elinewidth=elinewidth)
-        ax[0].plot(t, np.mean(cc, axis=0), "--",color=colors[i])
-        ax[1].plot(t, np.mean(rmsd, axis=0), "--",color=colors[i])
+        ax[0].plot(t, np.mean(cc, axis=0), "-",color=colors[i])
+        ax[1].plot(t, np.mean(rmsd, axis=0), "-",color=colors[i])
         ax[0].set_xlabel("Simulation Time (ps)")
         ax[0].set_ylabel("CC")
         ax[0].set_title("CC")
@@ -1738,18 +1745,232 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
         ax[1].set_ylabel("RMSD (A)")
         ax[1].set_title("RMSD")
         fig.tight_layout()
+    return fig
 
-show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002079_FlexProtGenesisFit",
-              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002466_FlexProtGenesisFit",
-              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/002571_FlexProtGenesisFit",
+
+ak = show_cc_rmsd([
+    "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007321_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007381_FlexProtGenesisFit"],
+             length=[5,5], labels=["no modes", "Modes 7-9"], step=5, period=100, init_cc=0.75,
+             init_rmsd=8.12, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+# f2 = show_cc_rmsd(["/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000380_FlexProtGenesisFit",
+#               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000819_FlexProtGenesisFit",
+#               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000890_FlexProtGenesisFit",
+#               ],
+#              length=[2,2,1], labels=["Mode 7-9", "Mode 10-13", "No modes"], step=25, period=200, init_cc=0.764,
+#              init_rmsd=11.24, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+ef2 = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003471_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010353_FlexProtGenesisFit",
               ],
-             length=[5,10,10], labels=["Mode 7-9", "Mode 10-13", "Control"], step=5, period=100, init_cc=0.75,
-             init_rmsd=8.12, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+             length=[5,5,1,1], labels=["No modes", "Mode 7-12", "2.0", "5.0"], step=5, period=1000, init_cc=0.59,
+             init_rmsd=14.2, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
-show_cc_rmsd(["/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000380_FlexProtGenesisFit",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000819_FlexProtGenesisFit",
+ef2_exp = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010033_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010276_FlexProtGenesisFit",
               ],
-             length=[1,1], labels=["Mode 7-9", "Mode 10-13", "Control"], step=200)
+             length=[1,1], labels=["No modes", "Mode 7-12"], step=5, period=1000, init_cc=0.59,
+             init_rmsd=14.2, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
-np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001878_FlexProtGenesisFit/extra/times.npy"))
-np.mean(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001926_FlexProtGenesisFit/extra/times.npy"))
+lao = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004037_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004126_FlexProtGenesisFit"
+              ],
+             length=[4,4], labels=["No modes", "Mode 7-12"], step=10, period=100, init_cc=0.82,
+             init_rmsd=7.4, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+malto = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004443_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004502_FlexProtGenesisFit"
+              ],
+             length=[1,1], labels=["No modes", "Mode 7-12"], step=10, period=100, init_cc=0.875,
+             init_rmsd=6.5, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+efg = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004894_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005217_FlexProtGenesisFit",
+                   # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005817_FlexProtGenesisFit"
+              ],
+             length=[5,5,1], labels=["No modes", "Mode 7-12",""], step=10, period=100, init_cc=0.84,
+             init_rmsd=8.7, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+lacto = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005596_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005655_FlexProtGenesisFit",
+              ],
+             length=[5,5], labels=["No modes", "Mode 7-12",""], step=10, period=100, init_cc=0.88,
+             init_rmsd=7.65, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+nucleosome = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010903_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011000_FlexProtGenesisFit",
+              ],
+             length=[1,1], labels=["No modes", "Mode 7-12",""], step=10, period=100, init_cc=0.88,
+             init_rmsd=0.0, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+corA = show_cc_rmsd(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011448_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011568_FlexProtGenesisFit",
+                   # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011696_FlexProtGenesisFit",
+              ],
+             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=1, period=500, init_cc=0.71,
+             init_rmsd=13.0, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+corAexp = show_cc_rmsd([
+                    "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011759_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011819_FlexProtGenesisFit",
+                   # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011696_FlexProtGenesisFit",
+              ],
+             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=10, period=500, init_cc=0.7,
+             init_rmsd=13.2, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+corAexp7A = show_cc_rmsd([
+                    "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012116_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012293_FlexProtGenesisFit",
+                   # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011696_FlexProtGenesisFit",
+              ],
+             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=10, period=500, init_cc=0.7,
+             init_rmsd=13.2, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+corAexp7A = show_cc_rmsd([
+                    "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012359_FlexProtGenesisFit",
+                   "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012419_FlexProtGenesisFit",
+                   # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011696_FlexProtGenesisFit",
+              ],
+             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=10, period=500, init_cc=0.7,
+             init_rmsd=13.2, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+
+ak_filter = show_cc_rmsd([
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007321_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007585_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007756_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007933_FlexProtGenesisFit",
+
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007381_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007645_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007816_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007993_FlexProtGenesisFit",
+              ],
+             length=[5,5,5,5,5,5,5,5], labels=["5A", "7A", "9A", "11A","5A", "7A", "9A", "11A"], step=5, period=100, init_cc=0.75,
+             init_rmsd=8.12, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002,
+                colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))))
+
+ak_noise = show_cc_rmsd([
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008934_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009138_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008478_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008702_FlexProtGenesisFit",
+
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008994_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009198_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008538_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008762_FlexProtGenesisFit",
+              ],
+             length=[5,5,5,5,5,4,5,5], labels=["SNR=1","SNR=0.5","SNR=0.1","SNR=0.05","SNR=1","SNR=0.5","SNR=0.1","SNR=0.05"],
+             step=5, period=100, init_cc=0.75,
+             init_rmsd=8.12, fvar=0.01, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002,
+             colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))))
+
+# ak.savefig("results/AK_genesis_nma.png", dpi=1000)
+# f2.savefig("results/P97_genesis_nma.png", dpi=1000)
+# f3.savefig("results/ATPase_genesis_nma.png", dpi=1000)
+# ef2.savefig("results/ef2_genesis_nma.png", dpi=1000)
+# lao.savefig("results/lao_genesis_nma.png", dpi=1000)
+# malto.savefig("results/malto_genesis_nma.png", dpi=1000)
+# efg.savefig("results/efg_genesis_nma.png", dpi=1000)
+# lacto.savefig("results/lacto_genesis_nma.png", dpi=1000)
+# ak_noise.savefig("results/ak_noise_genesis_nma.png", dpi=1000)
+# ak_filter.savefig("results/ak_filter_genesis_nma.png", dpi=1000)
+# corA.savefig("results/corA_genesis_nma.png", dpi=1000)
+
+
+mol1 = Molecule("data/corA/3jcf.pdb")
+mol2 = Molecule("data/corA/3jch.pdb")
+mol3 = Molecule("data/corA/3jcf_fitted.pdb")
+mol4 = Molecule("data/corA/3jch_fitted.pdb")
+print(np.mean(mol1.coords, axis=0))
+print(np.mean(mol2.coords, axis=0))
+print(np.mean(mol3.coords, axis=0))
+print(np.mean(mol4.coords, axis=0))
+
+# mol1.save_pdb("data/corA/3jcf_center.pdb")
+# mol2.save_pdb("data/corA/3jch_center.pdb")
+mol4.center()
+mol4.coords += np.mean(mol2.coords, axis=0)
+
+get_RMSD_coords(mol2.coords, mol4.coords)
+
+
+
+# mol1.save_pdb("data/lacto/1lfg.pdb")
+# mol2.save_pdb("data/lacto/1lfh.pdb")
+from src.density import Volume
+v = Volume.from_file(file="data/corA/emd_6553.mrc", sigma=2.0, cutoff=10.0)
+
+init = Volume.from_coords(coord=mol1.coords, size=100, sigma=2.0, cutoff=20.0, voxel_size=1.5)
+target = Volume.from_coords(coord=mol2.coords, size=100, sigma=2.0, cutoff=20.0, voxel_size=1.5)
+# target.show()
+# target.save_mrc("data/lacto/1lfh.mrc")
+chimera_fit_viewer(mol1, target)
+chimera_molecule_viewer([mol1, mol2])
+src.density.get_CC(init.data, target.data)
+idx = src.functions.get_mol_conv(mol1,mol2)
+src.functions.get_RMSD_coords(mol1.coords[idx[0,:]], mol2.coords[idx[1,:]])
+
+
+from src.molecule import Molecule
+import numpy as np
+
+mol = Molecule("data/P97/5ftm.pdb")
+
+new_resNum = np.zeros(mol.n_atoms)
+for i in set(mol.chainName):
+    chainidx = np.where(mol.chainName == i)[0]
+    n=0
+    past_idx = 0
+    for j in chainidx:
+        idx= mol.resNum[j]
+        if idx != past_idx:
+            n += 1
+            past_idx = idx
+        new_resNum[j] = n
+mol.resNum=np.array(new_resNum, dtype=int)
+
+mol.save_pdb("data/P97/5ftm_smog.pdb")
+
+import mrcfile
+from skimage.exposure import match_histograms
+
+with mrcfile.open("data/1AKE/1ake_center.mrc") as mrc:
+    mrc_data = np.transpose(np.array(mrc.data), (2,1,0))
+with mrcfile.new("data/1AKE/1ake_center2.mrc", overwrite=True) as mrc:
+    mrc_data[:10,:,:] = 1000
+    mrc.set_data(mrc_data)
+
+map3 = match_histograms(map1, map2)
+
+m1 = Volume.from_file(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008994_FlexProtGenesisFit/extra/00001_reconstructed.mrc",
+                 sigma=2.0, cutoff=6.0)
+
+m2 = Volume.from_file(file="data/1AKE/1ake_center.mrc",
+                 sigma=2.0, cutoff=6.0)
+
+m1.compare_hist(m2)
+m1.show()
+m1.rescale(method="match",density=m2)
+m1.show()
+m1.save_mrc(file="data/1AKE/1ake_test.mrc")
+
+t1 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009360_FlexProtGenesisFit/extra/times.npy")
+t3 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009420_FlexProtGenesisFit/extra/times.npy")
+t10 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009611_FlexProtGenesisFit/extra/times.npy")
+t20 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009674_FlexProtGenesisFit/extra/times.npy")
+t50 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009737_FlexProtGenesisFit/extra/times.npy")
+t100 = np.load(file="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009800_FlexProtGenesisFit/extra/times.npy")
+
+print(" Times : ")
+print(" \t tlocal = %2.2f +- %2.2f"%(np.mean(t1),np.std(t1)))
+print(" \t t3 = %2.2f +- %2.2f"%(np.mean(t3),np.std(t3)))
+print(" \t t10 = %2.2f +- %2.2f"%(np.mean(t10),np.std(t10)))
+print(" \t t20 = %2.2f +- %2.2f"%(np.mean(t20),np.std(t20)))
+print(" \t t50 = %2.2f +- %2.2f"%(np.mean(t50),np.std(t50)))
+print(" \t t100 = %2.2f +- %2.2f"%(np.mean(t100),np.std(t100)))
+
+
+

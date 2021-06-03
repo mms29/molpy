@@ -197,13 +197,16 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1, test
     idx = None
     for i in range(0,N,step):
         print(i)
-        mol = Molecule(prefix+str(i)+".pdb")
+        mol = Molecule(prefix+str(i+1)+".pdb")
         mol.center()
 
         if test_idx:
             if idx is None:
                 idx = get_mol_conv(mol, target)
-            rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
+            if len(idx)>0 :
+                rmsd.append(get_RMSD_coords(mol.coords[idx[:,0]], target.coords[idx[:,1]]))
+            else:
+                rmsd.append(0)
         else:
             rmsd.append(get_RMSD_coords(mol.coords, target.coords))
         vol = Volume.from_coords(coord=mol.coords, size=size, voxel_size=voxel_size, cutoff=cutoff, sigma=sigma)

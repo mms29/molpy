@@ -5,10 +5,11 @@ import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 from src.molecule import Molecule
-from src.density import Volume
+from src.density import Volume, get_CC
 import numpy as np
 from src.flexible_fitting import FlexibleFitting, multiple_fitting
 from src.viewers import chimera_fit_viewer, chimera_molecule_viewer
+from src.functions import get_RMSD_coords, get_mol_conv
 
 init = Molecule("data/P97/5ftm_psf.pdb")
 init.center()
@@ -42,7 +43,9 @@ target_density.rescale(init_density, "match")
 # chimera_molecule_viewer([init, target])
 # chimera_fit_viewer(mol=init, target=target_density)
 
-target_density.resize(200)
+print(get_CC(target_density.data, init_density.data))
+idx = get_mol_conv(mol1=target, mol2=init)
+print(get_RMSD_coords(target.coords[idx[:,0]], init.coords[idx[:,1]]))
 
 params ={
     "biasing_factor" : 100000,

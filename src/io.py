@@ -45,8 +45,8 @@ def read_pdb(file, hetatm=False):
         for line in f:
             spl = line.split()
             if len(spl) >0:
-                if (spl[0] == 'ATOM') or (hetatm and spl[0] == 'HETATM'):
-                    l = [line[:6], line[6:11], line[12:16], line[17:20], line[21], line[22:26], line[30:38],
+                if (spl[0] == 'ATOM') :#or (hetatm and spl[0] == 'HETATM'):
+                    l = [line[:6], line[6:11], line[12:16], line[17:21], line[21:22], line[22:26], line[30:38],
                          line[38:46], line[46:54], line[54:60], line[60:66],line[66:77], line[77:78]]
                     l = [i.strip() for i in l]
                     atom.append(l[0])
@@ -84,11 +84,16 @@ def save_pdb(data, file):
     """
     print("> Saving pdb file ...")
     with open(file, "w") as file:
+        past_chainName= data["chainName"][0]
         for i in range(len(data["atom"])):
+            if past_chainName != data["chainName"][i]:
+                past_chainName = data["chainName"][i]
+                file.write("TER\n")
+
             atom= data["atom"][i].ljust(6)  # atom#6s
             atomNum= str(data["atomNum"][i]).rjust(5)  # aomnum#5d
-            atomName= data["atomName"][i].rjust(4)  # atomname$#4s
-            resName= data["resName"][i].ljust(3)  # resname#1s
+            atomName= data["atomName"][i].ljust(4)  # atomname$#4s
+            resName= data["resName"][i].ljust(4)  # resname#1s
             chainName= data["chainName"][i].rjust(1)  # Astring
             resNum= str(data["resNum"][i]).rjust(4)  # resnum
             coordx= str('%8.3f' % (float(data["coords"][i][0]))).rjust(8)  # x
@@ -98,8 +103,9 @@ def save_pdb(data, file):
             temp= str(data["temp"][i]).rjust(6)  # temp
             chainID= str(data["chainID"][i]).rjust(8)  # elname
             elemName= str(data["elemName"][i]).rjust(4)  # elname
-            file.write("%s%s %s %s %s%s    %s%s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
+            file.write("%s%s  %s%s%s%s    %s%s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
                                                               coordx, coordy, coordz, occ, temp, chainID, elemName))
+        file.write("END\n")
     print("\t Done \n")
 
 def read_mrc(file):
@@ -125,7 +131,7 @@ def save_mrc(data, file, voxel_size=1):
     with mrcfile.new(file, overwrite=True) as mrc:
         mrc.set_data(data.T)
         mrc.voxel_size = voxel_size
-        origin = -voxel_size*data.shape[0]/2
+        origin = -voxel_size*data.shape[0]/2   *0.0 #EDIT
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin

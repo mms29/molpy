@@ -155,8 +155,13 @@ class Molecule:
         self.select_atoms(backbone_idx)
 
     def select_chain(self, chainName):
-        chainidx = np.where(self.chainName == chainName)
-        self.select_atoms(chainidx)
+        if not isinstance(chainName, list):
+            chainName=[chainName]
+        chainidx =[]
+        for i in chainName:
+            new_chainName = list(np.where(self.chainName == i)[0])
+            chainidx = chainidx + new_chainName
+        self.select_atoms(np.array(chainidx))
 
     def nma_deform(self, q):
         """
