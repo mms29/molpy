@@ -119,7 +119,7 @@ def read_mrc(file):
         voxel_size = np.float(mrc.voxel_size['x'])
         return data, voxel_size
 
-def save_mrc(data, file, voxel_size=1):
+def save_mrc(data, file, voxel_size=1, origin=None):
     """
     Save volume data to an mrc file. The origin of the grid will be (0,0,0)
     :param data: volume data to save (array N*N*N)
@@ -131,7 +131,8 @@ def save_mrc(data, file, voxel_size=1):
     with mrcfile.new(file, overwrite=True) as mrc:
         mrc.set_data(data.T)
         mrc.voxel_size = voxel_size
-        origin = -voxel_size*data.shape[0]/2   *0.0 #EDIT
+        if origin is None:
+            origin = -voxel_size*data.shape[0]/2   #*0.0 #EDIT
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin

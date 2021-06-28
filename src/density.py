@@ -109,8 +109,8 @@ class Volume(Density):
     def show(self):
         src.viewers.volume_viewer(self)
 
-    def save_mrc(self, file):
-        src.io.save_mrc(data=self.data, voxel_size=self.voxel_size, file=file)
+    def save_mrc(self, file, origin=None):
+        src.io.save_mrc(data=self.data, voxel_size=self.voxel_size, file=file, origin=origin)
 
     def resize(self, size):
         vol = np.zeros((size, size, size))

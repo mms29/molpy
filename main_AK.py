@@ -13,9 +13,9 @@ from src.constants import *
 #               IMPORT FILES
 ########################################################################################################
 # import PDB
-init =Molecule("data/AK/AK_PSF.pdb")
+init =Molecule("data/AK/AK.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(4)])
+fnModes = np.array(["data/AK/modes/vec."+str(i+7) for i in range(4)])
 init.set_normalModeVec(fnModes)
 
 q = np.zeros(4)
@@ -30,12 +30,16 @@ init.get_energy(verbose=True)
 target = Molecule("data/1AKE/1ake_good_PSF.pdb")
 target.center()
 
+target = init.nma_deform([-200,0,0,0])
+target2 = init.nma_deform([100,0,0,0])
+chimera_molecule_viewer([target2, target])
+
 size=100
 voxel_size=2.0
 cutoff= 6.0
 gaussian_sigma=2
-target_density = Volume.from_coords(coord=target.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
-init_density = Volume.from_coords(coord=init.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
+target_density = Volume.from_coords(coord=mol1.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
+init_density = Volume.from_coords(coord=mol2.coords, size=size, voxel_size=voxel_size, sigma=gaussian_sigma, cutoff=cutoff)
 
 print(get_CC(target_density.data, init_density.data))
 print(get_RMSD_coords(target.coords, init.coords))
