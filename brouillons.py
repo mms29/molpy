@@ -1949,11 +1949,11 @@ ak_noise2 = show_cc_rmsd([
 ak_MW = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012729_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012789_FlexProtGenesisFit",
-              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/015788_FlexProtGenesisFit",
               ],
              length=[5,5,1], labels=["MD only", "MD and NMA", ""],
              step=10, period=100, init_cc=0.75,
              init_rmsd=8.12, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
 
 # ak.savefig("results/AK_genesis_nma.png", dpi=1000)
 # f2.savefig("results/P97_genesis_nma.png", dpi=1000)

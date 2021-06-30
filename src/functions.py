@@ -214,3 +214,4 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1, test
         np.save(file=prefix+"cc.npy", arr=np.array(cc))
         np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
     return np.array(cc), np.array(rmsd)
+
