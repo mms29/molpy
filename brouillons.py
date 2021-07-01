@@ -1686,6 +1686,49 @@ plt.plot(Fabs2, label="2")
 plt.legend()
 
 
+def show_cc_rmsd_old(protocol_list, length, labels=None, period=100, step=10, init_cc=0.7, init_rmsd=10.0,
+                 fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
+                 colors=["tab:blue", "tab:red", "tab:green", "tab:orange",
+                         "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
+                 fmts = ["o", "d", "v", "^", "p", "*", "s","x"], img = None):
+    if labels is None:
+        labels = ["#"+str(i) for i in range(len(protocol_list))]
+    if img is None:
+        fig, ax = plt.subplots(1, 2, figsize=figsize)
+    else:
+        fig, ax = plt.subplots(1, 3, figsize=figsize)
+    for i in range(len(protocol_list)):
+        cc = []
+        rmsd = []
+        for j in range(length[i]):
+            cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
+            rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
+            t = np.arange(len(cc[-1])) * period * dt
+        ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
+                       label=labels[i], color=colors[i], fmt=fmts[i],
+                       capthick=capthick, capsize=capsize,elinewidth=elinewidth)
+        ax[1].errorbar(x=t[::step], y=np.mean(rmsd, axis=0)[::step],yerr=np.var(rmsd, axis=0)[::step]*fvar,
+                        color=colors[i], fmt=fmts[i],
+                       capthick=capthick, capsize=capsize,elinewidth=elinewidth)
+        ax[0].plot(t, np.mean(cc, axis=0), "-",color=colors[i])
+        ax[1].plot(t, np.mean(rmsd, axis=0), "-",color=colors[i])
+        ax[0].set_xlabel("Simulation Time (ps)")
+        ax[0].set_ylabel("CC")
+        ax[0].set_title("Correlation Coefficient")
+        ax[1].set_xlabel("Simulation Time (ps)")
+        ax[1].set_ylabel("RMSD (A)")
+        ax[1].set_title("Root Mean Square Deviation")
+        if img is not None:
+            ax[2].imshow(mpimg.imread(img))
+            ax[2].axis('off')
+            ax[2].set_title("3D structures")
+        fig.tight_layout()
+    handles, labels = ax[0].get_legend_handles_labels()
+    if img is not None:
+        handles.append(mpatches.Patch(color='yellow', label='Initial structure'))
+    fig.legend(handles = handles, loc='lower right')
+    return fig
+
 
 
 from src.flexible_fitting import FlexibleFitting
@@ -1707,7 +1750,7 @@ import matplotlib.patches as mpatches
 #                        size=128, voxel_size=1.5, cutoff=6.0, sigma=2.0, step=10, test_idx=True)
 #
 
-def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_cc=0.7, init_rmsd=10.0,
+def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
                  fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
                  colors=["tab:blue", "tab:red", "tab:green", "tab:orange",
                          "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
@@ -1722,9 +1765,13 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
         cc = []
         rmsd = []
         for j in range(length[i]):
-            cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
-            rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
+            cc.append(np.load(protocol_list[i]+ "/extra/run_r"+str(j+1)+"_cc.npy"))
+            rmsd.append(np.load(protocol_list[i] +"/extra/run_r"+str(j+1)+"_rmsd.npy"))
             t = np.arange(len(cc[-1])) * period * dt
+            print( "lent" + str(len(t)))
+            print( "lenrmsd" + str(len(rmsd[-1])))
+            ax[0].plot(t, cc[-1], "-", color=colors[i], alpha=0.5)
+            ax[1].plot(t, rmsd[-1], "-", color=colors[i], alpha=0.5)
         ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
                        label=labels[i], color=colors[i], fmt=fmts[i],
                        capthick=capthick, capsize=capsize,elinewidth=elinewidth)
@@ -1953,6 +2000,13 @@ ak_MW = show_cc_rmsd([
              length=[5,5,1], labels=["MD only", "MD and NMA", ""],
              step=10, period=100, init_cc=0.75,
              init_rmsd=8.12, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+
+ak_MW = show_cc_rmsd([
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/015722_FlexProtGenesisFit",
+              # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/016061_FlexProtGenesisFit",
+              ],
+             length=[10,1], labels=["1", "2", ""],
+             step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
 
 # ak.savefig("results/AK_genesis_nma.png", dpi=1000)
