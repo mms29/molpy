@@ -2000,13 +2000,18 @@ ak_MW = show_cc_rmsd([
              length=[5,5,1], labels=["MD only", "MD and NMA", ""],
              step=10, period=100, init_cc=0.75,
              init_rmsd=8.12, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
-
 ak_MW = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/015722_FlexProtGenesisFit",
-              # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/016061_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/016167_FlexProtGenesisFit",
               ],
-             length=[10,1], labels=["1", "2", ""],
-             step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+             length=[1,1], labels=["MD only", "MD and NMA", ""],
+             step=10, period=100,fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
+ak_MW = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000754_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003692_FlexProtGenesisFit",
+              ],
+             length=[16,16], labels=["1", "2", ""],
+             step=1000, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
 
 # ak.savefig("results/AK_genesis_nma.png", dpi=1000)

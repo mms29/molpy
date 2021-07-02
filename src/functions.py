@@ -152,31 +152,39 @@ def get_mol_conv(mol1,mol2, ca_only=False):
     print("> Converting molecule coordinates ...")
     id1 = []
     id2 = []
+    id1_idx = []
+    id2_idx = []
 
     if mol1.chainName[0] in mol2.chainName:
         for i in range(mol1.n_atoms):
             if (not ca_only) or mol1.atomName[i] == "CA":
                 id1.append(mol1.chainName[i] + str(mol1.resNum[i]) + mol1.atomName[i])
+                id1_idx.append(i)
         for i in range(mol2.n_atoms):
-            if (not ca_only) or mol1.atomName[i] == "CA":
+            if (not ca_only) or mol2.atomName[i] == "CA":
                 id2.append(mol2.chainName[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+                id2_idx.append(i)
     elif mol1.chainID[0] in mol2.chainID:
         for i in range(mol1.n_atoms):
             if (not ca_only) or mol1.atomName[i] == "CA":
                 id1.append(mol1.chainID[i] + str(mol1.resNum[i]) + mol1.atomName[i])
+                id1_idx.append(i)
         for i in range(mol2.n_atoms):
-            if (not ca_only) or mol1.atomName[i] == "CA":
+            if (not ca_only) or mol2.atomName[i] == "CA":
                 id2.append(mol2.chainID[i] + str(mol2.resNum[i]) + mol2.atomName[i])
+                id2_idx.append(i)
     else:
         print("\t Warning : No matching coordinates")
     id1 = np.array(id1)
     id2 = np.array(id2)
+    id1_idx = np.array(id1_idx)
+    id2_idx = np.array(id2_idx)
 
     idx = []
     for i in range(len(id1)):
         idx_tmp = np.where(id1[i] == id2)[0]
         if len(idx_tmp) == 1:
-            idx.append([i, idx_tmp[0]])
+            idx.append([id1_idx[i], id2_idx[idx_tmp[0]]])
 
     if len(idx)==0:
         print("\t Warning : No matching coordinates")
