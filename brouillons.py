@@ -1750,7 +1750,7 @@ import matplotlib.patches as mpatches
 #                        size=128, voxel_size=1.5, cutoff=6.0, sigma=2.0, step=10, test_idx=True)
 #
 
-def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
+def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_cc=0.7, init_rmsd=10.0,
                  fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
                  colors=["tab:blue", "tab:red", "tab:green", "tab:orange",
                          "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
@@ -1765,13 +1765,9 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
         cc = []
         rmsd = []
         for j in range(length[i]):
-            cc.append(np.load(protocol_list[i]+ "/extra/run_r"+str(j+1)+"_cc.npy"))
-            rmsd.append(np.load(protocol_list[i] +"/extra/run_r"+str(j+1)+"_rmsd.npy"))
+            cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
+            rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
             t = np.arange(len(cc[-1])) * period * dt
-            print( "lent" + str(len(t)))
-            print( "lenrmsd" + str(len(rmsd[-1])))
-            ax[0].plot(t, cc[-1], "-", color=colors[i], alpha=0.5)
-            ax[1].plot(t, rmsd[-1], "-", color=colors[i], alpha=0.5)
         ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
                        label=labels[i], color=colors[i], fmt=fmts[i],
                        capthick=capthick, capsize=capsize,elinewidth=elinewidth)
@@ -1796,6 +1792,7 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
         handles.append(mpatches.Patch(color='yellow', label='Initial structure'))
     fig.legend(handles = handles, loc='lower right')
     return fig
+
 
 
 ak = show_cc_rmsd([
@@ -2006,19 +2003,6 @@ ak_MW = show_cc_rmsd([
               ],
              length=[1,1], labels=["MD only", "MD and NMA", ""],
              step=10, period=100,fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
-ak_MW = show_cc_rmsd([
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000754_FlexProtGenesisFit",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003692_FlexProtGenesisFit",
-              ],
-             length=[16,16], labels=["1", "2", ""],
-             step=1000, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
-
-ak_MW = show_cc_rmsd([
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000754_FlexProtGenesisFit",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003692_FlexProtGenesisFit",
-              ],
-             length=[16,16], labels=["1", "2", ""],
-             step=1000, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
 # ak.savefig("results/AK_genesis_nma.png", dpi=1000)
 # f2.savefig("results/P97_genesis_nma.png", dpi=1000)
@@ -2192,4 +2176,17 @@ print(" \t t50 = %2.2f +- %2.2f"%(np.mean(t50),np.std(t50)))
 print(" \t t100 = %2.2f +- %2.2f"%(np.mean(t100),np.std(t100)))
 
 
+
+with open("/home/guest/MolProbity/remi/log.txt", "r") as f:
+    header = None
+    molprob = {}
+    for i in f :
+        split_line = (i.split(":"))
+        if header is None:
+            if split_line[0] == "#pdbFileName" :
+                header = split_line
+        else:
+            if len(split_line) == len(header):
+                for i in range(len(header)):
+                    molprob[header[i]] = split_line[i]
 
