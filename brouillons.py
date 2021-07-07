@@ -2175,18 +2175,81 @@ print(" \t t20 = %2.2f +- %2.2f"%(np.mean(t20),np.std(t20)))
 print(" \t t50 = %2.2f +- %2.2f"%(np.mean(t50),np.std(t50)))
 print(" \t t100 = %2.2f +- %2.2f"%(np.mean(t100),np.std(t100)))
 
+import os
+import numpy as np
+
+def compute_rmsd_from_dcd(outputPrefix, targetFname, initFname, N):
+    with open("%sdcd2pdb.tcl" % outputPrefix, "w") as f:
+        s = ""
+        s += "mol load pdb %s dcd %s.dcd\n" % (initFname,outputPrefix)
+        s += "set nf [molinfo top get numframes]\n"
+        s += "for {set i 0 } {$i < $nf} {incr i} {\n"
+        s += "[atomselect top all frame $i] writepdb %stmp$i.pdb\n" % outputPrefix
+        s += "}\n"
+        s += "exit\n"
+        f.write(s)
+    os.system("vmd -dispdev text -e %sdcd2pdb.tcl" % outputPrefix)
+
+    from src.molecule import Molecule
+    from src.functions import get_mol_conv, get_RMSD_coords
+    rmsd = []
+    target = Molecule(targetFname)
+    mol = Molecule(initFname)
+    idx = get_mol_conv(mol, target, ca_only=True)
+    if len(idx) > 0:
+        rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
+        for i in range(N):
+            print(i)
+            mol = Molecule("%stmp%i.pdb" %(outputPrefix, i+1))
+            rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
+    else:
+        rmsd = np.zeros(N + 1)
+    # os.system("rm -f %stmp*" %(outputPrefix))
+    np.save(file="%s_rmsd.npy"%outputPrefix, arr=np.array(rmsd))
 
 
-with open("/home/guest/MolProbity/remi/log.txt", "r") as f:
-    header = None
-    molprob = {}
-    for i in f :
-        split_line = (i.split(":"))
-        if header is None:
-            if split_line[0] == "#pdbFileName" :
-                header = split_line
-        else:
-            if len(split_line) == len(header):
-                for i in range(len(header)):
-                    molprob[header[i]] = split_line[i]
+def read_cc_in_log_file(outputPrefix):
+    with open(outputPrefix + ".log", "r") as f:
+        header = None
+        cc = []
+        cc_idx = 0
+        for i in f:
+            if i.startswith("INFO:"):
+                if header is None:
+                    header = i.split()
+                    for i in range(len(header)):
+                        if 'RESTR_CVS001' in header[i]:
+                            cc_idx = i
+                else:
+                    splitline = i.split()
+                    if len(splitline) == len(header):
+                        cc.append(float(splitline[cc_idx]))
+    np.save(file="%s_cc.npy"%outputPrefix, arr=np.array(cc))
 
+def run_molprobity(outputPrefix):
+    os.system("~/MolProbity/cmdline/oneline-analysis %s.pdb > %s_molprobity.txt" % (outputPrefix,outputPrefix))
+    with open("%s_molprobity.txt"% outputPrefix, "r") as f:
+        header = None
+        molprob = {}
+        for i in f:
+            split_line = (i.split(":"))
+            if header is None:
+                if split_line[0] == "#pdbFileName":
+                    header = split_line
+            else:
+                if len(split_line) == len(header):
+                    for i in range(len(header)):
+                        molprob[header[i]] = split_line[i]
+
+    np.savetxt(fname="%s_molprobity.txt" % outputPrefix,X=
+    np.array([float(molprob["clashscore"]),
+              float(molprob["MolProbityScore"]),
+              float(molprob["ramaFavored"]) / float(molprob["numRama"]),
+              float(molprob["rotaFavored"]) / float(molprob["numRota"])
+              ]))
+
+for i in range(16):
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/global/run_r%i"%(i+1)
+    # compute_rmsd_from_dcd(outputPrefix,targetFname="data/corA/3jch.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb", N=193)
+    # read_cc_in_log_file(outputPrefix)
+    run_molprobity(outputPrefix)

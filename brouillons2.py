@@ -23,11 +23,11 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
     for i in range(len(protocol_list)):
         cc = []
         rmsd = []
-        molp=[]
+        # molp=[]
         for j in range(length[i]):
             cc.append(np.load(protocol_list[i]+ "/extra/run_r"+str(j+1)+"_cc.npy")[:end])
             rmsd.append(np.load(protocol_list[i] +"/extra/run_r"+str(j+1)+"_rmsd.npy")[:end])
-            molp.append(np.load(protocol_list[i] +"/extra/run_r"+str(j+1)+"_molprobity.npy"))
+            # molp.append(np.load(protocol_list[i] +"/extra/run_r"+str(j+1)+"_molprobity.npy"))
             t = np.arange(len(cc[-1])) * period * dt
             print( "lent" + str(len(t)))
             print( "lenrmsd" + str(len(rmsd[-1])))
@@ -122,4 +122,11 @@ lacto = show_cc_rmsd([
               ],
              length=[16,16], labels=["local", "global"],
              step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51)
+
+corA = show_cc_rmsd([
+              "/home/guest/Workspace/PaperFrontiers/CorA/local",
+              "/home/guest/Workspace/PaperFrontiers/CorA/global",
+              ],
+             length=[16,16], labels=["local", "global"],
+             step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=193)
 
