@@ -131,3 +131,10 @@ corA = show_cc_rmsd([
              length=[16,16], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=8)
 
+corA = show_cc_rmsd([
+              "/home/guest/Workspace/PaperFrontiers/CorA/local",
+              "/home/guest/Workspace/PaperFrontiers/CorA/global",
+              ],
+             length=[16,16], labels=["local", "global"],
+             step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=193)
+
