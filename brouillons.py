@@ -2190,3 +2190,23 @@ with open("/home/guest/MolProbity/remi/log.txt", "r") as f:
                 for i in range(len(header)):
                     molprob[header[i]] = split_line[i]
 
+cc= []
+rmsd= []
+# nfit = "004037"
+nfit = "004126"
+period=100
+for i in range(4):
+    cc.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run%i_cc.npy" %(nfit,i)))
+    rmsd.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run%i_rmsd.npy"%(nfit,i)))
+cc = np.mean(cc, axis=0)
+rmsd = np.mean(rmsd, axis=0)
+
+cc_max= cc.max()
+rmsd_min= rmsd.min()
+cc5p = cc.max() - 0.01*(cc.max()-cc.min())
+rmsd5p = rmsd.min() + 0.01*(rmsd.max() - rmsd.min())
+cctime = np.min(np.where(cc>=cc5p)[0])*period*0.002
+rmsdtime = np.min(np.where(rmsd<=rmsd5p)[0])*period*0.002
+print("%.3f & %.1f & %.3f & %.1f" %(cc_max, cctime, rmsd_min, rmsdtime) )
+
+0.986 & 8.0 & 2.017 & 8.2 & 0.986 & 6.0 & 1.985 & 6.0
