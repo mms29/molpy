@@ -2246,12 +2246,11 @@ def run_molprobity(outputPrefix):
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
 
-for i in range(5,16):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/local/run_r%i"%(i+1)
-    compute_rmsd_from_dcd(outputPrefix,targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb", N=200)
+for i in range(0,8):
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global/run_r%i"%(i+1)
+    compute_rmsd_from_dcd(outputPrefix,targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb", N=56)
     read_cc_in_log_file(outputPrefix)
-    run_molprobity(outputPrefix)
-
+    # run_molprobity(outputPrefix)
 
 cc= []
 rmsd= []
