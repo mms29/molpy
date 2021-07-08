@@ -2204,7 +2204,7 @@ def compute_rmsd_from_dcd(outputPrefix, targetFname, initFname, N):
             rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
     else:
         rmsd = np.zeros(N + 1)
-    # os.system("rm -f %stmp*" %(outputPrefix))
+    os.system("rm -f %stmp*" %(outputPrefix))
     np.save(file="%s_rmsd.npy"%outputPrefix, arr=np.array(rmsd))
 
 
@@ -2248,11 +2248,11 @@ def run_molprobity(outputPrefix):
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
 
-for i in range(16):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/global/run_r%i"%(i+1)
-    # compute_rmsd_from_dcd(outputPrefix,targetFname="data/corA/3jch.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb", N=193)
-    # read_cc_in_log_file(outputPrefix)
-    run_molprobity(outputPrefix)
+for i in range(0,8):
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global/run_r%i"%(i+1)
+    compute_rmsd_from_dcd(outputPrefix,targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb", N=56)
+    read_cc_in_log_file(outputPrefix)
+    # run_molprobity(outputPrefix)
 
 
 cc= []
