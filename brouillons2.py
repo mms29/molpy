@@ -97,7 +97,7 @@ ak = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003692_FlexProtGenesisFit",
               ],
              length=[16,16], labels=["local", "global"],
-             step=10, period=100, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=12)
+             step=10, period=100, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=0)
 
 ak_molp = show_molprob([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005266_FlexProtGenesisMin",
@@ -131,10 +131,10 @@ corA = show_cc_rmsd([
              length=[16,16], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=8)
 
-corA = show_cc_rmsd([
-              "/home/guest/Workspace/PaperFrontiers/CorA/local",
-              "/home/guest/Workspace/PaperFrontiers/CorA/global",
+p97 = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/local",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/global",
               ],
              length=[16,16], labels=["local", "global"],
-             step=10, period=100, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=193)
+             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=0)
 

@@ -2189,7 +2189,6 @@ def compute_rmsd_from_dcd(outputPrefix, targetFname, initFname, N):
         s += "exit\n"
         f.write(s)
     os.system("vmd -dispdev text -e %sdcd2pdb.tcl" % outputPrefix)
-
     from src.molecule import Molecule
     from src.functions import get_mol_conv, get_RMSD_coords
     rmsd = []
@@ -2240,7 +2239,6 @@ def run_molprobity(outputPrefix):
                 if len(split_line) == len(header):
                     for i in range(len(header)):
                         molprob[header[i]] = split_line[i]
-
     np.savetxt(fname="%s_molprobity.txt" % outputPrefix,X=
     np.array([float(molprob["clashscore"]),
               float(molprob["MolProbityScore"]),
@@ -2253,7 +2251,6 @@ for i in range(0,8):
     compute_rmsd_from_dcd(outputPrefix,targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb", N=56)
     read_cc_in_log_file(outputPrefix)
     # run_molprobity(outputPrefix)
-
 
 cc= []
 rmsd= []
