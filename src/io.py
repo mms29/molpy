@@ -132,7 +132,7 @@ def save_mrc(data, file, voxel_size=1, origin=None):
         mrc.set_data(data.T)
         mrc.voxel_size = voxel_size
         if origin is None:
-            origin = -voxel_size*(data.shape[0]+1)/2   #*0.0 #EDIT
+            origin = -voxel_size*(data.shape[0])/2   #*0.0 #EDIT
         mrc.header['origin']['x'] = origin
         mrc.header['origin']['y'] = origin
         mrc.header['origin']['z'] = origin
