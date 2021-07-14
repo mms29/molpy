@@ -2245,28 +2245,53 @@ def run_molprobity(outputPrefix):
               float(molprob["ramaFavored"]) / float(molprob["numRama"]),
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
-
-for i in range(0,8):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global/run_r%i"%(i+1)
-    compute_rmsd_from_dcd(outputPrefix,targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb", initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb", N=56)
+for i in range(0,16):
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i"%(i+1)
+    compute_rmsd_from_dcd(outputPrefix,
+                          targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb",
+                          initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb",
+                          N=140)
     read_cc_in_log_file(outputPrefix)
     # run_molprobity(outputPrefix)
 
-cc= []
-rmsd= []
-# nfit = "004037"
-nfit = "004126"
-period=100
-for i in range(4):
-    cc.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run%i_cc.npy" %(nfit,i)))
-    rmsd.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run%i_rmsd.npy"%(nfit,i)))
-cc = np.mean(cc, axis=0)
-rmsd = np.mean(rmsd, axis=0)
 
-cc_max= cc.max()
-rmsd_min= rmsd.min()
-cc5p = cc.max() - 0.01*(cc.max()-cc.min())
-rmsd5p = rmsd.min() + 0.01*(rmsd.max() - rmsd.min())
-cctime = np.min(np.where(cc>=cc5p)[0])*period*0.002
-rmsdtime = np.min(np.where(rmsd<=rmsd5p)[0])*period*0.002
-print("%.3f & %.1f & %.3f & %.1f" %(cc_max, cctime, rmsd_min, rmsdtime) )
+for i in range(0, 16):
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/global2/run_r%i" % (i + 1)
+    compute_rmsd_from_dcd(outputPrefix,
+                          targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001871_FlexProtGeneratePSF/extra/output.pdb",
+                          initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb",
+                          N=300)
+    read_cc_in_log_file(outputPrefix)
+    # run_molprobity(outputPrefix)
+
+
+nfit=  [    "008506",    "008580"]
+clock_time= [600.4,696.3]
+period = 500
+
+nfit=  [    "000754",    "003692"]
+clock_time= [556.1,646.1]
+period = 100
+
+nfit=  [    "008748",    "008822"]
+clock_time= [7721.176,9224.050]
+period = 500
+
+for n in range(2) :
+    cc = []
+    rmsd = []
+    for i in range(16):
+        cc.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_cc.npy" %(nfit[n],i+1)))
+        rmsd.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_rmsd.npy"%(nfit[n],i+1)))
+    cc = np.mean(cc, axis=0)
+    rmsd = np.mean(rmsd, axis=0)
+
+    cc_max= cc.max()
+    rmsd_min= rmsd.min()
+    cc5p = cc.max() - 0.01*(cc.max()-cc.min())
+    rmsd5p = rmsd.min() + 0.01*(rmsd.max() - rmsd.min())
+    cctime = np.min(np.where(cc>=cc5p)[0])*period*0.002
+    rmsdtime = np.min(np.where(rmsd<=rmsd5p)[0])*period*0.002
+    rmsdclocktime =(rmsdtime /((len(rmsd)-1)*period*0.002)) * clock_time[n]
+    print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(cc_max, cctime, rmsd_min, rmsdtime,rmsdclocktime) )
+

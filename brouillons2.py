@@ -187,16 +187,23 @@ ef2 = show_cc_rmsd([
                 show_runs=True)
 
 corA = show_cc_rmsd([
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/local",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/global",
+              "/home/guest/Workspace/PaperFrontiers/CorA/local",
+              "/home/guest/Workspace/PaperFrontiers/CorA/global",
               ],
              length=[16,16], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=0, show_runs=True)
 
 p97 = show_cc_rmsd([
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/local",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/global",
+              "/home/guest/Workspace/PaperFrontiers/P97/local",
+              "/home/guest/Workspace/PaperFrontiers/P97/global",
               ],
              length=[16,16], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=0, show_runs=True)
 
+nfit=  [    "008506",    "008580"]
+clock_time= [600.4,696.3]
+period = 500
+
+nfit=  [    "000754",    "003692"]
+clock_time= [556.1,646.1]
+period = 100
