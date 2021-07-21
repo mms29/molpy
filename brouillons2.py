@@ -20,7 +20,6 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
     if labels is None:
         labels = ["#"+str(i) for i in range(len(protocol_list))]
     fig, ax = plt.subplots(1, 2, figsize=figsize)
-    fig2, ax2 = plt.subplots(1, 1, figsize=figsize)
     for i in range(len(protocol_list)):
         cc = []
         rmsd = []
@@ -67,11 +66,33 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10,
         # ax[1,1].set_xticklabels(labels)
         # ax[1,1].set_title("MolProbityScore")
         fig.tight_layout()
-        ax2.hist(np.array(rmsd)[:,-1].flatten(),np.arange(0,20,0.5), color = colors[i], alpha=0.5)
 
     handles, labels = ax[0].get_legend_handles_labels()
     fig.legend(handles = handles, loc='lower right')
 
+    return fig
+
+def show_cc(protocol_list, length, labels=None, period=100,
+                 fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
+                 colors=["tab:red", "tab:blue", "tab:green", "tab:orange",
+                         "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
+                 fmts = ["o", "d", "v", "^", "p", "*", "s","x"], end=-1, start=0, show_runs=False):
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    for i in range(len(protocol_list)):
+        cc = []
+        for j in range(start, length[i]):
+            cc.append(np.load(protocol_list[i]+ "/extra/run_r"+str(j+1)+"_cc.npy")[:end])
+            t = np.arange(len(cc[-1])) * period * dt
+        step = len(cc[0]) // 10
+        ax.errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.std(cc, axis=0)[::step]*fvar,
+                       label=labels[i], color=colors[i], fmt=fmts[i],
+                       capthick=capthick, capsize=capsize,elinewidth=elinewidth)
+        ax.plot(t, np.mean(cc, axis=0), "-",color=colors[i])
+        ax.set_xlabel("Simulation Time (ps)")
+        ax.set_ylabel("CC")
+        ax.set_title("Correlation Coefficient")
+        fig.tight_layout()
+    ax.legend()
     return fig
 
 def show_cc_rmsd_all(N, protocol_list, length, labels=None, period=[100],
@@ -226,7 +247,7 @@ lao = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008580_FlexProtGenesisFit",
               ],
              length=[16,16], labels=["local", "global"],
-             step=10, period=500, fvar=0.5, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end= 40, start=0,show_runs=False)
+             step=10, period=500, fvar=0.5, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end= 21, start=0,show_runs=False)
 lacto = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004647_FlexProtGenesisFit",
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005083_FlexProtGenesisFit",
@@ -239,51 +260,86 @@ lacto = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008822_FlexProtGenesisFit",
               ],
              length=[16,16], labels=["local", "global"],
-             step=10, period=500, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=0,show_runs=True)
+             step=10, period=500, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=0,show_runs=False)
 ef2 = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006459_FlexProtGenesisFit",
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006745_FlexProtGenesisFit",
               ],
              length=[16,16], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=200, start=0,
-                show_runs=True)
+                show_runs=False)
 
 ef2 = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008900_FlexProtGenesisFit",
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008974_FlexProtGenesisFit",
               ],
-             length=[5,5], labels=["local", "global"],
+             length=[13,13], labels=["local", "global"],
              step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=0,
                 show_runs=True)
 
 corA = show_cc_rmsd([
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/local2",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/global2",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/local3",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/global3",
               ],
              length=[16,16], labels=["local", "global"],
-             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=0, show_runs=True)
+             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=51, start=9, show_runs=False)
+corA201 = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003596_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009179_FlexProtGenesisFit",
+              ],
+             length=[16,16], labels=["local", "global"],
+             step=10, period=10000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=6, show_runs=True)
+corA20 = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009425_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009499_FlexProtGenesisFit",
+              ],
+             length=[14,14], labels=["MD", "NMMD"], period=1000, fvar=2, capthick=1.7,
+    capsize=5,elinewidth=1.7, figsize=(5,3), dt=0.002, end=-1, start=0, show_runs=False)
+corA20 = show_cc([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009425_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009499_FlexProtGenesisFit",
+              ],
+             length=[14,14], labels=["MD", "NMMD"], period=1000, fvar=2, capthick=1.7,
+    capsize=5,elinewidth=1.7, figsize=(5,3), dt=0.002, end=-1, start=10, show_runs=False)
+corA20.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/cora_cc.png", dpi=1000)
 
+corA10 = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009666_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009876_FlexProtGenesisFit",
+              ],
+             length=[16,16], labels=["local", "global"],
+             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=0, show_runs=False)
 p97 = show_cc_rmsd([
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/local2",
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/global2",
               ],
-             length=[16,16], labels=["local", "global"],
-             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=-1, start=0, show_runs=False)
+             length=[16,16], labels=["MD", "NMMD"],
+              period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(5,3), dt=0.002, end=201, start=0, show_runs=False)
+p97.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/p97_cc.png", dpi=1000)
 
 all = show_cc_rmsd_all(N = 4, protocol_list = [[
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/003997_FlexProtGenesisFit",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004430_FlexProtGenesisFit"
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008506_FlexProtGenesisFit",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008580_FlexProtGenesisFit",
               ],[
               "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007088_FlexProtGenesisFit",
-              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007162_FlexProtGenesisFit"
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007162_FlexProtGenesisFit",
               ],[
-    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004647_FlexProtGenesisFit",
-    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005083_FlexProtGenesisFit"
+    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008748_FlexProtGenesisFit",
+    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008822_FlexProtGenesisFit",
                 ],[
-    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006459_FlexProtGenesisFit",
-    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006745_FlexProtGenesisFit"
+    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008900_FlexProtGenesisFit",
+    "/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008974_FlexProtGenesisFit",
                 ]],
-             length=[[16,16],[16,16],[15,15],[12,12]], labels=["local", "global"],
+             length=[[16,16],[16,16],[16,16],[13,13]], labels=["MD", "NMMD"],
                       period=[500,500,500,1000], fvar=1, capthick=1.7, capsize=5,elinewidth=1.7,
-                      figsize=(10,10), dt=0.002, end=[11,11,-1,-1], start=[8,0,4,8],show_runs=False)
+                      figsize=(10,10), dt=0.002, end=[21,21,-1,-1], start=[0,0,0,0],show_runs=False)
 all.savefig("/home/guest/Documents/VirtualBoxShared/pictures/synth_all_replicas.png", dpi=1000)
+
+
+corA = show_cc_rmsd([
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/51020/local/results20",
+              "/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/CorA/51020/global/results20",
+              ],
+             length=[15,15], labels=["local", "global"],
+             step=10, period=1000, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002, end=200, start=0, show_runs=True)
+

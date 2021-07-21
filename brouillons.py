@@ -1817,7 +1817,7 @@ p97 = show_cc_rmsd(["/home/guest/Workspace/Paper_Frontiers/5ftm25ftn/new/local",
 
 p97 = show_cc_rmsd(["/home/guest/ScipionUserData/projects/p97/Runs/000461_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/p97/Runs/000521_FlexProtGenesisFit", ],
-             length=[1,1,1], labels=["No modes","Mode 7-10"], step=2, period=25000, init_cc=0.764,
+             length=[1,1,1], labels=["No modes","Mode 7-10"], step=2, period=1000, init_cc=0.764,
              init_rmsd=11.24, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,4), dt=0.002)
 p97 = show_cc_rmsd(["/home/guest/ScipionUserData/projects/p97/Runs/000671_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/p97/Runs/000733_FlexProtGenesisFit", ],
@@ -1913,7 +1913,7 @@ corAexp = show_cc_rmsd([
                    "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011819_FlexProtGenesisFit",
                    # "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/011696_FlexProtGenesisFit",
               ],
-             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=50, period=500, init_cc=0.7,
+             length=[1,1,1], labels=["No modes", "Mode 7-12",""], step=50, period=1000, init_cc=0.7,
              init_rmsd=13.2, fvar=2, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002)
 
 corA_10_7= show_cc_rmsd([
@@ -2199,8 +2199,13 @@ def compute_rmsd_from_dcd(outputPrefix, targetFname, initFname, N):
         rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
         for i in range(N):
             print(i)
-            mol = Molecule("%stmp%i.pdb" %(outputPrefix, i+1))
-            rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
+            fname = "%stmp%i.pdb" % (outputPrefix, i + 1)
+            if os.path.exists(fname):
+                mol = Molecule(fname)
+                rmsd.append(get_RMSD_coords(mol.coords[idx[:, 0]], target.coords[idx[:, 1]]))
+            else:
+                print("cant find %s" %fname)
+                rmsd.append(0)
     else:
         rmsd = np.zeros(N + 1)
     os.system("rm -f %stmp*" %(outputPrefix))
@@ -2245,8 +2250,10 @@ def run_molprobity(outputPrefix):
               float(molprob["ramaFavored"]) / float(molprob["numRama"]),
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
+
+
 for i in range(0,16):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i"%(i+1)
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/local3/run_r%i"%(i+1)
     compute_rmsd_from_dcd(outputPrefix,
                           targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb",
                           initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb",
@@ -2256,12 +2263,25 @@ for i in range(0,16):
 
 
 for i in range(0, 16):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/global2/run_r%i" % (i + 1)
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/51020/local/results20/run_r%i" % (i + 1)
     compute_rmsd_from_dcd(outputPrefix,
                           targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001871_FlexProtGeneratePSF/extra/output.pdb",
                           initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb",
                           N=300)
     read_cc_in_log_file(outputPrefix)
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/51020/local/results10/run_r%i" % (i + 1)
+    compute_rmsd_from_dcd(outputPrefix,
+                          targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001871_FlexProtGeneratePSF/extra/output.pdb",
+                          initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb",
+                          N=300)
+    read_cc_in_log_file(outputPrefix)
+    outputPrefix = "/home/guest/Workspace/PaperFrontiers/CorA/51020/local/results5/run_r%i" % (i + 1)
+    compute_rmsd_from_dcd(outputPrefix,
+                          targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001871_FlexProtGeneratePSF/extra/output.pdb",
+                          initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/001374_FlexProtGeneratePSF/extra/output.pdb",
+                          N=300)
+    read_cc_in_log_file(outputPrefix)
+    # run_molprobity(outputPrefix)
     # run_molprobity(outputPrefix)
 
 
@@ -2274,17 +2294,25 @@ clock_time= [556.1,646.1]
 period = 100
 
 nfit=  [    "008748",    "008822"]
-clock_time= [7721.176,9224.050]
+clock_time= [7721.176,8224.050]
 period = 500
+
+nfit=  [    "008900",    "008974"]
+clock_time= [23881,24174]
+period = 1000
+
 
 for n in range(2) :
     cc = []
     rmsd = []
     for i in range(16):
-        cc.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_cc.npy" %(nfit[n],i+1)))
-        rmsd.append(np.load("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_rmsd.npy"%(nfit[n],i+1)))
-    cc = np.mean(cc, axis=0)
-    rmsd = np.mean(rmsd, axis=0)
+        cc.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_cc.npy" %(nfit[n],i+1)))
+        rmsd.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_rmsd.npy"%(nfit[n],i+1)))
+    idx = np.where(rmsd == np.min(rmsd))[0][0]
+    cc = np.array(cc)[idx]
+    rmsd = np.array(rmsd)[idx]
+    # cc = np.mean(cc, axis=0)
+    # rmsd = np.mean(rmsd, axis=0)
 
     cc_max= cc.max()
     rmsd_min= rmsd.min()
@@ -2295,3 +2323,22 @@ for n in range(2) :
     rmsdclocktime =(rmsdtime /((len(rmsd)-1)*period*0.002)) * clock_time[n]
     print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(cc_max, cctime, rmsd_min, rmsdtime,rmsdclocktime) )
 
+from src.molecule import Molecule
+target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008330_ProtImportPdb/extra/1n0u_target.pdb")
+init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006348_FlexProtGeneratePSF/extra/output.pdb")
+idx = get_mol_conv(init, target)
+
+data = []
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008900_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008974_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+
+data.append(init.coords[idx[:,0]].flatten())
+data.append(target.coords[idx[:,1]].flatten())
+
+compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD", "init", "target"], save=None, n_components=2)
+
+print
