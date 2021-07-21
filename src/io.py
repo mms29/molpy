@@ -398,7 +398,7 @@ def save_dcd(mol, coords_list, prefix):
 def append_dcd(pdb_file, dcd_file, first_frame=False):
     print("> Saving DCD trajectory ...")
     # VMD command
-    with open(dcd_file+".tcl", "w") as f :
+    with open("%s.tcl" % dcd_file, "w") as f :
         if first_frame:
             f.write("mol new\n")
         else:
