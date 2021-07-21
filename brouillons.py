@@ -2245,14 +2245,14 @@ def run_molprobity(outputPrefix):
               float(molprob["ramaFavored"]) / float(molprob["numRama"]),
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
-for i in range(0,16):
+for i in range(12,13):
     outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i"%(i+1)
-    compute_rmsd_from_dcd(outputPrefix,
-                          targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb",
-                          initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb",
-                          N=140)
-    read_cc_in_log_file(outputPrefix)
-    # run_molprobity(outputPrefix)
+    # compute_rmsd_from_dcd(outputPrefix,
+    #                       targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb",
+    #                       initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb",
+    #                       N=140)
+    # read_cc_in_log_file(outputPrefix)
+    run_molprobity(outputPrefix)
 
 
 for i in range(0, 16):
@@ -2277,6 +2277,13 @@ nfit=  [    "008748",    "008822"]
 clock_time= [7721.176,9224.050]
 period = 500
 
+# CORA
+nfit=  [    "009425",    "009499"]
+clock_time= [27950,30141]
+period = 1000
+
+
+percent=0.01
 for n in range(2) :
     cc = []
     rmsd = []
@@ -2288,10 +2295,58 @@ for n in range(2) :
 
     cc_max= cc.max()
     rmsd_min= rmsd.min()
-    cc5p = cc.max() - 0.01*(cc.max()-cc.min())
-    rmsd5p = rmsd.min() + 0.01*(rmsd.max() - rmsd.min())
+    cc5p = cc.max() - percent*(cc.max()-cc.min())
+    rmsd5p = rmsd.min() + percent*(rmsd.max() - rmsd.min())
     cctime = np.min(np.where(cc>=cc5p)[0])*period*0.002
     rmsdtime = np.min(np.where(rmsd<=rmsd5p)[0])*period*0.002
     rmsdclocktime =(rmsdtime /((len(rmsd)-1)*period*0.002)) * clock_time[n]
     print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(cc_max, cctime, rmsd_min, rmsdtime,rmsdclocktime) )
 
+
+
+
+from src.molecule import Molecule
+from src.density import Volume
+from joblib import load
+
+method = 1
+init = Molecule("/home/guest/Downloads/Optical_flow_test_with_Remi/AK.pdb")
+optFlow = load("/home/guest/Downloads/Optical_flow_test_with_Remi/optical_flow.pkl")
+optFlow = np.transpose(optFlow, (0,3, 2, 1))
+
+target = init.copy()
+voxel_size= 1.0
+origin = -np.ones(3) * 128//2
+# origin = np.zeros(3)
+
+optNorm = np.linalg.norm(optFlow, axis=0)
+optShape = np.zeros(optNorm.shape)
+optShape[np.where(optNorm>0.1)]=1
+target_vol = Volume(data=optShape, voxel_size=1.0, sigma=0.0, cutoff=0.0)
+target_vol.save_mrc(file="results/test_optFlow.mrc", origin=-128//2)
+
+for i in range(init.n_atoms):
+    coord = init.coords[i]/voxel_size - origin
+
+    # Nearest
+    if method == 0:
+        intcoord1 = np.ndarray.astype(np.rint(coord), dtype=int)
+        if any(intcoord1 <0) or any(intcoord1 >= optFlow.shape[1:]) :
+            print("error :%s" % intcoord1)
+        of = optFlow[:, intcoord1[0],intcoord1[1],intcoord1[2]]
+
+    # Mean
+    if method == 1:
+        floor = np.ndarray.astype(np.floor(coord), dtype=int)
+        comb = np.array([[0,0,0],[0,0,1],[0,1,0],[0,1,1],
+                         [1,0,0],[1,0,1],[1,1,0],[1,1,1]])
+        intcoord2 = floor+comb
+        optFlows = []
+        for j in intcoord2:
+            if any(j < 0) or any(j >= optFlow.shape[1:]):
+                print("error :%s" % j)
+            optFlows.append(optFlow[:, j[0],j[1],j[2]])
+        of = np.mean(optFlows, axis=0)
+    print("Optical flow for atom %i : %s"%(i,str(of)))
+    target.coords[i] = init.coords[i] + -of
+target.save_pdb("results/test_optFlow.pdb")
