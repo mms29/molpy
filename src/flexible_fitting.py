@@ -20,7 +20,7 @@ import src.density
 import src.forcefield
 import src.functions
 import src.molecule
-from src.viewers import fit_viewer, chimera_fit_viewer, fit_potentials_viewer, ramachandran_viewer
+from src.viewers import fit_viewer, chimera_fit_viewer, fit_potentials_viewer
 
 #################################################################################################################
 #                          Flexible Fitting
@@ -546,7 +546,7 @@ class FlexibleFitting:
             self.show_forcefield(save=self.prefix+"_chain"+str(self.chain_id)+"_forcefield.png")
             src.io.append_dcd(pdb_file=self.prefix+"_chain"+str(self.chain_id)+".pdb",
                               dcd_file=self.prefix+"_chain"+str(self.chain_id)+".dcd")
-            ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
+            # ramachandran_viewer(self.prefix+"_chain"+str(self.chain_id)+".pdb", save=self.prefix+"_chain"+str(self.chain_id)+"_rama.png")
 
     # ==========================================   HMC Others       ===============================================
 

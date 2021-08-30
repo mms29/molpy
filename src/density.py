@@ -100,7 +100,7 @@ class Volume(Density):
         return cls(data=vol, voxel_size=voxel_size, sigma=sigma, cutoff=cutoff)
 
     @classmethod
-    def from_file(cls, file, sigma, cutoff, voxel_size=None):
+    def from_file(cls, file, sigma=2.0, cutoff=6.0, voxel_size=None):
         data, vs = src.io.read_mrc(file)
         if voxel_size is None:
             voxel_size=vs

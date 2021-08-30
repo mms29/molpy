@@ -4,7 +4,7 @@ import os
 os.environ['OPENBLAS_NUM_THREADS'] = '1'
 from src.molecule import Molecule
 from src.flexible_fitting import *
-from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer, ramachandran_viewer
+from src.viewers import molecule_viewer, chimera_molecule_viewer, chimera_fit_viewer
 from src.density import Volume, get_CC
 from src.functions import get_RMSD_coords
 from src.constants import *
@@ -12,10 +12,15 @@ from src.constants import *
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
+mass = np.zeros(4)
+for j in range(init.n_atoms):
+    for i in range(4):
+        mass[i] += np.sum(init.normalModeVec[j,i,:]* (1/init.forcefield.mass[j]))
+
 # import PDB
-init =Molecule("data/AK/AK.pdb")
+init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes/vec."+str(i+7) for i in range(4)])
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(4)])
 init.set_normalModeVec(fnModes)
 
 q = np.zeros(4)

@@ -117,6 +117,7 @@ def read_mrc(file):
     with mrcfile.open(file) as mrc:
         data = np.transpose(mrc.data, (2, 1, 0))
         voxel_size = np.float(mrc.voxel_size['x'])
+        print("origin : %s"%str(mrc.header['origin']))
         return data, voxel_size
 
 def save_mrc(data, file, voxel_size=1, origin=None):
@@ -209,6 +210,7 @@ def create_psf( pdb_file,prefix=None, topology_file=None):
         psfgen.write("exit\n")
 
     os.system("vmd -dispdev text -e "+pre+"_psfgen.tcl")
+    os.system("rm -f "+pre+"_psfgen.tcl")
 
 def read_psf(file):
     """

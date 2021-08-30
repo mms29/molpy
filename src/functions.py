@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 import contextlib
 import io
 import sys
+# import seaborn as sns
 
 def select_voxels(coord, size, voxel_size, cutoff):
     n_atoms = coord.shape[0]
@@ -71,11 +72,10 @@ def get_euler_grad(angles, coord):
                     0]])
 
     return dR
-
-
-def compute_pca(data, length, labels=None, save=None, n_components=2):
+def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5)):
     print("Computing PCA ...")
-
+    colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+              "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
     # Compute PCA
     arr = np.array(data)
     print(arr.shape)
@@ -87,26 +87,89 @@ def compute_pca(data, length, labels=None, save=None, n_components=2):
     if labels is None:
         labels = ["#"+str(i) for i in range(len(length))]
 
-    # Plotter
-    fig = plt.figure()
+    fig = plt.figure(figsize=figsize)
     if n_components == 3:
         ax = fig.add_subplot(111, projection='3d')
         ax.set_zlabel("PCA component 3")
     else:
         ax = fig.add_subplot(111)
-    ax.set_xlabel("PCA component 1")
-    ax.set_ylabel("PCA component 2")
+
     for i in range(len(length)):
         if n_components==3:
             ax.scatter(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]],
-                       pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i])
+                       pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i], color = colors[i])
         else:
             ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
-                    label=labels[i], markeredgecolor='black')
+                    label=labels[i], markeredgecolor='black', color = colors[i])
     ax.legend()
-    if save is not None:
-        fig.savefig(save)
-    print("Done")
+    fig.tight_layout()
+    return fig
+
+# def compute_pca(data, length, labels=None, save=None, n_components=2, figsize=(5,5), lim=None, lim2=None):
+#     print("Computing PCA ...")
+#     colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+#               "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
+#     # Compute PCA
+#     arr = np.array(data)
+#     print(arr.shape)
+#     pca = PCA(n_components=n_components)
+#     pca.fit(arr.T)
+#
+#     # Prepare plotting data
+#     idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
+#     if labels is None:
+#         labels = ["#"+str(i) for i in range(len(length))]
+#
+#     # Plotter
+#     # fig = plt.figure(figsize=figsize)
+#     # if n_components == 3:
+#     #     ax = fig.add_subplot(111, projection='3d')
+#     #     ax.set_zlabel("PCA component 3")
+#     # else:
+#     #     ax = fig.add_subplot(111)
+#
+#     fig = plt.figure(figsize=figsize)
+#     ax = plt.subplot2grid((3, 4), (0, 1), colspan=3, rowspan=3, fig=fig)
+#     ax2 = plt.subplot2grid((3, 4), (0, 0), colspan=1, rowspan=3, fig=fig)
+#     ax.set_xlabel("PCA component 2")
+#     ax.set_yticklabels([])
+#     ax2.set_ylabel("PCA component 1")
+#
+#     for i in range(len(length)):
+#         if n_components==3:
+#             ax.scatter(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]],
+#                        pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i], color = colors[i])
+#         else:
+#             ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
+#                     label=labels[i], markeredgecolor='black', color = colors[i])
+#             x = pca.components_[0, idx[i]:idx[i+1]]
+#             y = pca.components_[1, idx[i]:idx[i+1]]
+#             if len(x)>1:
+#                 sns.kdeplot(x, y=y, ax=ax, color=colors[i], alpha=0.5)
+#
+#     ax.legend()
+#     if save is not None:
+#         fig.savefig(save)
+#     print("Done")
+#
+#     for i in range(len(length)):
+#         x = pca.components_[1, idx[i]:idx[i + 1]]
+#         if len (x) == 1:
+#             ax2.axhline(x, color=colors[i])
+#         else:
+#            sns.kdeplot(y=x, color=colors[i], alpha=0.5,fill=True,ax=ax2)
+#     ax2.invert_xaxis()
+#     ax2.set_xlabel("")
+#     ax2.set_xticklabels([])
+#     ax2.set_xticks([])
+#     if lim is not None:
+#         ax.set_xlim(lim[0], lim[1])
+#     if lim2 is not None:
+#         ax.set_ylim(lim2[0], lim2[1])
+#         ax2.set_ylim(lim2[0], lim2[1])
+#     ax2.set_xlim(13.0, 0.0)
+#     fig.tight_layout()
+#     return fig
 
 
 def get_RMSD_coords(coords1,coords2):
@@ -185,6 +248,44 @@ def get_mol_conv(mol1,mol2, ca_only=False):
         idx_tmp = np.where(id1[i] == id2)[0]
         if len(idx_tmp) == 1:
             idx.append([id1_idx[i], id2_idx[idx_tmp[0]]])
+
+    if len(idx)==0:
+        print("\t Warning : No matching coordinates")
+    print("\t Done")
+
+    return np.array(idx)
+
+def get_mols_conv(mols):
+    print("> Converting molecule coordinates ...")
+    n_mols = len(mols)
+
+    if mols[0].chainName[0] in mols[1].chainName:
+        chaintype = 0
+    elif mols[0].chainID[0] in mols[1].chainID:
+        chaintype = 1
+    else:
+        raise RuntimeError("\t Warning : No matching chains")
+
+    ids = []
+    ids_idx = []
+    for m in mols :
+        id_tmp=[]
+        id_idx_tmp=[]
+        for i in range(m.n_atoms):
+                id_tmp.append(m.chainName[i] + str(m.resNum[i]) + m.atomName[i])
+                id_idx_tmp.append(i)
+        ids.append(np.array(id_tmp))
+        ids_idx.append(np.array(id_idx_tmp))
+
+    idx = []
+    for i in range(len(ids[0])):
+        idx_line = [ids_idx[0][i]]
+        for m in range(1,n_mols):
+            idx_tmp = np.where(ids[0][i] == ids[m])[0]
+            if len(idx_tmp) == 1:
+                idx_line.append(ids_idx[m][idx_tmp[0]])
+        if len(idx_line) == n_mols :
+            idx.append(idx_line)
 
     if len(idx)==0:
         print("\t Warning : No matching coordinates")

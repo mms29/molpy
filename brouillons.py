@@ -1754,7 +1754,7 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
                  fvar=10.0, capthick=10.0, capsize=10.0, elinewidth=1.0, figsize=(10,5), dt=0.002,
                  colors=["tab:blue", "tab:red", "tab:green", "tab:orange",
                          "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"],
-                 fmts = ["o", "d", "v", "^", "p", "*", "s","x"], img = None):
+                 fmts = ["o", "d", "v", "^", "p", "*", "s","x"], img = None, xlim= (0,100)):
     if labels is None:
         labels = ["#"+str(i) for i in range(len(protocol_list))]
     if img is None:
@@ -1768,20 +1768,22 @@ def show_cc_rmsd(protocol_list, length, labels=None, period=100, step=10, init_c
             cc.append([init_cc] + list(np.load(protocol_list[i]+ "/extra/run"+str(j)+"_cc.npy")))
             rmsd.append([init_rmsd] + list(np.load(protocol_list[i] +"/extra/run"+str(j)+"_rmsd.npy")))
             t = np.arange(len(cc[-1])) * period * dt
-        ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step],  yerr=np.var(cc, axis=0)[::step]*fvar,
+        step = len(cc[-1]) // 10
+        ax[0].errorbar(x=t[::step], y=np.mean(cc, axis=0)[::step]-1,  yerr=np.std(cc, axis=0)[::step]*fvar,
                        label=labels[i], color=colors[i], fmt=fmts[i],
                        capthick=capthick, capsize=capsize,elinewidth=elinewidth)
-        ax[1].errorbar(x=t[::step], y=np.mean(rmsd, axis=0)[::step],yerr=np.var(rmsd, axis=0)[::step]*fvar,
+        ax[1].errorbar(x=t[::step], y=np.mean(rmsd, axis=0)[::step]-1,yerr=np.std(rmsd, axis=0)[::step]*fvar,
                         color=colors[i], fmt=fmts[i],
                        capthick=capthick, capsize=capsize,elinewidth=elinewidth)
-        ax[0].plot(t, np.mean(cc, axis=0), "-",color=colors[i])
-        ax[1].plot(t, np.mean(rmsd, axis=0), "-",color=colors[i])
+        ax[0].plot(t, np.mean(cc, axis=0)-1, "-",color=colors[i])
+        ax[1].plot(t, np.mean(rmsd, axis=0)-1, "-",color=colors[i])
         ax[0].set_xlabel("Simulation Time (ps)")
         ax[0].set_ylabel("CC")
         ax[0].set_title("Correlation Coefficient")
         ax[1].set_xlabel("Simulation Time (ps)")
         ax[1].set_ylabel("RMSD (A)")
         ax[1].set_title("Root Mean Square Deviation")
+        ax[1].set_xlim(xlim[0], xlim[1])
         if img is not None:
             ax[2].imshow(mpimg.imread(img))
             ax[2].axis('off')
@@ -1963,10 +1965,10 @@ ak_filter = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007816_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007993_FlexProtGenesisFit",
               ],
-             length=[5,5,5,5,5,5,5,5], labels=["5A", "7A", "9A", "11A","5A", "7A", "9A", "11A"], step=5, period=100, init_cc=0.75,
+             length=[5,5,5,5,5,5,5,5], labels=["5A", "7A", "9A", "11A","5A", "7A", "9A", "11A"], step=5, period=200, init_cc=0.75,
              init_rmsd=8.12, fvar=1, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002,
-                colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))))
-
+                colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))), xlim=(-1,25))
+ak_filter.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/ak_filter.png", dpi=1000)
 ak_noise = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008934_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009138_FlexProtGenesisFit",
@@ -1978,10 +1980,35 @@ ak_noise = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008538_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008762_FlexProtGenesisFit",
               ],
-             length=[5,5,5,5,5,4,5,5], labels=["SNR=1","SNR=0.5","SNR=0.1","SNR=0.05","SNR=1","SNR=0.5","SNR=0.1","SNR=0.05"],
-             step=5, period=100, init_cc=0.75,
+             length=[5,5,5,5,5,4,5,5], labels=["1","0.5","0.1","0.05","1","0.5","0.1","0.05"],
+             step=10, period=100, init_cc=0.75,
              init_rmsd=8.12, fvar=0.01, capthick=1.7, capsize=5,elinewidth=1.7, figsize=(10,3), dt=0.002,
-             colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))))
+             colors = list(pl.cm.Reds(np.linspace(0.5,1,4))) + list(pl.cm.Blues(np.linspace(0.5,1,4))), xlim=(-1,25))
+ak_noise.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/ak_noise.png", dpi=1000)
+
+fig, ax = plt.subplots(1,1)
+protlist = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008934_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009138_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008478_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008702_FlexProtGenesisFit",
+
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008994_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009198_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008538_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008762_FlexProtGenesisFit",
+              ]
+rmsd=[]
+rmsd_all=[]
+for i in range(len(protlist)):
+    print("//")
+    rmsd = []
+    for j in range(4):
+        r = np.load(protlist[i] + "/extra/run%i_rmsd.npy" % (j))
+        print(r[-1])
+        rmsd.append(r[-1])
+    rmsd_all.append(rmsd)
+ax.plot(np.mean(rmsd_all[:4]))
+ax.plot(rmsd_all[4:])
 
 ak_noise2 = show_cc_rmsd([
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008478_FlexProtGenesisFit",
@@ -2250,7 +2277,6 @@ def run_molprobity(outputPrefix):
               float(molprob["ramaFavored"]) / float(molprob["numRama"]),
               float(molprob["rotaFavored"]) / float(molprob["numRota"])
               ]))
-<<<<<<< HEAD
 
 
 for i in range(0,16):
@@ -2261,16 +2287,6 @@ for i in range(0,16):
                           N=140)
     read_cc_in_log_file(outputPrefix)
     # run_molprobity(outputPrefix)
-=======
-for i in range(12,13):
-    outputPrefix = "/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i"%(i+1)
-    # compute_rmsd_from_dcd(outputPrefix,
-    #                       targetFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb",
-    #                       initFname="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb",
-    #                       N=140)
-    # read_cc_in_log_file(outputPrefix)
-    run_molprobity(outputPrefix)
->>>>>>> a622b273ee23ce52c7e0a3838f68aceb1d22bcde
 
 
 for i in range(0, 16):
@@ -2295,45 +2311,68 @@ for i in range(0, 16):
     # run_molprobity(outputPrefix)
     # run_molprobity(outputPrefix)
 
-
+# LAO
 nfit=  [    "008506",    "008580"]
 clock_time= [600.4,696.3]
 period = 500
 
+#AK
 nfit=  [    "000754",    "003692"]
 clock_time= [556.1,646.1]
 period = 100
 
+#LACTO
 nfit=  [    "008748",    "008822"]
 clock_time= [7721.176,8224.050]
 period = 500
 
-<<<<<<< HEAD
+#EF2
 nfit=  [    "008900",    "008974"]
 clock_time= [23881,24174]
 period = 1000
 
-
-=======
 # CORA
 nfit=  [    "009425",    "009499"]
 clock_time= [27950,30141]
 period = 1000
 
+# ABC
+nfit=  [    "010519",    "010755"]
+clock_time= [26968,28395]
+period = 1000
 
-percent=0.01
->>>>>>> a622b273ee23ce52c7e0a3838f68aceb1d22bcde
-for n in range(2) :
+# P97
+nfit=  [    "local2",    "global2"]
+clock_time= [60340,62020]
+period = 100
+
+protlist = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008934_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009138_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008478_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008702_FlexProtGenesisFit",
+
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008994_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/009198_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008538_FlexProtGenesisFit",
+              "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008762_FlexProtGenesisFit",
+              ]
+
+percent=0.02
+for n in range(len(protlist)) :
     cc = []
     rmsd = []
-    for i in range(16):
-        cc.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_cc.npy" %(nfit[n],i+1)))
-        rmsd.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_rmsd.npy"%(nfit[n],i+1)))
-    idx = np.where(rmsd == np.min(rmsd))[0][0]
-    cc = np.array(cc)[idx]
-    rmsd = np.array(rmsd)[idx]
-    # cc = np.mean(cc, axis=0)
-    # rmsd = np.mean(rmsd, axis=0)
+    # for i in range(16):
+    #     cc.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_cc.npy" %(nfit[n],i+1)))
+    #     rmsd.append(np.load("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/%s_FlexProtGenesisFit/extra/run_r%i_rmsd.npy"%(nfit[n],i+1)))
+    # idx = np.where(rmsd == np.min(rmsd))[0][0]
+    # cc = np.array(cc)[idx]
+    # rmsd = np.array(rmsd)[idx]
+
+    for i in range(4):
+        cc.append(np.load(protlist[n] + "/extra/run%i_cc.npy" % (i)))
+        rmsd.append(np.load(protlist[n] + "/extra/run%i_rmsd.npy" % (i)))
+    cc = np.mean(cc, axis=0)
+    rmsd = np.mean(rmsd, axis=0)
 
     cc_max= cc.max()
     rmsd_min= rmsd.min()
@@ -2341,10 +2380,11 @@ for n in range(2) :
     rmsd5p = rmsd.min() + percent*(rmsd.max() - rmsd.min())
     cctime = np.min(np.where(cc>=cc5p)[0])*period*0.002
     rmsdtime = np.min(np.where(rmsd<=rmsd5p)[0])*period*0.002
-    rmsdclocktime =(rmsdtime /((len(rmsd)-1)*period*0.002)) * clock_time[n]
+    rmsdclocktime =0#(rmsdtime /((len(rmsd)-1)*period*0.002)) * clock_time[n]
     print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(cc_max, cctime, rmsd_min, rmsdtime,rmsdclocktime) )
 
 from src.molecule import Molecule
+from src.functions import get_mol_conv,compute_pca
 target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008330_ProtImportPdb/extra/1n0u_target.pdb")
 init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006348_FlexProtGeneratePSF/extra/output.pdb")
 idx = get_mol_conv(init, target)
@@ -2353,57 +2393,241 @@ data = []
 for i in range(16):
     mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008900_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
-for i in range(16):
+for i in range(13):
     mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008974_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
 
 data.append(init.coords[idx[:,0]].flatten())
 data.append(target.coords[idx[:,1]].flatten())
 
-compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD", "init", "target"], save=None, n_components=2)
+ef2 = compute_pca(data, length=[16,13,1,1], labels=["MD", "NMMD", "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[0.157,0.208], lim2=[-0.9,0.3])
+ef2.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/EF2_pca.png", dpi=1000)
+
+target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010487_FlexProtGeneratePSF/extra/output.pdb")
+init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010295_FlexProtGeneratePSF/extra/output.pdb")
+idx = get_mol_conv(init, target)
+data = []
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010519_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010755_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+
+data.append(init.coords[idx[:,0]].flatten())
+data.append(target.coords[idx[:,1]].flatten())
+abc = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[-0.1726,-0.1696], lim2=[-0.95,0.27])
+abc.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/ABC_pca.png", dpi=1000)
+
+target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb")
+init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000039_FlexProtGeneratePSF/extra/output.pdb")
+idx = get_mol_conv(init, target)
+data = []
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/local2/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+
+data.append(init.coords[idx[:,0]].flatten())
+data.append(target.coords[idx[:,1]].flatten())
+p97 = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[-0.1772,-0.163], lim2=[-0.61,0.4])
+p97.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/p97_pca.png", dpi=1000)
+
+target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008293_ProtImportPdb/extra/1lfh_target.pdb")
+init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004537_FlexProtGeneratePSF/extra/output.pdb")
+idx = get_mol_conv(init, target)
+data = []
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008748_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008822_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    data.append(mol.coords[idx[:,0]].flatten())
+
+data.append(init.coords[idx[:,0]].flatten())
+data.append(target.coords[idx[:,1]].flatten())
+lacto = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3),lim2=[-0.42,0.79])
+lacto.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/lacto_pca.png", dpi=1000)
+
 
 from src.molecule import Molecule
 from src.density import Volume
 from joblib import load
 
-method = 1
-init = Molecule("/home/guest/Downloads/Optical_flow_test_with_Remi/AK.pdb")
-optFlow = load("/home/guest/Downloads/Optical_flow_test_with_Remi/optical_flow.pkl")
+init = Molecule("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000530_FlexProtGeneratePSF/extra/output.pdb")
+fnModes = np.array(["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000567_FlexProtNMA/modes/vec."+str(i+7) for i in range(13)])
+init.set_normalModeVec(fnModes)
+optFlow = load("/home/guest/Downloads/Optical_flow_test_with_Remi/optical_flow2.pkl")
 optFlow = np.transpose(optFlow, (0,3, 2, 1))
+optFlowAtom = np.zeros((init.n_atoms,3))
 
 target = init.copy()
-voxel_size= 1.0
-origin = -np.ones(3) * 128//2
-# origin = np.zeros(3)
-
-optNorm = np.linalg.norm(optFlow, axis=0)
-optShape = np.zeros(optNorm.shape)
-optShape[np.where(optNorm>0.1)]=1
-target_vol = Volume(data=optShape, voxel_size=1.0, sigma=0.0, cutoff=0.0)
-target_vol.save_mrc(file="results/test_optFlow.mrc", origin=-128//2)
+voxel_size= 1.5
+origin = -np.ones(3) * 100//2
 
 for i in range(init.n_atoms):
     coord = init.coords[i]/voxel_size - origin
+    floor = np.ndarray.astype(np.floor(coord), dtype=int)
+    comb = np.array([[0,0,0],[0,0,1],[0,1,0],[0,1,1],
+                     [1,0,0],[1,0,1],[1,1,0],[1,1,1]])
+    optFlows = []
+    for j in floor+comb:
+        if any(j < 0) or any(j >= optFlow.shape[1:]):
+            print("error :%s" % j)
+        optFlows.append(optFlow[:, j[0],j[1],j[2]])
+    optFlowAtom[i] = np.mean(optFlows, axis=0)
+    print("Optical flow for atom %i : %s"%(i,str(optFlowAtom[i])))
+    target.coords[i] = init.coords[i] + -optFlowAtom[i]
+target.save_pdb("test_optFlow.pdb")
 
-    # Nearest
-    if method == 0:
-        intcoord1 = np.ndarray.astype(np.rint(coord), dtype=int)
-        if any(intcoord1 <0) or any(intcoord1 >= optFlow.shape[1:]) :
-            print("error :%s" % intcoord1)
-        of = optFlow[:, intcoord1[0],intcoord1[1],intcoord1[2]]
+# for i in range(init.normalModeVec.shape[1]):
+#     m = np.dot(optFlowAtom.flatten(), init.normalModeVec[:,i,:].flatten())
+#     print("Modes #%i = %f"%(i+7, m))
 
-    # Mean
-    if method == 1:
-        floor = np.ndarray.astype(np.floor(coord), dtype=int)
-        comb = np.array([[0,0,0],[0,0,1],[0,1,0],[0,1,1],
-                         [1,0,0],[1,0,1],[1,1,0],[1,1,1]])
-        intcoord2 = floor+comb
-        optFlows = []
-        for j in intcoord2:
-            if any(j < 0) or any(j >= optFlow.shape[1:]):
-                print("error :%s" % j)
-            optFlows.append(optFlow[:, j[0],j[1],j[2]])
-        of = np.mean(optFlows, axis=0)
-    print("Optical flow for atom %i : %s"%(i,str(of)))
-    target.coords[i] = init.coords[i] + -of
-target.save_pdb("results/test_optFlow.pdb")
+
+from src.molecule import Molecule
+pdb = Molecule("data/Ribosome/3j77_cat2.pdb")
+
+
+
+
+
+
+
+##################################################################################
+#  ABC HETERO SPACE
+#################################################################################
+from src.molecule import Molecule
+from src.functions import compute_pca,get_mols_conv
+from src.io import create_psf
+import os
+from src.density import Volume
+
+n_mols= 9
+labels = ["6raf","6rag","6rah","6rai","6raj","6rak","6ral","6ram","6ran"]
+emlabels = ["4773","4774","4775","4776","4777","4778","4779","4780","4781"]
+
+mols = []
+mols.append(Molecule("data/ABC/6raf.pdb"))
+mols.append(Molecule("data/ABC/6rag.pdb"))
+mols.append(Molecule("data/ABC/6rah.pdb"))
+mols.append(Molecule("data/ABC/6rai.pdb"))
+mols.append(Molecule("data/ABC/6raj.pdb"))
+mols.append(Molecule("data/ABC/6rak.pdb"))
+mols.append(Molecule("data/ABC/6ral.pdb"))
+mols.append(Molecule("data/ABC/6ram.pdb"))
+mols.append(Molecule("data/ABC/6ran.pdb"))
+
+mol_ref = mols[0].copy()
+mol_ref.center()
+vol_ref = Volume.from_coords(mol_ref.coords, size=256, sigma=2.0, voxel_size=1.077, cutoff=10.0)
+
+for i in range(n_mols):
+
+    os.system("cp data/ABC/emd_%s.map data/ABC/emd_%s.mrc"% (emlabels[i],emlabels[i]))
+    cmd = "xmipp_transform_filter -i data/ABC/emd_%s.mrc -o data/ABC/emd_%s_filter.mrc --fourier low_pass 0.215400 0.010770"% (emlabels[i],emlabels[i])
+    print(cmd)
+
+    vol = Volume.from_file("data/ABC/emd_%s.mrc"%emlabels[i])
+    print("EM map %s of size %ix%ix%i and voxel size %f "% (emlabels[i], vol.data.shape[0], vol.data.shape[1], vol.data.shape[2], vol.voxel_size))
+    vol.rescale(density = vol_ref, method="normal")
+    vol.save_mrc("data/ABC/emd_%s.mrc"%emlabels[i], origin=0)
+    with open("data/ABC/tmp.sh", "w") as f:
+        f.write("#!/bin/bash \n")
+        f.write("/opt/Situs_3.1/bin/map2map data/ABC/emd_%s.mrc data/ABC/emd_%s.sit <<< \'1\' \n"% (emlabels[i],emlabels[i]))
+        f.write("exit")
+    os.system("/bin/bash data/ABC/tmp.sh")
+    os.system("rm -f data/ABC/tmp.sh")
+    # os.system(cmd)
+
+idx=  get_mols_conv(mols)
+data_pca=[]
+for i in range(n_mols):
+    data_pca.append(mols[i].coords[idx[:,i]].flatten())
+
+compute_pca(data=data_pca, length=[1,1,1,1,1,1,1,1,1], labels=labels, n_components=3, figsize=(5,5))
+
+for i in range(n_mols):
+    with open("data/ABC/INP_min_%s"%labels[i], "w") as f:
+        f.write("[INPUT]\n")
+        f.write("topfile = /home/guest/toppar/top_all36_prot.rtf\n")
+        f.write("parfile = /home/guest/toppar/par_all36_prot.prm\n")
+        f.write("pdbfile = data/ABC/%s_PSF.pdb\n" %labels[i])
+        f.write("psffile = data/ABC/%s.psf\n" %labels[i])
+        f.write("[OUTPUT]\n")
+        f.write("dcdfile = data/ABC/%s_min.dcd\n" %labels[i])
+        f.write("rstfile = data/ABC/%s_min.rst\n" %labels[i])
+        f.write("[ENERGY]\n")
+        f.write("forcefield = CHARMM  # CHARMM force field\n")
+        f.write("electrostatic = CUTOFF  # use cutoff scheme for non-bonded terms\n")
+        f.write("switchdist = 23.0  # switch distance\n")
+        f.write("cutoffdist = 25.0  # cutoff distance\n")
+        f.write("pairlistdist = 27.0  # pair-list distance\n")
+        f.write("implicit_solvent = NONE  # use GBSA implicit solvent model\n")
+        f.write("vdw_force_switch = YES\n")
+        f.write("[MINIMIZE]\n")
+        f.write("method = SD  # Steepest descent\n")
+        f.write("nsteps = 100\n")
+        f.write("eneout_period = 10  # energy output period\n")
+        f.write("crdout_period = 100\n")
+        f.write("rstout_period = 100\n")
+        f.write("nbupdate_period = 10  # nonbond update period\n")
+        f.write("[BOUNDARY]\n")
+        f.write("type = NOBC  # No periodic boundary condition")
+for i in range(n_mols):
+    os.system("~/genesis_nma/bin/atdyn data/ABC/INP_min_%s"%labels[i])
+
+
+for i in range(n_mols):
+    for j in range(n_mols):
+        print("<NMMD_ID> %i_%s_%s"%(i*n_mols + j, labels[i], emlabels[j]))
+        with open("data/ABC/INP_fit_%i_%s_%s"%(i*n_mols + j, labels[i], emlabels[j]), "w") as f:
+            f.write("[INPUT]\n")
+            f.write("topfile = /home/guest/toppar/top_all36_prot.rtf\n")
+            f.write("parfile = /home/guest/toppar/par_all36_prot.prm\n")
+            f.write("pdbfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s_PSF.pdb\n" %labels[i])
+            f.write("psffile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s.psf\n" %labels[i])
+            f.write("rstfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s_min.rst\n" %labels[i])
+            f.write("[OUTPUT]\n")
+            f.write("dcdfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.dcd\n"%(i*n_mols + j, labels[i], emlabels[j]))
+            f.write("rstfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.rst\n"%(i*n_mols + j, labels[i], emlabels[j]))
+            f.write("pdbfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.pdb\n"%(i*n_mols + j, labels[i], emlabels[j]))
+            f.write("[ENERGY]\n")
+            f.write("forcefield = CHARMM  # CHARMM force field\n")
+            f.write("electrostatic = CUTOFF  # use cutoff scheme for non-bonded terms\n")
+            f.write("switchdist   = 10.0\n")
+            f.write("cutoffdist   = 12.0\n")
+            f.write("pairlistdist = 15.0\n")
+            f.write("vdw_force_switch = YES\n")
+            f.write("implicit_solvent = NONE\n")
+            f.write("[DYNAMICS]\n")
+            f.write("integrator = VVER\n")
+            f.write("nsteps = 50000 # = 1 ns\n")
+            f.write("timestep = 0.002  # ps = 2 femtosecond\n")
+            f.write("eneout_period = 1000\n")
+            f.write("crdout_period = 1000\n")
+            f.write("rstout_period = 1000\n")
+            f.write("nbupdate_period = 10\n")
+            f.write("[CONSTRAINTS]\n")
+            f.write("rigid_bond = NO  # use SHAKE\n")
+            f.write("[ENSEMBLE]\n")
+            f.write("ensemble = NVT  # constant temperature\n")
+            f.write("tpcontrol = LANGEVIN\n")
+            f.write("temperature = 300.0 #K\n")
+            f.write("[BOUNDARY]\n")
+            f.write("type = NOBC  # No periodic boundary condition\n")
+            f.write("[SELECTION]\n")
+            f.write("group1 = all and not hydrogen\n")
+            f.write("[RESTRAINTS]\n")
+            f.write("nfunctions = 1\n")
+            f.write("function1 = EM  # apply restraints from EM density map\n")
+            f.write("constant1 = 50000\n")
+            f.write("select_index1 = 1  # apply restraint force on protein heavy atoms\n")
+            f.write("[EXPERIMENTS]\n")
+            f.write("emfit = YES  # perform EM flexible fitting\n")
+            f.write("emfit_target = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/emd_%s.sit\n" %emlabels[j])
+            f.write("emfit_sigma = 2.0\n")
+            f.write("emfit_tolerance = 0.01\n")
+            f.write("emfit_period = 1  # emfit force update period\n")
