@@ -12,18 +12,16 @@ from src.constants import *
 ########################################################################################################
 #               IMPORT FILES
 ########################################################################################################
-mass = np.zeros(4)
-for j in range(init.n_atoms):
-    for i in range(4):
-        mass[i] += np.sum(init.normalModeVec[j,i,:]* (1/init.forcefield.mass[j]))
+
 
 # import PDB
+n_modes=10
 init =Molecule("data/AK/AK_PSF.pdb")
 init.center()
-fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(4)])
+fnModes = np.array(["data/AK/modes_psf/vec."+str(i+7) for i in range(n_modes)])
 init.set_normalModeVec(fnModes)
 
-q = np.zeros(4)
+q = np.zeros(n_modes)
 for i in range(init.n_atoms):
     q += np.dot(init.normalModeVec[i], init.coords[i])
 
@@ -31,6 +29,20 @@ init.set_forcefield(psf_file="data/AK/AK.psf", prm_file= "data/toppar/par_all36_
 init.get_energy(verbose=True)
 # init.allatoms2carbonalpha()
 # init.set_forcefield()
+
+mass1 = np.zeros(n_modes)
+for i in range(n_modes):
+    for j in range(init.n_atoms):
+        mass1[i] += np.sum(init.normalModeVec[j,i,:])* (1/init.forcefield.mass[j])
+
+mass2 = np.zeros(n_modes)
+for i in range(n_modes):
+    for j in range(init.n_atoms):
+        mass2[i] += np.sum(init.normalModeVec[j,i,:])* (init.forcefield.mass[j])
+# mass2 = 1/mass2
+
+print(mass1)
+print(mass2)
 
 target = Molecule("data/1AKE/1ake_good_PSF.pdb")
 target.center()
