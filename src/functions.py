@@ -72,13 +72,14 @@ def get_euler_grad(angles, coord):
                     0]])
 
     return dR
-def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5)):
+def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors=None, alphas=None,
+                marker=None, traj=None, legend=True):
     print("Computing PCA ...")
-    colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
-              "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
+    if colors is None:
+        colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+                  "tab:brown", "tab:olive", "tab:pink", "tab:gray", "tab:cyan", "tab:purple"]
     # Compute PCA
     arr = np.array(data)
-    print(arr.shape)
     pca = PCA(n_components=n_components)
     pca.fit(arr.T)
 
@@ -94,16 +95,35 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5)):
     else:
         ax = fig.add_subplot(111)
 
+    if alphas is None:
+        alphas = [1 for i in range(len(length))]
+    if marker is None:
+        marker = ["o" for i in range(len(length))]
+    if traj is None:
+        traj = [1 for i in range(len(length))]
+
+    arr_test = np.arange(arr.shape[0])
+
     for i in range(len(length)):
+        len_traj = length[i]//traj[i]
         if n_components==3:
-            ax.scatter(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]],
-                       pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i], color = colors[i])
+            for j in range(traj[i]):
+                ax.plot(pca.components_[0, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
+                          pca.components_[1, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
+                          pca.components_[2, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
+                          marker[i], markeredgecolor='black',label=labels[i], color = colors[i],
+                          alpha=alphas[i])
         else:
-            ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
-                    label=labels[i], markeredgecolor='black', color = colors[i])
-    ax.legend()
+            for j in range(traj[i]):
+                ax.plot(pca.components_[0, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
+                        pca.components_[1, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
+                        marker[i], label=labels[i], markeredgecolor='black',
+                        color = colors[i], alpha=alphas[i])
+    if legend :
+        ax.legend()
     fig.tight_layout()
-    return fig
+    return fig, ax
+
 
 # def compute_pca(data, length, labels=None, save=None, n_components=2, figsize=(5,5), lim=None, lim2=None):
 #     print("Computing PCA ...")

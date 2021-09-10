@@ -40,7 +40,7 @@ def read_pdb(file, hetatm=False):
     temp = []
     chainID = []
     elemName=[]
-    print("> Reading pdb file ...")
+    print("> Reading pdb file %s ..."%file)
     with open(file, "r") as f :
         for line in f:
             spl = line.split()

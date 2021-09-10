@@ -2504,8 +2504,11 @@ from src.functions import compute_pca,get_mols_conv
 from src.io import create_psf
 import os
 from src.density import Volume
+import mrcfile
+import numpy as np
 
 n_mols= 9
+voxel_size= 1.077
 labels = ["6raf","6rag","6rah","6rai","6raj","6rak","6ral","6ram","6ran"]
 emlabels = ["4773","4774","4775","4776","4777","4778","4779","4780","4781"]
 
@@ -2526,39 +2529,54 @@ vol_ref = Volume.from_coords(mol_ref.coords, size=256, sigma=2.0, voxel_size=1.0
 
 for i in range(n_mols):
 
+    print("\n> Copying data/ABC/emd_%s.map to data/ABC/emd_%s.mrc"% (emlabels[i],emlabels[i]))
     os.system("cp data/ABC/emd_%s.map data/ABC/emd_%s.mrc"% (emlabels[i],emlabels[i]))
-    cmd = "xmipp_transform_filter -i data/ABC/emd_%s.mrc -o data/ABC/emd_%s_filter.mrc --fourier low_pass 0.215400 0.010770"% (emlabels[i],emlabels[i])
-    print(cmd)
 
-    vol = Volume.from_file("data/ABC/emd_%s.mrc"%emlabels[i])
-    print("EM map %s of size %ix%ix%i and voxel size %f "% (emlabels[i], vol.data.shape[0], vol.data.shape[1], vol.data.shape[2], vol.voxel_size))
-    vol.rescale(density = vol_ref, method="normal")
-    vol.save_mrc("data/ABC/emd_%s.mrc"%emlabels[i], origin=0)
+
+    print("\n> Filtering data/ABC/emd_%s.mrc to data/ABC/emd_%s_filter.mrc" % (emlabels[i], emlabels[i]))
+    cmd = "xmipp_transform_filter -i data/ABC/emd_%s.mrc:mrc -o data/ABC/emd_%s_filter.mrc --fourier low_pass 0.215400 0.010770"% (emlabels[i],emlabels[i])
+    os.system(cmd)
+
+    print("\n> Filtering data/ABC/emd_%s.mrc to data/ABC/emd_%s_filter.mrc" % (emlabels[i], emlabels[i]))
+    with mrcfile.open("data/ABC/emd_%s_filter.mrc" %(emlabels[i])) as mrc:
+        mrc_data = mrc.data
+
+    print("\n> Set origin data/ABC/emd_%s_filter2.mrc"% (emlabels[i]))
+    fnMRC = "data/ABC/emd_%s_filter2.mrc" % (emlabels[i])
+    with mrcfile.new(fnMRC, overwrite=True) as mrc:
+        mrc.set_data(mrc_data)
+        mrc.voxel_size = voxel_size
+        origin = -voxel_size * (np.array(mrc_data.shape)) / 2
+        mrc.header['origin']['x'] = origin[0]
+        mrc.header['origin']['y'] = origin[1]
+        mrc.header['origin']['z'] = origin[2]
+        mrc.update_header_from_data()
+        mrc.update_header_stats()
+
+    print("\n> Histogram matching data/ABC/emd_%s_match.mrc" % (emlabels[i]))
+    fnvol = "data/ABC/emd_%s_match.mrc"%emlabels[i]
+    vol = Volume.from_file("data/ABC/emd_%s_filter2.mrc"%emlabels[i])
+    vol.voxel_size=voxel_size
+    print("\t -> EM map %s of size %ix%ix%i and voxel size %f "% (emlabels[i], vol.data.shape[0], vol.data.shape[1], vol.data.shape[2], vol.voxel_size))
+    vol.rescale(density = vol_ref, method="match")
+    vol.save_mrc(fnvol, origin=0.0)
     with open("data/ABC/tmp.sh", "w") as f:
         f.write("#!/bin/bash \n")
-        f.write("/opt/Situs_3.1/bin/map2map data/ABC/emd_%s.mrc data/ABC/emd_%s.sit <<< \'1\' \n"% (emlabels[i],emlabels[i]))
+        f.write("~/Situs/bin/map2map data/ABC/emd_%s_match.mrc data/ABC/emd_%s.sit <<< \'1\' \n"% (emlabels[i],emlabels[i]))
         f.write("exit")
     os.system("/bin/bash data/ABC/tmp.sh")
     os.system("rm -f data/ABC/tmp.sh")
-    # os.system(cmd)
-
-idx=  get_mols_conv(mols)
-data_pca=[]
-for i in range(n_mols):
-    data_pca.append(mols[i].coords[idx[:,i]].flatten())
-
-compute_pca(data=data_pca, length=[1,1,1,1,1,1,1,1,1], labels=labels, n_components=3, figsize=(5,5))
 
 for i in range(n_mols):
     with open("data/ABC/INP_min_%s"%labels[i], "w") as f:
         f.write("[INPUT]\n")
-        f.write("topfile = /home/guest/toppar/top_all36_prot.rtf\n")
-        f.write("parfile = /home/guest/toppar/par_all36_prot.prm\n")
-        f.write("pdbfile = data/ABC/%s_PSF.pdb\n" %labels[i])
-        f.write("psffile = data/ABC/%s.psf\n" %labels[i])
+        f.write("topfile = top_all36_prot.rtf\n")
+        f.write("parfile = par_all36_prot.prm\n")
+        f.write("pdbfile = %s_PSF.pdb\n" %labels[i])
+        f.write("psffile = %s.psf\n" %labels[i])
         f.write("[OUTPUT]\n")
-        f.write("dcdfile = data/ABC/%s_min.dcd\n" %labels[i])
-        f.write("rstfile = data/ABC/%s_min.rst\n" %labels[i])
+        f.write("dcdfile = %s_min.dcd\n" %labels[i])
+        f.write("rstfile = %s_min.rst\n" %labels[i])
         f.write("[ENERGY]\n")
         f.write("forcefield = CHARMM  # CHARMM force field\n")
         f.write("electrostatic = CUTOFF  # use cutoff scheme for non-bonded terms\n")
@@ -2583,32 +2601,32 @@ for i in range(n_mols):
 for i in range(n_mols):
     for j in range(n_mols):
         print("<NMMD_ID> %i_%s_%s"%(i*n_mols + j, labels[i], emlabels[j]))
-        with open("data/ABC/INP_fit_%i_%s_%s"%(i*n_mols + j, labels[i], emlabels[j]), "w") as f:
+        with open("data/ABC/INP_fit_%s_%s"%(labels[i], emlabels[j]), "w") as f:
             f.write("[INPUT]\n")
-            f.write("topfile = /home/guest/toppar/top_all36_prot.rtf\n")
-            f.write("parfile = /home/guest/toppar/par_all36_prot.prm\n")
-            f.write("pdbfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s_PSF.pdb\n" %labels[i])
-            f.write("psffile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s.psf\n" %labels[i])
-            f.write("rstfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/%s_min.rst\n" %labels[i])
+            f.write("topfile = top_all36_prot.rtf\n")
+            f.write("parfile = par_all36_prot.prm\n")
+            f.write("pdbfile = %s_PSF.pdb\n" %labels[i])
+            f.write("psffile = %s.psf\n" %labels[i])
+            f.write("rstfile = %s_min.rst\n" %labels[i])
             f.write("[OUTPUT]\n")
-            f.write("dcdfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.dcd\n"%(i*n_mols + j, labels[i], emlabels[j]))
-            f.write("rstfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.rst\n"%(i*n_mols + j, labels[i], emlabels[j]))
-            f.write("pdbfile = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/run_%i_%s_%s.pdb\n"%(i*n_mols + j, labels[i], emlabels[j]))
+            f.write("dcdfile = run_%s_%s.dcd\n"%(labels[i], emlabels[j]))
+            f.write("rstfile = run_%s_%s.rst\n"%(labels[i], emlabels[j]))
+            f.write("pdbfile = run_%s_%s.pdb\n"%(labels[i], emlabels[j]))
             f.write("[ENERGY]\n")
             f.write("forcefield = CHARMM  # CHARMM force field\n")
             f.write("electrostatic = CUTOFF  # use cutoff scheme for non-bonded terms\n")
-            f.write("switchdist   = 10.0\n")
-            f.write("cutoffdist   = 12.0\n")
-            f.write("pairlistdist = 15.0\n")
+            f.write("switchdist   = 5.0\n")
+            f.write("cutoffdist   = 7.0\n")
+            f.write("pairlistdist = 10.0\n")
             f.write("vdw_force_switch = YES\n")
             f.write("implicit_solvent = NONE\n")
             f.write("[DYNAMICS]\n")
             f.write("integrator = VVER\n")
-            f.write("nsteps = 50000 # = 1 ns\n")
+            f.write("nsteps = 25000 # = 1 ns\n")
             f.write("timestep = 0.002  # ps = 2 femtosecond\n")
-            f.write("eneout_period = 1000\n")
-            f.write("crdout_period = 1000\n")
-            f.write("rstout_period = 1000\n")
+            f.write("eneout_period = 100\n")
+            f.write("crdout_period = 100\n")
+            f.write("rstout_period = 25000\n")
             f.write("nbupdate_period = 10\n")
             f.write("[CONSTRAINTS]\n")
             f.write("rigid_bond = NO  # use SHAKE\n")
@@ -2623,11 +2641,156 @@ for i in range(n_mols):
             f.write("[RESTRAINTS]\n")
             f.write("nfunctions = 1\n")
             f.write("function1 = EM  # apply restraints from EM density map\n")
-            f.write("constant1 = 50000\n")
+            f.write("constant1 = 40000\n")
             f.write("select_index1 = 1  # apply restraint force on protein heavy atoms\n")
             f.write("[EXPERIMENTS]\n")
             f.write("emfit = YES  # perform EM flexible fitting\n")
-            f.write("emfit_target = /home/guest/PycharmProjects/bayesian-md-nma/data/ABC/emd_%s.sit\n" %emlabels[j])
+            f.write("emfit_target = emd_%s.sit\n" %emlabels[j])
             f.write("emfit_sigma = 2.0\n")
             f.write("emfit_tolerance = 0.01\n")
             f.write("emfit_period = 1  # emfit force update period\n")
+
+##################################################################################
+#  ABC HETERO SPACE tmp
+#################################################################################
+from src.molecule import Molecule
+from src.functions import compute_pca,get_mols_conv
+from src.io import create_psf
+import os
+from src.density import Volume
+import mrcfile
+import numpy as np
+
+n_mols= 9
+voxel_size= 1.077
+labels = ["6raf","6rag","6rah","6rai","6raj","6rak","6ral","6ram","6ran"]
+emlabels = ["4773","4774","4775","4776","4777","4778","4779","4780","4781"]
+
+# DCD to PDB
+for i in range(n_mols):
+    for j in range(n_mols):
+        if not os.path.exists("data/ABC/tmp/run_%s_%stmp0.pdb"%(labels[i], emlabels[j])):
+            if os.path.exists("data/ABC/run_%s_%s.pdb"%(labels[i], emlabels[j])):
+                print("data/ABC/tmp/run_%s_%stmp$i.pdb"%(labels[i], emlabels[j]))
+                with open("dcd2pdb.tcl", "w") as f:
+                    s = ""
+                    s += "mol load pdb data/ABC/run_%s_%s.pdb dcd data/ABC/run_%s_%s.dcd\n"%(labels[i], emlabels[j],labels[i], emlabels[j])
+                    s += "set nf [molinfo top get numframes]\n"
+                    s += "for {set i 0 } {$i < 200} {incr i 1} {\n"
+                    s += "[atomselect top all frame $i] writepdb data/ABC/tmp/run_%s_%stmp$i.pdb\n"%(labels[i], emlabels[j])
+                    s += "}\n"
+                    s += "exit\n"
+                    f.write(s)
+                os.system("vmd -dispdev text -e dcd2pdb.tcl")
+
+##################################################################################
+#  ABC HETERO SPACE results
+#################################################################################
+from src.molecule import Molecule
+from src.functions import compute_pca,get_mols_conv
+from src.io import create_psf
+import os
+from src.density import Volume
+import mrcfile
+import numpy as np
+
+n_mols= 9
+voxel_size= 1.077
+labels = ["6raf","6rag","6rah","6rai","6raj","6rak","6ral","6ram","6ran"]
+emlabels = ["4773","4774","4775","4776","4777","4778","4779","4780","4781"]
+
+mols = []
+mols.append(Molecule("data/ABC/6raf_PSF.pdb"))
+mols.append(Molecule("data/ABC/6rag_PSF.pdb"))
+mols.append(Molecule("data/ABC/6rah_PSF.pdb"))
+mols.append(Molecule("data/ABC/6rai_PSF.pdb"))
+mols.append(Molecule("data/ABC/6raj_PSF.pdb"))
+mols.append(Molecule("data/ABC/6rak_PSF.pdb"))
+mols.append(Molecule("data/ABC/6ral_PSF.pdb"))
+mols.append(Molecule("data/ABC/6ram_PSF.pdb"))
+mols.append(Molecule("data/ABC/6ran_PSF.pdb"))
+for i in mols:
+    i.allatoms2carbonalpha()
+
+idx=  get_mols_conv(mols)
+
+colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+          "tab:brown", "tab:olive", "tab:pink", "tab:purple", "tab:cyan", "tab:gray"]
+data_pca=[]
+mol_res = []
+length=[]
+labels_pca= []
+alphas = []
+colors_pca=[]
+marker=[]
+traj=[]
+n_mols_target=6
+n_mols_fit=9
+len_traj=200
+for i in range(n_mols_fit):
+    # TRAJ
+    for j in range(n_mols_target):
+        if j == 0:
+            length.append(0)
+            labels_pca.append(emlabels[i] + "_traj")
+            alphas.append(0.5)
+            colors_pca.append(colors[i])
+            marker.append('-')
+            traj.append(n_mols_target)
+        for k in range(1,len_traj-1):
+            tmp_file = "data/ABC/tmp/run_%s_%stmp%i.npy" % (labels[j], emlabels[i], k)
+            if os.path.exists(tmp_file):
+                tmp_arr = np.load(file=tmp_file)
+            else:
+                m = Molecule("data/ABC/tmp/run_%s_%stmp%i.pdb" % (labels[j], emlabels[i], k ))
+                m.allatoms2carbonalpha()
+                tmp_arr = m.coords[idx[:, j]].flatten()
+                np.save(file="data/ABC/tmp/run_%s_%stmp%i.npy" % (labels[j], emlabels[i], k ), arr=tmp_arr)
+            data_pca.append(tmp_arr)
+            length[-1] += 1
+
+    # Fit
+    for j in range(n_mols_target):
+        if j ==0:
+            length.append(0)
+            labels_pca.append(emlabels[i] + "_fit")
+            alphas.append(1)
+            colors_pca.append(colors[i])
+            marker.append('^')
+            traj.append(1)
+        m = Molecule("data/ABC/run_%s_%s.pdb"%(labels[j], emlabels[i]))
+        m.allatoms2carbonalpha()
+        if m.n_atoms != mols[j].n_atoms:
+            print("error %i %i" %(m.n_atoms, mols[j].n_atoms))
+        data_pca.append(m.coords[idx[:, j]].flatten())
+        length[-1] += 1
+
+    # Target
+    data_pca.append(mols[i].coords[idx[:, i]].flatten())
+    length.append(1)
+    labels_pca.append(labels[i])
+    alphas.append(1)
+    colors_pca.append(colors[i])
+    marker.append('o')
+    traj.append(1)
+
+fig, ax=compute_pca(data=data_pca, length=length, labels=labels_pca, n_components=3,
+                    figsize=(5,5), alphas=alphas, colors=colors_pca, marker=marker,
+                    traj=traj, legend=False)
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+with open("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012803_FlexProtGenesisFit/extra/run_r1.nmmdglobalpos", "r") as f:
+    globalpos = np.array( list(np.loadtxt(f)))
+with open("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012803_FlexProtGenesisFit/extra/run_r1.nmmdlocalpos", "r") as f:
+    localpos = np.array(list(np.loadtxt(f)))
+with open("/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/012874_FlexProtGenesisFit/extra/run_r1.nmmdlocalpos", "r") as f:
+    localpos2 = np.array(list(np.loadtxt(f)))
+
+
+plt.plot(globalpos[1:]-globalpos[:-1])
+plt.plot(localpos[1:]-localpos[:-1])
+plt.plot(localpos2[1:]-localpos2[:-1])
+plt.axhline(0)
