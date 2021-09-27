@@ -75,13 +75,15 @@ def get_euler_grad(angles, coord):
 def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors=None, alphas=None,
                 marker=None, traj=None, legend=True):
     print("Computing PCA ...")
+    plt.style.context("default")
     if colors is None:
         colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
                   "tab:brown", "tab:olive", "tab:pink", "tab:gray", "tab:cyan", "tab:purple"]
     # Compute PCA
     arr = np.array(data)
     pca = PCA(n_components=n_components)
-    pca.fit(arr.T)
+
+    components = pca.fit_transform(arr).T
 
     # Prepare plotting data
     idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
@@ -94,6 +96,8 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors
         ax.set_zlabel("PCA component 3")
     else:
         ax = fig.add_subplot(111)
+    ax.set_xlabel("PCA component 1")
+    ax.set_ylabel("PCA component 2")
 
     if alphas is None:
         alphas = [1 for i in range(len(length))]
@@ -102,23 +106,18 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors
     if traj is None:
         traj = [1 for i in range(len(length))]
 
-    arr_test = np.arange(arr.shape[0])
-
     for i in range(len(length)):
         len_traj = length[i]//traj[i]
-        if n_components==3:
-            for j in range(traj[i]):
-                ax.plot(pca.components_[0, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
-                          pca.components_[1, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
-                          pca.components_[2, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
-                          marker[i], markeredgecolor='black',label=labels[i], color = colors[i],
-                          alpha=alphas[i])
-        else:
-            for j in range(traj[i]):
-                ax.plot(pca.components_[0, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
-                        pca.components_[1, idx[i]+j*len_traj:idx[i]+ (j+1)*len_traj],
-                        marker[i], label=labels[i], markeredgecolor='black',
-                        color = colors[i], alpha=alphas[i])
+        for j in range(traj[i]):
+            args = [
+                components[0, idx[i] + j * len_traj:idx[i] + (j + 1) * len_traj],
+                components[1, idx[i] + j * len_traj:idx[i] + (j + 1) * len_traj]
+            ]
+            if n_components==3:
+                args.append(components[2, idx[i] + j * len_traj:idx[i] + (j + 1) * len_traj])
+
+            ax.plot(*args, marker[i], label=labels[i], markeredgecolor='black',
+                    color = colors[i], alpha=alphas[i])
     if legend :
         ax.legend()
     fig.tight_layout()

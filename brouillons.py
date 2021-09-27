@@ -2356,7 +2356,7 @@ protlist = ["/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008934_Fle
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008538_FlexProtGenesisFit",
               "/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008762_FlexProtGenesisFit",
               ]
-
+/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/007162_FlexProtGenesisFit/
 percent=0.02
 for n in range(len(protlist)) :
     cc = []
@@ -2683,6 +2683,9 @@ for i in range(n_mols):
                     f.write(s)
                 os.system("vmd -dispdev text -e dcd2pdb.tcl")
 
+
+
+
 ##################################################################################
 #  ABC HETERO SPACE results
 #################################################################################
@@ -2724,8 +2727,8 @@ alphas = []
 colors_pca=[]
 marker=[]
 traj=[]
-n_mols_target=6
-n_mols_fit=9
+n_mols_target=8
+n_mols_fit=8
 len_traj=200
 for i in range(n_mols_fit):
     # TRAJ
@@ -2748,7 +2751,7 @@ for i in range(n_mols_fit):
                 np.save(file="data/ABC/tmp/run_%s_%stmp%i.npy" % (labels[j], emlabels[i], k ), arr=tmp_arr)
             data_pca.append(tmp_arr)
             length[-1] += 1
-
+for i in range(n_mols_fit):
     # Fit
     for j in range(n_mols_target):
         if j ==0:
@@ -2758,11 +2761,15 @@ for i in range(n_mols_fit):
             colors_pca.append(colors[i])
             marker.append('^')
             traj.append(1)
-        m = Molecule("data/ABC/run_%s_%s.pdb"%(labels[j], emlabels[i]))
-        m.allatoms2carbonalpha()
-        if m.n_atoms != mols[j].n_atoms:
-            print("error %i %i" %(m.n_atoms, mols[j].n_atoms))
-        data_pca.append(m.coords[idx[:, j]].flatten())
+        npy_file="data/ABC/run_%s_%s.npy"%(labels[j], emlabels[i])
+        if os.path.exists(npy_file):
+            tmp_arr = np.load(file=npy_file)
+        else:
+            m = Molecule("data/ABC/run_%s_%s.pdb"%(labels[j], emlabels[i]))
+            m.allatoms2carbonalpha()
+            tmp_arr=m.coords[idx[:, j]].flatten()
+            np.save(file=npy_file, arr=tmp_arr)
+        data_pca.append(tmp_arr)
         length[-1] += 1
 
     # Target
@@ -2774,10 +2781,12 @@ for i in range(n_mols_fit):
     marker.append('o')
     traj.append(1)
 
-fig, ax=compute_pca(data=data_pca, length=length, labels=labels_pca, n_components=3,
-                    figsize=(5,5), alphas=alphas, colors=colors_pca, marker=marker,
+fig, ax =compute_pca(data=data_pca, length=length, labels=labels_pca, n_components=3,
+                    figsize=(7,5), alphas=alphas, colors=colors_pca, marker=marker,
                     traj=traj, legend=False)
-
+fig.show()
+ax.set_facecolor("white")
+fig.savefig("/home/guest/Pictures/ABC_heterospace_2D3.png", dpi=1000)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -2794,3 +2803,160 @@ plt.plot(globalpos[1:]-globalpos[:-1])
 plt.plot(localpos[1:]-localpos[:-1])
 plt.plot(localpos2[1:]-localpos2[:-1])
 plt.axhline(0)
+
+
+
+import numpy as np
+import os
+
+n_mols= 9
+labels = ["6raf","6rag","6rah","6rai","6raj","6rak","6ral","6ram","6ran"]
+emlabels = ["4773","4774","4775","4776","4777","4778","4779","4780","4781"]
+for i in labels:
+    for j in emlabels:
+        for k in range(0,200,10):
+            f= "run_%s_%stmp%i.pdb" %(i,j,k)
+            os.system("~/MolProbity/cmdline/oneline-analysis %s > %s_molprobity.txt" % (f,f))
+            with open("%s_molprobity.txt"% f, "r") as mpf:
+                header = None
+                molprob = {}
+                for i in mpf:
+                    split_line = (i.split(":"))
+                    if header is None:
+                        if split_line[0] == "#pdbFileName":
+                            header = split_line
+                    else:
+                        if len(split_line) == len(header):
+                            for i in range(len(header)):
+                                molprob[header[i]] = split_line[i]
+            with open("%s_molprobity.txt"% f, "w") as mpf:
+                mpf.write(molprob["MolProbityScore"])
+
+
+
+
+
+##############################################################################################
+#Clock time :
+import re
+n = [
+#LAO
+    "003997",
+    "004430",
+# AK
+    "007162",
+    "012724",
+#LACTO
+    "004647",
+    "005083",
+#EF2
+    "006459",
+    "013591",
+#ABC
+    "010519",
+    "010755",
+#P97
+    "000306",
+    "000376"]
+
+percent=0.01
+period=1000
+totallocal = []
+totalglobal = []
+averlocal = []
+averglobal = []
+meanlocal = []
+meanglobal = []
+minlocal = []
+minglobal = []
+
+ratio = []
+
+for nloop in range(len(n)):
+    cc = []
+    rmsd = []
+    print(nloop)
+    sfx1 ="/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/"
+    sfx2 ="_FlexProtGenesisFit/extra/run"
+    if not os.path.exists("%s%s_FlexProtGenesisFit/logs/run.stdout"%(sfx1,n[nloop])) :
+        sfx1 = "/home/guest/ScipionUserData/projects/Remi_P97_paper2021/Runs/"
+    with open("%s%s_FlexProtGenesisFit/logs/run.stdout"%(sfx1,n[nloop])) as f:
+        for line in f:
+            if line.startswith("  total time      ="):
+                clock_time = (float(re.findall("\d+\.\d+",line)[0]))
+
+    for i in range(16):
+        if not os.path.exists("%s%s%s_r1.log" % (sfx1, n[nloop], sfx2)):
+            sfx = "%s%s%s1_remd"% (sfx1, n[nloop], sfx2)
+        else:
+            sfx= "%s%s%s_r"% (sfx1, n[nloop], sfx2)
+        cc.append(np.load("%s%i_cc.npy" % (sfx,i+1)))
+        rmsd.append(np.load("%s%i_rmsd.npy" % (sfx,i+1)))
+
+    # CC mean
+    cc_mean = np.mean(cc, axis=0)
+    cc_max= cc_mean.max()
+    cc5p = cc_mean.max() - percent*(cc_mean.max()-cc_mean.min())
+    cctime = np.min(np.where(cc_mean>=cc5p)[0])*period*0.002
+
+    #RMSD Aver
+    rmsd_mean = np.mean(rmsd, axis=0)
+    rmsd_min= rmsd_mean.min()
+    rmsd5p = rmsd_mean.min() + percent*(rmsd_mean.max() - rmsd_mean.min())
+    rmsdtime = np.min(np.where(rmsd_mean<=rmsd5p)[0])*period*0.002
+    rmsdclocktime = (rmsdtime /((len(rmsd_mean)-1)*period*0.002)) #"* clock_time
+
+    #RMSD Min
+    idx = np.where(rmsd == np.min(rmsd))[0][0]
+
+    #RMSD Mean
+    rmsdclocktimeMean = []
+    for i in range(16):
+        rmsd5pMean = rmsd[i].min() + percent * (rmsd[i].max() - rmsd[i].min())
+        rmsdtimeMean = np.min(np.where(rmsd[i] <= rmsd5pMean)[0]) * period * 0.002
+        rmsdclocktimeMean.append((rmsdtimeMean / ((len(rmsd[i]) - 1) * period * 0.002))) #* clock_time
+        if i == idx :
+            rmsdclocktimeMin = (rmsdtimeMean / ((len(rmsd[i]) - 1) * period * 0.002)) #* clock_time
+    rmsdclocktimeMean = np.mean(rmsdclocktimeMean)
+
+
+    if nloop % 2 == 0:
+        totallocal.append(clock_time)
+        averlocal.append(rmsdclocktime)
+        meanlocal.append(rmsdclocktimeMean)
+        minlocal.append(rmsdclocktimeMin)
+    else:
+        totalglobal.append(clock_time)
+        averglobal.append(rmsdclocktime)
+        meanglobal.append(rmsdclocktimeMean)
+        minglobal.append(rmsdclocktimeMin)
+
+totallocal = np.array(totallocal)
+totalglobal = np.array(totalglobal)
+averlocal = np.array(averlocal)
+averglobal = np.array(averglobal)
+meanlocal = np.array(meanlocal)
+meanglobal = np.array(meanglobal)
+minlocal = np.array(minlocal)
+minglobal = np.array(minglobal)
+
+print("Speed increase " )
+print("* aver  %.3f" %np.mean(1 -(averglobal/averlocal)))
+print(1 -(averglobal/averlocal))
+print("* mean  %.3f" %np.mean(1 -(meanglobal/meanlocal)))
+print(1 -(meanglobal/meanlocal))
+print("* min  %.3f" %np.mean(1 -(minglobal/minlocal)))
+print(1 -(minglobal/minlocal))
+
+
+
+
+# print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(np.max(cc), cctime, np.min(rmsd), rmsdtime,rmsdclocktime) )
+# print("TOTAL Time --- %.3f" %clock_time)
+# print("* ccmax  %.3f" %np.max(cc))
+# print("* rmsdmin  %.3f" %np.min(rmsd))
+# print("* clocktime  %.3f" %(clock_time))
+# print("* rmsdtime  %.3f" %(rmsdclocktime))
+# print("* rmsdtime  %.3f" %(rmsdclocktimeMean))
+# print("* rmsdtime  %.3f" %(rmsdclocktimeMin))
+#

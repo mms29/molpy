@@ -82,7 +82,7 @@ def save_pdb(data, file):
     :param data: dictionary with pdb data
     :param file: PDB file
     """
-    print("> Saving pdb file ...")
+    print("> Saving pdb file %s ..."%file)
     with open(file, "w") as file:
         past_chainName= data["chainName"][0]
         for i in range(len(data["atom"])):
