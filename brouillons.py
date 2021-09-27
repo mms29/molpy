@@ -2384,23 +2384,23 @@ for n in range(len(protlist)) :
     print("ccmax %.3f cctime %.1f rmsdmin %.3f rmsdtime %.1f rmsdclocktime %.1f" %(cc_max, cctime, rmsd_min, rmsdtime,rmsdclocktime) )
 
 from src.molecule import Molecule
-from src.functions import get_mol_conv,compute_pca
+from src.functions import get_mol_conv,compute_pca_pf
 target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008330_ProtImportPdb/extra/1n0u_target.pdb")
 init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006348_FlexProtGeneratePSF/extra/output.pdb")
 idx = get_mol_conv(init, target)
 
 data = []
 for i in range(16):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008900_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/006459_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
-for i in range(13):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008974_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+for i in range(16):
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/013591_FlexProtGenesisFit/extra/run1_remd%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
 
 data.append(init.coords[idx[:,0]].flatten())
 data.append(target.coords[idx[:,1]].flatten())
 
-ef2 = compute_pca(data, length=[16,13,1,1], labels=["MD", "NMMD", "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[0.157,0.208], lim2=[-0.9,0.3])
+ef2,pca = compute_pca_pf(data, length=[16,16,1,1], labels=["MD", "NMMD", "Init.", "Target"], save=None, n_components=2, figsize=(4,3))#, lim2 = [-450,350])#, lim=[0.157,0.208], lim2=[-0.9,0.3])
 ef2.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/EF2_pca.png", dpi=1000)
 
 target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010487_FlexProtGeneratePSF/extra/output.pdb")
@@ -2413,10 +2413,10 @@ for i in range(16):
 for i in range(16):
     mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/010755_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
-
 data.append(init.coords[idx[:,0]].flatten())
 data.append(target.coords[idx[:,1]].flatten())
-abc = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[-0.1726,-0.1696], lim2=[-0.95,0.27])
+abc,pca = compute_pca_pf(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[-300,570], lim2=[-400,1340])
+
 abc.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/ABC_pca.png", dpi=1000)
 
 target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/000330_FlexProtGeneratePSF/extra/output.pdb")
@@ -2424,15 +2424,15 @@ init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData
 idx = get_mol_conv(init, target)
 data = []
 for i in range(16):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/local2/run_r%i.pdb" %(i+1))
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber7/run/media/guest/disk4/ScipionUserData/projects/Remi_P97_paper2021/Runs/000306_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
 for i in range(16):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/Workspace/PaperFrontiers/P97/global2/run_r%i.pdb" %(i+1))
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber7/run/media/guest/disk4/ScipionUserData/projects/Remi_P97_paper2021/Runs/000376_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
 
 data.append(init.coords[idx[:,0]].flatten())
 data.append(target.coords[idx[:,1]].flatten())
-p97 = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3), lim=[-0.1772,-0.163], lim2=[-0.61,0.4])
+p97,pca = compute_pca_pf(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3))#, lim=[-0.1772,-0.163], lim2=[-0.61,0.4])
 p97.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/p97_pca.png", dpi=1000)
 
 target = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008293_ProtImportPdb/extra/1lfh_target.pdb")
@@ -2440,15 +2440,16 @@ init = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData
 idx = get_mol_conv(init, target)
 data = []
 for i in range(16):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008748_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/004647_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
     data.append(mol.coords[idx[:,0]].flatten())
 for i in range(16):
-    mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/008822_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
-    data.append(mol.coords[idx[:,0]].flatten())
+    if i != 2:
+        mol = Molecule("/run/user/1001/gvfs/sftp:host=amber9/home/guest/ScipionUserData/projects/PaperFrontiers/Runs/005083_FlexProtGenesisFit/extra/run_r%i.pdb" %(i+1))
+        data.append(mol.coords[idx[:,0]].flatten())
 
 data.append(init.coords[idx[:,0]].flatten())
 data.append(target.coords[idx[:,1]].flatten())
-lacto = compute_pca(data, length=[16,16,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3),lim2=[-0.42,0.79])
+lacto,pca = compute_pca_pf(data, length=[16,15,1,1], labels=["MD", "NMMD",  "Init.", "Target"], save=None, n_components=2, figsize=(4,3),lim=[-260,370])
 lacto.savefig("/home/guest/Documents/VirtualBoxShared/pictures/PaperFrontiers/lacto_pca.png", dpi=1000)
 
 

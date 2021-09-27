@@ -105,71 +105,74 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5)):
     fig.tight_layout()
     return fig
 
-# def compute_pca(data, length, labels=None, save=None, n_components=2, figsize=(5,5), lim=None, lim2=None):
-#     print("Computing PCA ...")
-#     colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
-#               "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
-#     # Compute PCA
-#     arr = np.array(data)
-#     print(arr.shape)
-#     pca = PCA(n_components=n_components)
-#     pca.fit(arr.T)
-#
-#     # Prepare plotting data
-#     idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
-#     if labels is None:
-#         labels = ["#"+str(i) for i in range(len(length))]
-#
-#     # Plotter
-#     # fig = plt.figure(figsize=figsize)
-#     # if n_components == 3:
-#     #     ax = fig.add_subplot(111, projection='3d')
-#     #     ax.set_zlabel("PCA component 3")
-#     # else:
-#     #     ax = fig.add_subplot(111)
-#
-#     fig = plt.figure(figsize=figsize)
-#     ax = plt.subplot2grid((3, 4), (0, 1), colspan=3, rowspan=3, fig=fig)
-#     ax2 = plt.subplot2grid((3, 4), (0, 0), colspan=1, rowspan=3, fig=fig)
-#     ax.set_xlabel("PCA component 2")
-#     ax.set_yticklabels([])
-#     ax2.set_ylabel("PCA component 1")
-#
-#     for i in range(len(length)):
-#         if n_components==3:
-#             ax.scatter(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]],
-#                        pca.components_[2, idx[i]:idx[i+1]], s=10, label=labels[i], color = colors[i])
-#         else:
-#             ax.plot(pca.components_[0, idx[i]:idx[i+1]], pca.components_[1, idx[i]:idx[i+1]], 'o',
-#                     label=labels[i], markeredgecolor='black', color = colors[i])
-#             x = pca.components_[0, idx[i]:idx[i+1]]
-#             y = pca.components_[1, idx[i]:idx[i+1]]
-#             if len(x)>1:
-#                 sns.kdeplot(x, y=y, ax=ax, color=colors[i], alpha=0.5)
-#
-#     ax.legend()
-#     if save is not None:
-#         fig.savefig(save)
-#     print("Done")
-#
-#     for i in range(len(length)):
-#         x = pca.components_[1, idx[i]:idx[i + 1]]
-#         if len (x) == 1:
-#             ax2.axhline(x, color=colors[i])
-#         else:
-#            sns.kdeplot(y=x, color=colors[i], alpha=0.5,fill=True,ax=ax2)
-#     ax2.invert_xaxis()
-#     ax2.set_xlabel("")
-#     ax2.set_xticklabels([])
-#     ax2.set_xticks([])
-#     if lim is not None:
-#         ax.set_xlim(lim[0], lim[1])
-#     if lim2 is not None:
-#         ax.set_ylim(lim2[0], lim2[1])
-#         ax2.set_ylim(lim2[0], lim2[1])
-#     ax2.set_xlim(13.0, 0.0)
-#     fig.tight_layout()
-#     return fig
+def compute_pca_pf(data, length, labels=None, save=None, n_components=2, figsize=(5,5), lim=None, lim2=None, lim3=None):
+    print("Computing PCA ...")
+    colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+              "tab:brown", "tab:olive", "tab:pink", "tab:green", "tab:cyan"]
+    # Compute PCA
+    arr = np.array(data)
+    print(arr.shape)
+    pca = PCA(n_components=n_components)
+    # pca.fit(arr.T)
+    # components = (pca.components_.T* pca.explained_variance_).T
+    components = pca.fit_transform(arr).T
+
+    # Prepare plotting data
+    idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
+    if labels is None:
+        labels = ["#"+str(i) for i in range(len(length))]
+
+    # Plotter
+    # fig = plt.figure(figsize=figsize)
+    # if n_components == 3:
+    #     ax = fig.add_subplot(111, projection='3d')
+    #     ax.set_zlabel("PCA component 3")
+    # else:
+    #     ax = fig.add_subplot(111)
+
+    fig = plt.figure(figsize=figsize)
+    ax = plt.subplot2grid((3, 4), (0, 1), colspan=3, rowspan=3, fig=fig)
+    ax2 = plt.subplot2grid((3, 4), (0, 0), colspan=1, rowspan=3, fig=fig)
+    ax.set_xlabel("PCA component 2")
+    ax.set_yticklabels([])
+    ax2.set_ylabel("PCA component 1")
+
+    for i in range(len(length)):
+        if n_components==3:
+            ax.scatter(components[0, idx[i]:idx[i+1]], components[1, idx[i]:idx[i+1]],
+                       components[2, idx[i]:idx[i+1]], s=10, label=labels[i], color = colors[i])
+        elif n_components==2:
+            ax.plot(components[1, idx[i]:idx[i+1]], components[0, idx[i]:idx[i+1]], 'o',
+                    label=labels[i], markeredgecolor='black', color = colors[i])
+            x = components[1, idx[i]:idx[i+1]]
+            y = components[0, idx[i]:idx[i+1]]
+            if len(x)>1:
+                sns.kdeplot(x, y=y, ax=ax, color=colors[i], alpha=0.5)
+
+    ax.legend()
+    if save is not None:
+        fig.savefig(save)
+    print("Done")
+
+    for i in range(len(length)):
+        x = components[0, idx[i]:idx[i + 1]]
+        if len (x) == 1:
+            ax2.axhline(x, color=colors[i])
+        else:
+           sns.kdeplot(y=x, color=colors[i], alpha=0.5,fill=True,ax=ax2)
+    ax2.invert_xaxis()
+    ax2.set_xlabel("")
+    ax2.set_xticklabels([])
+    ax2.set_xticks([])
+    if lim is not None:
+        ax.set_xlim(lim[0], lim[1])
+    if lim2 is not None:
+        ax.set_ylim(lim2[0], lim2[1])
+        ax2.set_ylim(lim2[0], lim2[1])
+    if lim3 is not None:
+        ax2.set_xlim(lim3[0], lim3[1])
+    fig.tight_layout()
+    return fig, pca
 
 
 def get_RMSD_coords(coords1,coords2):
