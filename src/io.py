@@ -40,7 +40,7 @@ def read_pdb(file, hetatm=False):
     temp = []
     chainID = []
     elemName=[]
-    print("> Reading pdb file ...")
+    print("> Reading pdb file %s ..."%file)
     with open(file, "r") as f :
         for line in f:
             spl = line.split()
@@ -82,7 +82,7 @@ def save_pdb(data, file):
     :param data: dictionary with pdb data
     :param file: PDB file
     """
-    print("> Saving pdb file ...")
+    print("> Saving pdb file %s ..."%file)
     with open(file, "w") as file:
         past_chainName= data["chainName"][0]
         for i in range(len(data["atom"])):
