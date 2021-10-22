@@ -54,6 +54,20 @@ def chimera_molecule_viewer(mol):
         cmd = "~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd \"open mol.pdb ; hide atoms ; show cartoons\""
     os.system(cmd)
 
+def chimera_traj_viewer(pdb_list):
+    """
+    Chimera Viewer for Molecules
+    :param mol: Molecule, list of Molecule
+    """
+    cmd =" \""
+    for i in pdb_list:
+        cmd += " open %s ;"%i
+
+    cmd += " morph all frames 0 "
+    cmd += "\""
+
+    os.system("~/scipion3/software/em/chimerax-1.1/bin/ChimeraX --cmd%s"%cmd)
+
 def image_viewer(img):
     """
     Matplotlib viewer for Image
@@ -171,3 +185,6 @@ def chimera_fit_viewer(mol, target):
 #         with warnings.catch_warnings():
 #             warnings.simplefilter("ignore")
 #             RamachanDraw.plot(file)
+
+def traj_viewer(pdb_file, dcd_file):
+    os.system("vmd %s %s" %(pdb_file,dcd_file))

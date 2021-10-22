@@ -33,6 +33,7 @@ def read_pdb(file, hetatm=False):
     atomNum=[]
     atomName=[]
     resName=[]
+    resAlter=[]
     chainName=[]
     resNum=[]
     coords = []
@@ -46,34 +47,39 @@ def read_pdb(file, hetatm=False):
             spl = line.split()
             if len(spl) >0:
                 if (spl[0] == 'ATOM') :#or (hetatm and spl[0] == 'HETATM'):
-                    l = [line[:6], line[6:11], line[12:16], line[17:21], line[21:22], line[22:26], line[30:38],
-                         line[38:46], line[46:54], line[54:60], line[60:66],line[66:77], line[77:78]]
+                    l = [line[:6], line[6:11], line[12:16], line[16], line[17:20], line[21], line[22:26], line[30:38],
+                         line[38:46], line[46:54], line[54:60], line[60:66],line[72:76], line[76:78]]
                     l = [i.strip() for i in l]
                     atom.append(l[0])
                     atomNum.append(l[1])
                     atomName.append(l[2])
-                    resName.append(l[3])
-                    chainName.append(l[4])
-                    resNum.append(l[5])
-                    coords.append([float(l[6]), float(l[7]), float(l[8])])
-                    occ.append(l[9])
-                    temp.append(l[10])
-                    chainID.append(l[11])
-                    elemName.append(l[12])
+                    resAlter.append(l[3])
+                    resName.append(l[4])
+                    chainName.append(l[5])
+                    resNum.append(l[6])
+                    coords.append([float(l[7]), float(l[8]), float(l[9])])
+                    occ.append(l[10])
+                    temp.append(l[11])
+                    chainID.append(l[12])
+                    elemName.append(l[13])
     print("\t Done \n")
 
+    atomNum = np.array(atomNum)
+    atomNum[np.where(atomNum == "*****")[0]] = "-1"
+
     return {
-        "atom" : np.array(atom),
+        "atom" : np.array(atom, dtype='<U6'),
         "atomNum" : np.array(atomNum).astype(int),
-        "atomName" : np.array(atomName),
-        "resName" : np.array(resName),
-        "chainName" : np.array(chainName),
+        "atomName" : np.array(atomName, dtype='<U4'),
+        "resName" : np.array(resName, dtype='<U4'),
+        "resAlter" : np.array(resAlter, dtype='<U1'),
+        "chainName" : np.array(chainName, dtype='<U1'),
         "resNum" : np.array(resNum).astype(int),
         "coords" : np.array(coords).astype(float),
-        "occ" : np.array(occ),
-        "temp" : np.array(temp),
-        "chainID" : np.array(chainID),
-        "elemName" : np.array(elemName)
+        "occ" : np.array(occ).astype(float),
+        "temp" : np.array(temp).astype(float),
+        "chainID" : np.array(chainID, dtype='<U4'),
+        "elemName" : np.array(elemName, dtype='<U2')
     }
 
 def save_pdb(data, file):
@@ -85,25 +91,31 @@ def save_pdb(data, file):
     print("> Saving pdb file %s ..."%file)
     with open(file, "w") as file:
         past_chainName= data["chainName"][0]
+        past_chainID = data["chainID"][0]
         for i in range(len(data["atom"])):
-            if past_chainName != data["chainName"][i]:
+            if past_chainName != data["chainName"][i] or past_chainID != data["chainID"][i] :
                 past_chainName = data["chainName"][i]
+                past_chainID = data["chainID"][i]
                 file.write("TER\n")
 
             atom= data["atom"][i].ljust(6)  # atom#6s
-            atomNum= str(data["atomNum"][i]).rjust(5)  # aomnum#5d
+            if data["atomNum"][i] == -1 or data["atomNum"][i] >=100000:
+                atomNum= "99999"  # aomnum#5d
+            else:
+                atomNum= str(data["atomNum"][i]).rjust(5)  # aomnum#5d
             atomName= data["atomName"][i].ljust(4)  # atomname$#4s
+            resAlter= data["resAlter"][i]  # resAlter#1
             resName= data["resName"][i].ljust(4)  # resname#1s
             chainName= data["chainName"][i].rjust(1)  # Astring
             resNum= str(data["resNum"][i]).rjust(4)  # resnum
             coordx= str('%8.3f' % (float(data["coords"][i][0]))).rjust(8)  # x
             coordy= str('%8.3f' % (float(data["coords"][i][1]))).rjust(8)  # y
             coordz= str('%8.3f' % (float(data["coords"][i][2]))).rjust(8)  # z\
-            occ= str(data["occ"][i]).rjust(6)  # occ
-            temp= str(data["temp"][i]).rjust(6)  # temp
-            chainID= str(data["chainID"][i]).rjust(8)  # elname
-            elemName= str(data["elemName"][i]).rjust(4)  # elname
-            file.write("%s%s  %s%s%s%s    %s%s%s%s%s%s%s\n" % (atom,atomNum, atomName, resName, chainName, resNum,
+            occ= str('%6.2f'%data["occ"][i]).rjust(6)  # occ
+            temp= str('%6.2f'%data["temp"][i]).rjust(6)  # temp
+            chainID= str(data["chainID"][i]).ljust(4)  # elname
+            elemName= str(data["elemName"][i]).rjust(2)  # elname
+            file.write("%s%s  %s%s%s%s%s    %s%s%s%s%s      %s%s\n" % (atom,atomNum, atomName, resAlter, resName, chainName, resNum,
                                                               coordx, coordy, coordz, occ, temp, chainID, elemName))
         file.write("END\n")
     print("\t Done \n")
@@ -385,7 +397,7 @@ def save_dcd(mol, coords_list, prefix):
         for i in range(1,n_frames):
             f.write("mol addfile %s_frame%i.pdb\n" % (prefix, i))
         f.write("animate write dcd %s_traj.dcd\n" % prefix)
-        f.write('exit')
+        f.write('exit\n')
 
     # Running VMD
     os.system("vmd -dispdev text -e %s_cmd.tcl" % prefix)

@@ -34,6 +34,7 @@ class Molecule:
         self.atomNum = data["atomNum"]
         self.atomName = data["atomName"]
         self.resName = data["resName"]
+        self.resAlter = data["resAlter"]
         self.chainName = data["chainName"]
         self.resNum = data["resNum"]
         self.occ = data["occ"]
@@ -49,6 +50,86 @@ class Molecule:
         :return: Molecule
         """
         return copy.deepcopy(self)
+
+    def save_pdb(self, file):
+        """
+        Save to PDB Format
+        :param file: pdb file path
+        """
+        data = {
+            "atom" : self.atom,
+            "atomNum" : self.atomNum,
+            "atomName" : self.atomName,
+            "resName" : self.resName,
+            "resAlter" : self.resAlter,
+            "chainName" : self.chainName,
+            "resNum" : self.resNum,
+            "coords" : self.coords,
+            "temp" : self.temp,
+            "occ" : self.occ,
+            "elemName" : self.elemName,
+            "chainID" : self.chainID,
+        }
+        src.io.save_pdb(data = data, file=file)
+
+    def select_atoms(self, idx):
+        self.coords = self.coords[idx]
+        self.n_atoms = self.coords.shape[0]
+        self.atom = self.atom[idx]
+        self.atomNum = self.atomNum[idx]
+        self.atomName = self.atomName[idx]
+        self.resName = self.resName[idx]
+        self.resAlter = self.resAlter[idx]
+        self.chainName = self.chainName[idx]
+        self.resNum = self.resNum[idx]
+        self.elemName = self.elemName[idx]
+        self.occ = self.occ[idx]
+        self.temp = self.temp[idx]
+        self.chainID = self.chainID[idx]
+
+        # Normal Modes
+        if self.normalModeVec is not None:
+            self.normalModeVec = self.normalModeVec[idx]
+
+        # Forcefield
+        if self.forcefield is not None:
+            self.forcefield.select_atoms(idx)
+
+    def get_chain(self, chainName):
+        if not isinstance(chainName, list):
+            chainName=[chainName]
+        chainidx =[]
+        for i in chainName:
+            idx = np.where(self.chainName == i)[0]
+            if len(idx) == 0:
+                idx= np.where(self.chainID == i)[0]
+            chainidx = chainidx + list(idx)
+        return np.array(chainidx)
+
+    def select_chain(self, chainName):
+        self.select_atoms(self.get_chain(chainName))
+
+    def allatoms2carbonalpha(self):
+        carbonalpha_idx = np.where(self.atomName == "CA")[0]
+        self.select_atoms(carbonalpha_idx)
+
+    def allatoms2backbone(self):
+        backbone_idx = []
+        for i in range(len(self.atomName)):
+            if not self.atomName[i].startswith("H"):
+                backbone_idx.append(i)
+        backbone_idx = np.array(backbone_idx)
+        self.select_atoms(backbone_idx)
+
+    def nma_deform(self, q):
+        """
+        deform molecule using NMA
+        :param q: numpy array of M normal modes amplitudes
+        :return: deformed Molecule
+        """
+        new_mol = self.copy()
+        new_mol.coords += np.dot(q, self.normalModeVec)
+        return new_mol
 
 
     def get_energy(self, **kwargs):
@@ -98,81 +179,6 @@ class Molecule:
         Set the force field structure and parameters for the Molecule.
         """
         self.forcefield = MoleculeForceField(mol=self,**kwargs)
-
-    def save_pdb(self, file):
-        """
-        Save to PDB Format
-        :param file: pdb file path
-        """
-        data = {
-            "atom" : self.atom,
-            "atomNum" : self.atomNum,
-            "atomName" : self.atomName,
-            "resName" : self.resName,
-            "chainName" : self.chainName,
-            "resNum" : self.resNum,
-            "coords" : self.coords,
-            "temp" : self.temp,
-            "occ" : self.occ,
-            "elemName" : self.elemName,
-            "chainID" : self.chainID,
-        }
-        src.io.save_pdb(data = data, file=file)
-
-    def select_atoms(self, idx):
-        self.coords = self.coords[idx]
-        self.n_atoms = self.coords.shape[0]
-        self.atom = self.atom[idx]
-        self.atomNum = self.atomNum[idx]
-        self.atomName = self.atomName[idx]
-        self.resName = self.resName[idx]
-        self.chainName = self.chainName[idx]
-        self.resNum = self.resNum[idx]
-        self.elemName = self.elemName[idx]
-        self.occ = self.occ[idx]
-        self.temp = self.temp[idx]
-        self.chainID = self.chainID[idx]
-
-        # Normal Modes
-        if self.normalModeVec is not None:
-            self.normalModeVec = self.normalModeVec[idx]
-
-        # Forcefield
-        if self.forcefield is not None:
-            self.forcefield.select_atoms(idx)
-
-
-    def allatoms2carbonalpha(self):
-        carbonalpha_idx = np.where(self.atomName == "CA")[0]
-        self.select_atoms(carbonalpha_idx)
-
-    def allatoms2backbone(self):
-        backbone_idx = []
-        for i in range(len(self.atomName)):
-            if not self.atomName[i].startswith("H"):
-                backbone_idx.append(i)
-        backbone_idx = np.array(backbone_idx)
-        self.select_atoms(backbone_idx)
-
-    def select_chain(self, chainName):
-        if not isinstance(chainName, list):
-            chainName=[chainName]
-        chainidx =[]
-        for i in chainName:
-            new_chainName = list(np.where(self.chainName == i)[0])
-            chainidx = chainidx + new_chainName
-        self.select_atoms(np.array(chainidx))
-
-    def nma_deform(self, q):
-        """
-        deform molecule using NMA
-        :param q: numpy array of M normal modes amplitudes
-        :return: deformed Molecule
-        """
-        new_mol = self.copy()
-        new_mol.coords += np.dot(q, self.normalModeVec)
-        return new_mol
-
 
 class MoleculeForceField:
     """
