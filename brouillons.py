@@ -2960,3 +2960,162 @@ print(1 -(minglobal/minlocal))
 # print("* rmsdtime  %.3f" %(rmsdclocktimeMean))
 # print("* rmsdtime  %.3f" %(rmsdclocktimeMin))
 #
+
+
+# shift=[]
+# angles=[]
+# with open("%sGroundTruth.xmd"%filelinear) as f:
+#     for line in f:
+#         sline = line.split()
+#         if len(sline) == 23:
+#             shift.append([float(sline[17]), float(sline[18]), float(sline[19])])
+#             angles.append([float(sline[20]), float(sline[21]), float(sline[22])])
+# shift=np.array(shift)
+# angles=np.array(angles)
+#
+# shift2=[]
+# angles2=[]
+# with open("%sfinal_md.xmd"%filesta) as f:
+#     for line in f:
+#         sline = line.split()
+#         if len(sline) == 11:
+#             shift2.append([float(sline[5]), float(sline[6]), float(sline[7])])
+#             angles2.append([float(sline[2]), float(sline[3]), float(sline[4])])
+# shift2=np.array(shift2)
+# angles2=np.array(angles2)
+
+# for i in range(N):
+#     mol = Molecule("%s%s_df.pdb" % (filelinear, str(i + 1).zfill(5)))
+#     mol.rotate(angles[i]*np.pi/180)
+#
+#     m1 = mol.copy()
+#     m1.coords += 2.2*shift[i]
+#     m1.save_pdb("%s%s_df_rb1.pdb" % (filelinear, str(i + 1).zfill(5)))
+#
+#     R = generate_euler_matrix(-angles2[i]*np.pi/180)
+#     # R=np.linalg.inv(R)
+#     mol.coords = np.dot(R, mol.coords.T).T
+#     # mol.rotate(angles2[i]*np.pi/180)
+#     mol.save_pdb("%s%s_df_rb2.pdb" % (filelinear, str(i + 1).zfill(5)))
+#
+#     data.append(mol.coords[idx[:,1]].flatten())
+
+
+# SUBTOMO AK LINEAR
+from src.molecule import Molecule
+from src.functions import compute_pca, get_mol_conv,generate_euler_matrix
+import numpy as np
+
+from Bio.SVDSuperimposer import SVDSuperimposer
+
+def alignMol(mol1, mol2, idx= None):
+    sup = SVDSuperimposer()
+    if idx is not None:
+        c1 = mol1.coords[idx[:,0]]
+        c2 = mol2.coords[idx[:,1]]
+    else:
+        c1 = mol1.coords
+        c2 = mol2.coords
+    sup.set(c1, c2)
+    sup.run()
+    rot, tran = sup.get_rotran()
+    mol2.coords = np.dot(mol2.coords, rot) + tran
+
+
+# file = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/Runs/003502_FlexProtGenesisFit/extra/"
+# file = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/Runs/004196_FlexProtGenesisFit/extra/"
+# file = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/Runs/004273_FlexProtGenesisFit/extra/"
+file = "/run/media/guest/disk2/ScipionUserData/projects/Tomoflow_AK_amber9/Runs/004506_FlexProtGenesisFit/extra/"
+# file = "/run/media/guest/disk2/ScipionUserData/projects/Tomoflow_AK_amber9/Runs/004583_FlexProtGenesisFit/extra/"
+file_gt = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/AK_traj/"
+# file = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/Runs/000886_FlexProtSynthesizeSubtomo/extra/"
+# file = "/run/media/guest/disk2/ScipionUserData/projects/TomoFlow_AK_amber7/Runs/000986_FlexProtSynthesizeSubtomo/extra/"
+
+init = Molecule("%sak21ake_500.pdb"%(file_gt))
+# init = Molecule("%s001_output.pdb"%(file))
+
+N=1000
+data = []
+idx= np.where(init.atomName == "CA")[0]
+
+# traj_gt = []
+# for i in range(N):
+#     mol = Molecule("%sak21ake_%s.pdb"%(file_gt, str(i)))
+#     alignMol(init, mol)
+#     traj_gt.append(mol.coords[idx].flatten())
+
+
+for i in range(N):
+    mol = Molecule("%s%s_output.pdb" % (file, str(i + 1).zfill(3)))
+    alignMol(init, mol)
+    data.append(mol.coords[:].flatten())
+
+
+# compute_pca(data=data+traj_gt, length=[N, N], labels=["Fitting","Ground Truth"], n_components=2, figsize=(5,5), colors=None, alphas=None,
+#                 marker=None, traj=None, legend=True,)
+inv_pca = []
+n_inv_pca = 25
+compute_pca(data=data, length=[N], labels=["Fitting"], n_components=2,n_inv_pca=n_inv_pca, inv_pca=inv_pca)
+
+inv_pca
+
+coords_list = []
+for i in range(n_inv_pca):
+    coords_list.append(inv_pca[0][i].reshape((init.n_atoms, 3)))
+for i in range(n_inv_pca):
+    coords_list.append(inv_pca[1][i].reshape((init.n_atoms, 3)))
+save_dcd(mol=init, coords_list=coords_list, prefix="tmp/tmp")
+moldcd =init.copy()
+moldcd.coords = coords_list[0]
+moldcd.save_pdb("tmp/tmp.pdb")
+traj_viewer(pdb_file="tmp/tmp.pdb", dcd_file="tmp/tmp_traj.dcd")
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+files = [
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/015339_FlexProtGenesisFit/extra/",
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/015141_FlexProtGenesisFit/extra/",
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017098_FlexProtGenesisFit/extra/",
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017172_FlexProtGenesisFit/extra/",
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017246_FlexProtGenesisFit/extra/",
+    # "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017340_FlexProtGenesisFit/extra/",
+    "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017756_FlexProtGenesisFit/extra/",
+    "/run/media/guest/disk2/ScipionUserData/projects/PaperFrontiers/Runs/017833_FlexProtGenesisFit/extra/",
+]
+
+fig, ax = plt.subplots(1,1)
+rmsd = []
+for f in range(len(files)):
+    rmsd.append([])
+    for i in range(16):
+        rmsd[f].append(np.loadtxt("%s001_output_remd%i_rmsd.txt"%(files[f],i+1)))
+    ax.errorbar(x=np.arange(len(rmsd[f][0])),y=np.mean(rmsd[f], axis=0),yerr=np.std(rmsd[f], axis=0),
+                errorevery=10, capthick=1.7, capsize=5,elinewidth=1.7,)
+rmsd = np.array(rmsd)
+
+fig, ax = plt.subplots(1,1)
+l = [70, 80, 90, 100 ,120 ,140 ,160 ,180 ,200 ,240 ,280 ,320 ,340 ,360 ,380 ,400]
+for i in range(16):
+    ax.plot(rmsd[2,i], label=str(l[i]), color=np.random.rand(3))
+fig.legend()
+
+for i in np.linspace(200,800,16): print("%i"%i)
+
+
+
+
+
+mol1 = Molecule("/home/guest/Workspace/p97_heterospace/7ln0.pdb")
+mol2 = Molecule("/home/guest/Workspace/p97_heterospace/7jy5.pdb")
+mol3 = Molecule("/home/guest/Workspace/p97_heterospace/5ftn.pdb")
+mol4 = Molecule("/home/guest/Workspace/p97_heterospace/3cf3.pdb")
+
+alignMol(mol3, mol2,get_mol_conv(mol3, mol2, ca_only=True))
+alignMol(mol3, mol1,get_mol_conv(mol3, mol1, ca_only=True))
+alignMol(mol3, mol1,get_mol_conv(mol3, mol4, ca_only=True))
+mol1.save_pdb("/home/guest/Workspace/p97_heterospace/7ln0_a.pdb")
+mol2.save_pdb("/home/guest/Workspace/p97_heterospace/7jy5_a.pdb")
+mol4.save_pdb("/home/guest/Workspace/p97_heterospace/3cf3_a.pdb")
+

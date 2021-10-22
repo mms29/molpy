@@ -14,6 +14,9 @@ import contextlib
 import io
 import sys
 # import seaborn as sns
+from Bio.SVDSuperimposer import SVDSuperimposer
+import os
+
 
 def select_voxels(coord, size, voxel_size, cutoff):
     n_atoms = coord.shape[0]
@@ -72,13 +75,18 @@ def get_euler_grad(angles, coord):
                     0]])
 
     return dR
+
+
 def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors=None, alphas=None,
-                marker=None, traj=None, legend=True):
+                marker=None, traj=None, inv_pca=[], n_inv_pca=10):
     print("Computing PCA ...")
-    plt.style.context("default")
+    # plt.style.context("default")
     if colors is None:
-        colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
-                  "tab:brown", "tab:olive", "tab:pink", "tab:gray", "tab:cyan", "tab:purple"]
+        if len(length)<=10:
+            colors = ["tab:red", "tab:blue", "tab:orange", "tab:green",
+                      "tab:brown", "tab:olive", "tab:pink", "tab:gray", "tab:cyan", "tab:purple"]
+        else:
+            colors = np.random.rand(len(length), 3)
     # Compute PCA
     arr = np.array(data)
     pca = PCA(n_components=n_components)
@@ -88,7 +96,9 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors
     # Prepare plotting data
     idx = np.concatenate((np.array([0]),np.cumsum(length))).astype(int)
     if labels is None:
-        labels = ["#"+str(i) for i in range(len(length))]
+        pltlabels = ["#"+str(i) for i in range(len(length))]
+    else:
+        pltlabels=labels
 
     fig = plt.figure(figsize=figsize)
     if n_components == 3:
@@ -116,11 +126,42 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors
             if n_components==3:
                 args.append(components[2, idx[i] + j * len_traj:idx[i] + (j + 1) * len_traj])
 
-            ax.plot(*args, marker[i], label=labels[i], markeredgecolor='black',
+            ax.plot(*args, marker[i], label=pltlabels[i], markeredgecolor='black',
                     color = colors[i], alpha=alphas[i])
-    if legend :
+    if labels is not None :
         ax.legend()
     fig.tight_layout()
+
+    annot = ax.annotate("", xy=(0, 0), xytext=(-40, 40), textcoords="offset points",
+                        bbox=dict(boxstyle='round4', fc='linen', ec='k', lw=1),
+                        arrowprops=dict(arrowstyle='-|>'))
+    annot.set_visible(False)
+    click_coord = []
+
+    def onclick(event):
+        if len(click_coord) < 2:
+            click_coord.append((event.xdata, event.ydata))
+            x = event.xdata
+            y = event.ydata
+
+            # printing the values of the selected point
+            print([x, y])
+            annot.xy = (x, y)
+            text = "({:.2g}, {:.2g})".format(x, y)
+            annot.set_text(text)
+            annot.set_visible(True)
+        if len(click_coord) == 2:
+            click_sel = np.array([np.linspace(click_coord[0][0], click_coord[1][0], n_inv_pca),
+                            np.linspace(click_coord[0][1], click_coord[1][1], n_inv_pca)
+                            ])
+            ax.plot(click_sel[0], click_sel[1], "-o", color="black")
+            inv_pca.append(pca.inverse_transform(click_sel.T))
+            click_coord.clear()
+        fig.canvas.draw()  # redraw the figure
+
+    if n_components == 2:
+        fig.canvas.mpl_connect('button_press_event', onclick)
+
     return fig, ax
 
 
@@ -274,7 +315,7 @@ def get_mol_conv(mol1,mol2, ca_only=False):
 
     return np.array(idx)
 
-def get_mols_conv(mols):
+def get_mols_conv(mols, ca_only=False):
     print("> Converting molecule coordinates ...")
     n_mols = len(mols)
 
@@ -291,7 +332,11 @@ def get_mols_conv(mols):
         id_tmp=[]
         id_idx_tmp=[]
         for i in range(m.n_atoms):
-                id_tmp.append(m.chainName[i] + str(m.resNum[i]) + m.atomName[i])
+            if (not ca_only) or m.atomName[i] == "CA":
+                if chaintype == 0 :
+                    id_tmp.append(m.chainName[i] + str(m.resNum[i]) + m.atomName[i])
+                else:
+                    id_tmp.append(m.chainID[i] + str(m.resNum[i]) + m.atomName[i])
                 id_idx_tmp.append(i)
         ids.append(np.array(id_tmp))
         ids_idx.append(np.array(id_idx_tmp))
@@ -347,3 +392,47 @@ def get_cc_rmsd(N, prefix, target, size, voxel_size, cutoff, sigma, step=1, test
         np.save(file=prefix+"rmsd.npy", arr=np.array(rmsd))
     return np.array(cc), np.array(rmsd)
 
+
+def alignMol(mol1, mol2, idx= None):
+    sup = SVDSuperimposer()
+    if idx is not None:
+        c1 = mol1.coords[idx[:,0]]
+        c2 = mol2.coords[idx[:,1]]
+    else:
+        c1 = mol1.coords
+        c2 = mol2.coords
+    sup.set(c1, c2)
+    sup.run()
+    rot, tran = sup.get_rotran()
+    mol2.coords = np.dot(mol2.coords, rot) + tran
+
+def extractPDBs(dcd_file, pdb_file, out_prefix):
+    with open("%s_dcd2pdb.tcl" % out_prefix, "w") as f:
+        s = ""
+        s += "mol load pdb %s dcd %s\n" % (pdb_file, dcd_file)
+        s += "set nf [molinfo top get numframes]\n"
+        s += "for {set i 0 } {$i < $nf} {incr i} {\n"
+        s += "[atomselect top all frame $i] writepdb %stmp$i.pdb\n" % out_prefix
+        s += "}\n"
+        s += "exit\n"
+        f.write(s)
+    os.system("vmd -dispdev text -e %s_dcd2pdb.tcl" % out_prefix)
+
+def get_molprobity(pdbfile, prefix):
+    os.system("~/MolProbity/cmdline/oneline-analysis %s > %s_molprobity.txt" % (pdbfile,prefix))
+    return read_molprobity("%s_molprobity.txt"% prefix)
+
+def read_molprobity(txt_file):
+    with open(txt_file, "r") as f:
+        header = None
+        molprob = {}
+        for i in f:
+            split_line = (i.split(":"))
+            if header is None:
+                if split_line[0] == "#pdbFileName":
+                    header = split_line
+            else:
+                if len(split_line) == len(header):
+                    for i in range(len(header)):
+                        molprob[header[i]] = split_line[i]
+    return molprob
