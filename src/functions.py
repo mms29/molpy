@@ -13,12 +13,22 @@ from sklearn.decomposition import PCA
 import contextlib
 import io
 import sys
-# import seaborn as sns
+import seaborn as sns
 from Bio.SVDSuperimposer import SVDSuperimposer
 import os
 
 
 def select_voxels(coord, size, voxel_size, cutoff):
+    """
+    Select voxels/pixels to be integrated for the Gaussian of each atom
+    :param coord: Cartesian coordinates, array N*3
+    :param size: size of the image/ volume
+    :param voxel_size: voxel size (A)
+    :param cutoff: cutoff distance for the truncation of the Gaussians (in Angstroms)
+    :return: (vox,n_vox)
+        vox : starting voxels/pixels for each atom, array N * 3
+        n_vox : number of voxels per atom, int
+    """
     n_atoms = coord.shape[0]
     threshold = int(np.ceil(cutoff/voxel_size))
     n_vox = int(threshold*2 +1)
@@ -78,7 +88,7 @@ def get_euler_grad(angles, coord):
 
 
 def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors=None, alphas=None,
-                marker=None, traj=None, inv_pca=[], n_inv_pca=10):
+                marker=None, traj=None, inv_pca=[], n_inv_pca=10, density=True):
     print("Computing PCA ...")
     # plt.style.context("default")
     if colors is None:
@@ -126,8 +136,11 @@ def compute_pca(data, length, labels=None, n_components=2, figsize=(5,5), colors
             if n_components==3:
                 args.append(components[2, idx[i] + j * len_traj:idx[i] + (j + 1) * len_traj])
 
-            ax.plot(*args, marker[i], label=pltlabels[i], markeredgecolor='black',
-                    color = colors[i], alpha=alphas[i])
+            if density[i]:
+                sns.kdeplot(*args, ax=ax, shade=True,color = colors[i], label=pltlabels[i])
+            else:
+                ax.plot(*args, marker[i], label=pltlabels[i], markeredgecolor='black',
+                        color = colors[i], alpha=alphas[i])
     if labels is not None :
         ax.legend()
     fig.tight_layout()

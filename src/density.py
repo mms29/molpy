@@ -134,6 +134,15 @@ class Image(Density):
 
 
 def pdb2vol(coord, size, sigma, voxel_size, cutoff):
+    """
+    Convert PDB to density volume by sum of 3D Gausians
+    :param coord: cartesian coordinates array N*3
+    :param size: to generate a volume of size*size*size
+    :param sigma: std of the Gaussians
+    :param voxel_size: voxel size
+    :param cutoff: cutoff distance for the truncation of the Gaussians (in Angstroms)
+    :return: volume, array size*size*size
+    """
     vox, n_vox = src.functions.select_voxels(coord, size, voxel_size, cutoff)
     n_atoms = coord.shape[0]
     vol = np.zeros((size, size, size))
@@ -150,6 +159,15 @@ def pdb2vol(coord, size, sigma, voxel_size, cutoff):
     return vol, expnt
 
 def pdb2img(coord, size, sigma, voxel_size, cutoff):
+    """
+    Convert PDB to density image by sum of 2D Gausians
+    :param coord: cartesian coordinates array N*3
+    :param size: to generate a image of size*size
+    :param sigma: std of the Gaussians
+    :param voxel_size: voxel size
+    :param cutoff: cutoff distance for the truncation of the Gaussians (in Angstroms)
+    :return: volume, array size*size
+    """
     vox, n_pix = src.functions.select_voxels(coord, size, voxel_size, cutoff)
     pix = vox[:, :2]
     n_atoms = coord.shape[0]
@@ -353,3 +371,4 @@ def get_gradient_CC(mol, psim, pexp, params, **kwargs):
             model[FIT_VAR_LOCAL][i] = dcc
 
     return model
+
