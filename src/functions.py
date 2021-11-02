@@ -13,7 +13,7 @@ from sklearn.decomposition import PCA
 import contextlib
 import io
 import sys
-import seaborn as sns
+# import seaborn as sns
 from Bio.SVDSuperimposer import SVDSuperimposer
 import os
 
